@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f1117">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="LU Command">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Deep Work">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -15,21 +17,14 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app">
-  <aside class="side">
-    <div class="brand"><small>LINGNAN · YEAR 1 EXCHANGE</small><h1>Command Center</h1></div>
-    <nav id="nav"></nav>
-    <div class="side-foot">
-      <div class="saved"><i></i><span>Saved · on this device</span></div>
-      <div class="theme" id="theme"><button data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
-    </div>
-  </aside>
-  <main id="main"></main>
-</div>
-<nav class="bottom" id="bnav"></nav>
-<div id="modal" class="modal hidden"></div>
+<main id="main"></main>
+<div id="mini"></div>
+<nav class="tabbar"><div class="in" id="tabbar"></div></nav>
+<section id="sess" aria-live="polite"></section>
+<div id="layer"></div>
 <script src="plan.js"></script>
 <script src="exercises.js"></script>
+<script src="content.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
