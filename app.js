@@ -38,14 +38,14 @@ function load(){
  try{d=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
  return Object.assign({
   settings:{daily:4,weekly:20,theme:'auto',target:{BUS1103:'A-',BUS2108:'A-',BUS2205:'A-',BUS2105:'A-',BUS2202:'A-'},confidence:{BUS1103:0,BUS2108:0,BUS2205:0,BUS2105:0,BUS2202:0}},
-  sessions:[],priorities:{},redo:[],deadlines:DEADLINES,active:null,draft:[],course:'BUS1103'
+  sessions:[],priorities:{},redo:[],deadlines:DEADLINES,active:null,draft:[],course:'BUS1103',planDone:{},tw:0
  },d,{settings:Object.assign({daily:4,weekly:20,theme:'auto',target:{},confidence:{}},d.settings||{})});
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 let view='today',tick=null;
-const VIEWS=[['today','Today','◎'],['redo','Exercises to redo','↻'],['plan','Planning','▦'],['sessions','Sessions','☰'],['progress','Progress','▲'],['data','Data','⚙']];
-const SHORT={today:'Today',redo:'Redo',plan:'Plan',sessions:'Sessions',progress:'Progress',data:'Data'};
+const VIEWS=[['today','Today','◎'],['timetable','Timetable','▤'],['redo','Exercises to redo','↻'],['plan','Planning','▦'],['sessions','Sessions','☰'],['progress','Progress','▲'],['data','Data','⚙']];
+const SHORT={today:'Today',timetable:'Week',redo:'Redo',plan:'Dates',sessions:'Sessions',progress:'Progress',data:'Data'};
 
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save();
  document.querySelectorAll('#theme button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
@@ -97,6 +97,7 @@ function vToday(){
   <div class="tabs">${tabs}</div>
   <div class="mute small" style="margin-bottom:6px">Session goals · ${objs.filter(o=>o.done).length}/${objs.length}</div>${ol}
   <div class="row" style="margin:14px 0"><input type="text" id="newobj" placeholder="e.g. Ch. 6: redo E6-3 without the solution"><button class="btn" data-act="oadd">Add</button></div>${run}</div>
+ ${plannedCard(day)}
  <div class="card"><div class="card-h"><h3>Exercises to redo</h3><button class="btn sm" data-act="newredo">New exercise</button></div>
   ${due.length?due.map(r=>redoRow(r)).join(''):'<p class="mute">Nothing to redo today.</p>'}</div>
  <div class="card"><div class="card-h"><h3>Three priorities</h3><span class="mute">${pr.filter(p=>p.done).length}/${pr.length}</span></div>${prh}
@@ -166,7 +167,40 @@ function vData(){
  <p class="mute small" style="margin-top:14px">Data stays on this device. Export regularly, and use the same file to move data from laptop to phone.</p>
  <div style="margin-top:18px"><button class="btn danger" data-act="reset">Erase everything</button></div></div>`;
 }
-const VMAP={today:vToday,redo:vRedo,plan:vPlan,sessions:vSessions,progress:vProgress,data:vData};
+
+/* ---------- study timetable ---------- */
+const KIND={L:'Lesson',E:'Exercises',M:'Mock / review',A:'Assignment'};
+function planAll(){return (typeof PLAN!=='undefined')?PLAN:[]}
+function planItems(day){return planAll().filter(p=>p.date===day)}
+function planRow(p){const x=C(p.course);const done=!!S.planDone[p.id];
+ return `<div class="obj ${done?'done':''}"><button class="chk ${done?'on':''}" data-act="pdone" data-id="${p.id}">${done?'✓':''}</button>
+ <span><span class="mute small">${p.start}–${p.end}</span> <i class="dot" style="background:${x.color}"></i>${esc(p.title)} <span class="pill">${KIND[p.kind]||''}</span></span>
+ ${done?'':`<button class="btn sm" data-act="pstart" data-id="${p.id}">Start</button>`}</div>`}
+function plannedCard(day){const it=planItems(day);
+ const dn=it.filter(p=>S.planDone[p.id]).length;
+ return `<div class="card"><div class="card-h"><h3>Planned today</h3><span class="mute small">${dn}/${it.length} blocks</span></div>
+ ${it.length?it.map(planRow).join(''):'<p class="mute">Nothing planned today. Rest or catch up.</p>'}
+ <p class="mute small" style="margin-top:10px">Each block = 50 min work + 15 min break.</p></div>`}
+function vTimetable(){
+ const off=S.tw||0;const ws=weekStart();ws.setDate(ws.getDate()+off*7);
+ const days=[...Array(7)].map((_,i)=>{const d=new Date(ws);d.setDate(ws.getDate()+i);return dkey(d)});
+ const all=days.flatMap(planItems);const dn=all.filter(p=>S.planDone[p.id]).length;
+ const rows=days.map(d=>{const it=planItems(d);const dt=new Date(d+'T12:00');
+  const lab=dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
+  const dls=S.deadlines.filter(x=>String(x.when).slice(0,10)===d).map(x=>`<span class="pill urgent" style="margin-right:6px">${esc(C(x.course).short)} · ${esc(x.title)}</span>`).join('');
+  const dd=it.filter(p=>S.planDone[p.id]).length;
+  const empty=dt.getDay()===2?'Rest day.':'No block planned.';
+  return `<div class="card"><div class="card-h"><h3>${lab}${d===today()?' · today':''}</h3><span class="mute small">${it.length?dd+'/'+it.length+' blocks':''}</span></div>
+  ${dls?`<div style="margin-bottom:8px">${dls}</div>`:''}${it.length?it.map(planRow).join(''):`<p class="mute small">${empty}</p>`}</div>`}).join('');
+ const per=COURSES.map(c=>[c,all.filter(p=>p.course===c.id).length]).filter(a=>a[1]);
+ return header('50 MIN WORK + 15 MIN BREAK','Timetable')+`<div class="card" style="margin-bottom:20px">
+ <div class="row sp"><button class="btn sm" data-act="tprev">← Previous</button><button class="btn sm" data-act="tnow">This week</button><button class="btn sm" data-act="tnext">Next →</button></div>
+ <p class="mute small" style="margin:12px 0 6px">${days[0].slice(5)} to ${days[6].slice(5)} · ${dn}/${all.length} blocks done</p>
+ <div class="bar"><i style="width:${all.length?dn/all.length*100:0}%"></i></div>
+ <div style="margin-top:10px">${per.map(([c,n])=>`<span class="pill" style="margin-right:6px"><i class="dot" style="background:${c.color}"></i>${c.short} ${n}</span>`).join('')}</div></div>
+ <div class="col">${rows}</div>`;
+}
+const VMAP={today:vToday,timetable:vTimetable,redo:vRedo,plan:vPlan,sessions:vSessions,progress:vProgress,data:vData};
 function render(keepFocus){
  const f=document.activeElement;const id=f&&f.id;const val=f&&f.value;
  nav();document.getElementById('main').innerHTML=VMAP[view]();
@@ -200,6 +234,13 @@ function dlModal(){modal(`<h3>New deadline</h3><div class="field"><label>Course<
 
 /* ---------- actions ---------- */
 const A={
+ pdone(el){S.planDone[el.dataset.id]=!S.planDone[el.dataset.id];save();render()},
+ pstart(el){const p=planAll().find(x=>x.id===el.dataset.id);if(!p)return;const o={t:p.title,done:false};
+  if(S.active){S.active.objectives.push(o)}else{S.course=p.course;S.draft.push(o)}
+  view='today';render();window.scrollTo(0,0);save()},
+ tprev(){S.tw=(S.tw||0)-1;save();render()},
+ tnext(){S.tw=(S.tw||0)+1;save();render()},
+ tnow(){S.tw=0;save();render()},
  course(el){S.course=el.dataset.id;save();render()},
  oadd(){const i=document.getElementById('newobj');const t=i.value.trim();if(!t)return;(S.active?S.active.objectives:S.draft).push({t,done:false});save();render()},
  otoggle(el){const o=(S.active?S.active.objectives:S.draft)[+el.dataset.i];o.done=!o.done;save();render()},
