@@ -221,5 +221,16 @@ details summary{cursor:pointer}
 .flexw{display:flex;flex-wrap:wrap;gap:8px}
 .quota{width:44px;text-align:center}.quota input{text-align:center;padding:8px 2px;min-height:38px}
 
+@media(min-width:900px){
+ body{padding-left:220px}
+ .tabbar{top:0;bottom:auto;right:auto;width:220px;height:100vh;border-top:0;border-right:.5px solid var(--sep);padding:28px 12px;justify-content:flex-start;align-items:flex-start}
+ .tabbar .in{flex-direction:column;width:100%;gap:2px}
+ .tabbar button{display:flex;align-items:center;gap:12px;font-size:15px;padding:10px 12px;border-radius:10px;font-weight:500}
+ .tabbar button .ic{font-size:22px}
+ .tabbar button.on{background:var(--fill)}
+ .tabbar button:hover{background:var(--fill)}
+ #main{padding-bottom:60px}
+ .mini{left:calc(50% + 110px);bottom:18px}
+}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(min-width:700px){.lt{font-size:40px}}

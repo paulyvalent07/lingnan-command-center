@@ -138,6 +138,8 @@ function lessonsOf(course){
    if(p.kind==='L'&&!l.title)l.title=cleanTitle(p.title);
   });
  });
+ const doc=courseDoc(course);
+ if(doc&&doc.lessons)Object.keys(doc.lessons).forEach(num=>{const id=course+':'+num;if(!m.has(id))m.set(id,{id,course,num,title:doc.lessons[num].title,L:[],E:[],unplanned:true})});
  const rank=l=>/^\d+$/.test(l.num)?+l.num:/^x/.test(l.num)?900:500;
  return [...m.values()].map(l=>{if(!l.title)l.title=(/^\d+$/.test(l.num)?'Chapter '+l.num:'Lesson');return l}).sort((a,b)=>rank(a)-rank(b));
 }
@@ -269,7 +271,7 @@ function vCourses(){
 function vCourse(){
  const c=C(param),s=courseStat(c.id),ls=lessonsOf(c.id);
  const other=planAll().filter(p=>p.course===c.id&&(p.kind==='M'||p.kind==='A')).sort((a,b)=>a.date.localeCompare(b.date));
- const lrow=l=>{const g=lessonProg(l);const full=g.Lt&&g.Ld===g.Lt&&(!g.Et||g.Ed===g.Et);
+ const lrow=l=>{if(l.unplanned)return `<div class="cell has-ico"><button class="t" style="text-align:left;flex:1;min-width:0" data-act="open" data-v="lesson" data-p="${l.id}"><b>${esc(lessonName(l))}</b><span>New from your Word file · not planned yet</span></button><button class="btn sm tint" data-act="plannew" data-id="${l.id}">Add to plan</button></div>`;const g=lessonProg(l);const full=g.Lt&&g.Ld===g.Lt&&(!g.Et||g.Ed===g.Et);
   return `<button class="cell has-ico" data-act="open" data-v="lesson" data-p="${l.id}"><span class="chk green ${full?'on':''}" style="pointer-events:none">${ic('check')}</span><span class="t"><b>${esc(lessonName(l))}</b><span>${g.Lt?`Lesson ${g.Ld}/${g.Lt}`:''}${g.Et?` · Exercises ${g.Ed}/${g.Et}`:''}</span></span>${ic('chev','chev')}</button>`};
  return `<div class="view">${navbar('Courses')}${title(c.name,c.id)}
  <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${s.done}/${s.total}</b><span>blocks done</span></div><div class="stat"><b style="${s.over?'color:var(--red)':''}">${s.over}</b><span>behind</span></div><div class="stat"><b>${s.nd?countdown(s.nd.when).split(' ').slice(0,2).join(' '):'–'}</b><span>${s.nd?'to '+esc(s.nd.title.split(' (')[0].slice(0,16)):'no deadline'}</span></div></div>
@@ -462,12 +464,12 @@ function sessionModal(s){
 }
 function redoModal(){openSheet('New exercise to redo',`<div class="grp fgrp">${fld('Course',courseSel(S.course))}${fld('Exercise','<input type="text" id="m-title" placeholder="e.g. E6-3 sales returns" style="text-align:right">')}</div>`,`<button class="btn" data-act="rsave">Add</button>`)}
 function dlModal(){openSheet('New deadline',`<div class="grp fgrp">${fld('Course',`<select id="m-course">${COURSES.map(c=>`<option value="${c.id}">${c.short}</option>`).join('')}<option value="ALL">All courses</option></select>`)}${fld('Title','<input type="text" id="m-title" style="text-align:right">')}${fld('When','<input type="datetime-local" id="m-when">')}</div>`,`<button class="btn" data-act="dlsave">Add</button>`)}
-function addLesson(course,ttl,n,withEx){
+function addLesson(course,ttl,n,withEx,lidOverride){
  const nd=nextDeadline(course),start=new Date();start.setHours(0,0,0,0);
  let limit=new Date(start);limit.setDate(limit.getDate()+14);
  if(nd){const l=new Date(nd.when);l.setHours(0,0,0,0);l.setDate(l.getDate()-1);if(l>=start)limit=l}
  const days=[];for(let d=new Date(start);d<=limit;d.setDate(d.getDate()+1))days.push(dkey(d));
- const spare=d=>quotaOf(d)-itemsOn(d).length,made=[],lid=course+':x'+uid();
+ const spare=d=>quotaOf(d)-itemsOn(d).length,made=[],lid=lidOverride||course+':x'+uid();
  const place=(from,kind,t)=>{let i=days.findIndex((d,ix)=>ix>=from&&spare(d)>0);if(i<0)i=Math.max(0,days.length-1);
   const p={id:'x'+uid(),date:days[i],course,kind,title:t,lid};S.extraPlan.push(p);made.push(p);return i};
  let last=0;
@@ -588,6 +590,8 @@ const A={
   S.course=c;S.active={mode:'free',course:c,items:[],title:t||'Free work',startTs:Date.now()};S.brk=null;sessOpen=true;closeSheet();save();syncUI();keepAwake(true)},
  pdone(el){S.planDone[el.dataset.id]=!S.planDone[el.dataset.id];save();render();if(S.active)renderSession()},
  lessonopen(el){lessonModal(el&&el.dataset&&el.dataset.course)},
+ plannew(el){const cid=el.dataset.id.split(':')[0],l=lessonsOf(cid).find(x=>x.id===el.dataset.id);if(!l)return;
+  addLesson(cid,(/^\d+$/.test(l.num)?'Ch.'+l.num+' · ':'')+l.title,2,true,l.id);render()},
  lessongo(){const t=$('m-title').value.trim();if(!t)return;
   const made=addLesson($('m-course').value,t,+$('m-n').value,$('m-ex').value==='1');
   setSheet(`<div class="grp">${made.map(p=>`<div class="cell"><span class="t"><b>${esc(p.title)}</b><span>${new Date(p.date+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span></span></div>`).join('')}</div>`,`<button class="btn" data-act="sclose">Done</button>`);render()},

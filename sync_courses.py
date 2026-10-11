@@ -11,6 +11,7 @@ Structure expected in each .docx (the same one the weekly update produces):
   Paragraph starting with "Réponse:", "Answer:", "Solution:", "Corrigé:" -> hidden answer in the app.
   Anything before the first chapter, or after the last one (checklist, final mixed test) -> "extras".
 Re-run it each time a .docx changes, then push content.js to GitHub.
+Courses with no .docx in the folder keep their previous content (merge mode), so you can sync one course at a time.
 """
 import sys, re, json, datetime as dt
 from pathlib import Path
@@ -96,12 +97,19 @@ def convert(path):
 def main():
     src = Path(sys.argv[1])
     out = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).with_name("content.js")
-    data = {"synced": dt.datetime.now().strftime("%Y-%m-%d %H:%M"), "courses": {}}
+    data = {"synced": None, "courses": {}}
+    if out.exists():   # merge mode: courses without a new .docx keep their previous content
+        try:
+            txt = out.read_text(encoding="utf-8")
+            data = json.loads(txt[txt.index("CONTENT=") + 8:].rstrip().rstrip(";"))
+        except Exception as e:
+            print("!! could not read previous content.js, starting empty:", e)
+    data["synced"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     for code, name in COURSES.items():
         files = sorted(src.glob(f"{code}*.docx"))
         if not files:
-            print(f"!! {code}: no .docx found in {src}")
-            data["courses"][code] = {"file": None, "mtime": None, "lessons": {}, "extras": []}
+            data["courses"].setdefault(code, {"file": None, "mtime": None, "lessons": {}, "extras": []})
+            print(f"-- {code}: no new .docx, previous content kept")
             continue
         f = files[-1]
         lessons, extras = convert(f)
