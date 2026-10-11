@@ -34,22 +34,31 @@ function buildDeck(CONTENT){
       m=strip(raw).match(/^([^:—–]{3,70}?)\s*(?::|—|–| - )\s+(.{20,})$/);
       if(m&&m[1].split(' ').length<=9&&!/[?]$/.test(m[1])&&(m[1].match(/,/g)||[]).length<=1&&!/^["“]/.test(m[1])){term=m[1];def=m[2]}
      }
-     if(term&&def&&def.length>=15&&term.length<=80)add(c,n,lt,sec,'b','Explain: '+term,cut(def.replace(/^[—–\-:\s]+/,''),420));
+     if(!term||!def)return;
+     def=def.replace(/^[—–\-:\s]+/,'');
+     if(def.length<15||term.length>80||/^[A-Z][.)]\s/.test(term)||/^e\.?g\.?[ ,]/i.test(def)||/context example/i.test(term))return;
+     const s2=strip(sec).replace(/^\d+(\.\d+)*[.)]?\s+/,'').split(/ — | \(/)[0].slice(0,50);
+     const t2=term.replace(/^\d+[.)]\s+/,'');
+     const fn=/\b(when|with|of|to|for|than|by|from)$/i.test(t2),long=t2.split(' ').length>=5||/[.!]$/.test(t2);
+     const weak=t2.split(' ').length<=2&&t2.length<16||fn||/^(definition|location|step \d|example|purpose|result|impact)/i.test(t2);
+     const q=long?'Explain: '+t2.replace(/[.!]$/,''):weak?(s2.length<12?'':s2+' — ')+t2+(fn?' …?':/\?$/.test(t2)?'':'?'):'What is “'+t2+'”?';
+     add(c,n,lt,sec,'b',q,cut(def.charAt(0).toUpperCase()+def.slice(1),420));
     }else if(b.t==='table'&&b.rows&&b.rows.length>=2){
      const rows=b.rows,H=rows[0].map(strip);
-     if(H.filter(Boolean).length<2||H.length>5)return;
+     if(H.filter(Boolean).length<2||H.length>5||H.some(x=>x.length>60)||H.some(x=>/debit|credit/i.test(x)))return;
      if(numTable(rows).ratio>0.4)return;
      const body=rows.slice(1);
      const firsts=body.map(r=>strip(r[0]));
      const dup=new Set(firsts).size<firsts.length;
+     const HQ=/^(term|concept|name|item|definition)$/i.test(H[0]);
      body.forEach(r=>{
       const cells=r.map(strip);
-      if(!cells[0]||cells[0].length>140||cells.slice(1).every(x=>!x))return;
+      if(!cells[0]||cells[0].length>90||/^(debit|credit)\b/i.test(cells[0])||cells.slice(1).every(x=>!x))return;
       let q,a;
-      const HQ=/^(term|concept|name|item|definition)$/i.test(H[0]);
-      if(dup&&cells.length>=3){q=H[0]+': '+cells[0]+' · '+H[1]+': '+cells[1];a=cells.slice(2).map((x,i)=>H[i+2]+': '+x).filter(x=>!/: $/.test(x)).join('\n')}
-      else if(cells.length===2){q=HQ?'Explain: '+cells[0]:H[0]+': '+cells[0];a=cells[1]}
-      else{q=H[0]+': '+cells[0];a=cells.slice(1).map((x,i)=>(H[i+1]?H[i+1]+': ':'')+x).filter(x=>x.replace(/^[^:]*:\s*/,'')).join('\n')}
+      if(dup&&cells.length>=3){q='“'+H[0]+': '+cells[0]+' · '+H[1]+': '+cells[1]+'” → '+H.slice(2).join(' / ')+'?';a=cells.slice(2).map((x,i)=>H[i+2]+': '+x).join('\n')}
+      else if(cells.length===2){q=HQ||/mean|defin|descri|explan/i.test(H[1])?'What does “'+cells[0]+'” mean?':'“'+cells[0]+'” — '+H[1]+'?';a=cells[1]}
+      else{cells.slice(1).forEach((x,i)=>{if(x&&H[i+1])add(c,n,lt,sec,'t','“'+cells[0]+'” — '+H[i+1]+'?',cut(x,420))});return}
+      if(!a||a.length<2)return;
       add(c,n,lt,sec,'t',q,cut(a,520));
      });
     }
@@ -79,7 +88,7 @@ function buildDeck(CONTENT){
    });
    pool.forEach(q=>{
     if(!q.a)return;
-    const front=q.t.map(strip).join('\n');
+    const front=q.t.map(strip).join('\n').replace(/^(?:[QA]?\d+[.)]\s*)/i,'');
     if(front.length<12||front.length>900)return;
     add(c,n,lt,esec,'x',front,cut(strip(q.a).replace(/^[QA]?\d+[.)]\s*/i,'')||q.a,640));
    });

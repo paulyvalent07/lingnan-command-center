@@ -852,10 +852,11 @@ function vStudy(){
  const x=C(c.c),nl=s=>md(s).replace(/\n/g,'<br>'),S0=S.cards[c.id];
  const btn=(g,n,cl)=>`<button class="cg ${cl}" data-act="cgrade" data-g="${g}"><b>${n}</b><span>${CD.label(S0,g)}</span></button>`;
  return `<div class="view study">${navbar('Cards',`<span class="mute" style="font-size:14px">${st.queue.length} left</span>`)}
- <div class="fc ${st.flipped?'flip':''}" id="fc"><button class="fc-flag" data-act="cflag" aria-label="Flag this card to rework" title="Flag to rework">⚑</button><div class="fc-top"><i style="background:${x.color}"></i>${esc(x.short)} · ${esc(c.sec||c.lt||'')}</div>
+ <div class="fc ${st.flipped?'flip':''}" id="fc"><div class="fc-top"><i style="background:${x.color}"></i><span><b>${esc(x.short)}</b> · ${esc((c.lt||'').slice(0,60))}</span></div>
   <div class="fc-q">${nl(c.q)}</div>
   ${st.flipped?`<div class="fc-sep"></div><div class="fc-a">${nl(c.a)}</div>`:`<div class="fc-hint">Tap to show the answer</div>`}</div>
- ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div><div class="fc-tip">← swipe left: again · swipe right: good →</div>`:''}</div>`;
+ ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div>`:''}
+ <div class="fc-tip"><button class="fc-rw" data-act="cflag">To rework</button></div></div>`;
 }
 function startStudy(course){
  const q=cardQueue(course).all;if(!q.length)return;
