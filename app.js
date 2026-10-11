@@ -195,6 +195,9 @@ function lessonBody(l){
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
 }
 function officialOf(p){const m=/official (.+?)(?: \+ practice set)?$/.exec(p.title);return m?m[1]:(/·\s*(.+)$/.exec(p.title)||[])[1]||''}
+function exFix(l,ex){const X=typeof EXTRA!=='undefined'&&EXTRA[l.id];if(!X)return ex;
+ const i=ex.findIndex(b=>b.t==='h'&&b.x.startsWith(X.from));if(i<0)return ex;let j=ex.findIndex((b,k)=>k>i&&b.t==='h'&&b.x.startsWith(X.to));if(j<0)j=ex.length;
+ return ex.slice(0,i+1).concat(X.blocks,ex.slice(j))}
 function exBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  let out='';
@@ -202,7 +205,7 @@ function exBody(l){
  const keys=[...new Set(l.E.map(p=>p.ex).filter(Boolean))];
  keys.forEach(k=>{const s=exSet(k);if(!s)return;
   out+=`<div class="sh">${esc(s.title)}</div>${s.items.map((it,i)=>{const q={n:String(i+1),t:[{t:'p',x:it.q}],ans:[{t:'a',x:it.a}]};CD.classify(q);return qCard(q,{course:k.split(':')[0],num:'s'+CD.hash(k),lt:s.title,sec:''})}).join('')}${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
- if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${exHtml(l,doc.ex)}</div>`;
+ if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${exHtml(l,exFix(l,doc.ex))}</div>`;
  const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length);
  if(!has)out+=`<div class="empty" style="margin-top:12px">${ic('clip')}<b>No practice set written yet</b>Do the official exercises above. Original practice questions are added by the weekly update.</div>`;
  return out+`<div class="finrow"><button class="btn" data-act="exfin">${ic('check')} Finish exercises</button></div>`;
