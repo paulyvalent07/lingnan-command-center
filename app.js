@@ -189,7 +189,8 @@ function syncLine(cid){
 function lessonBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('');
- if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes'})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>`;
+ const hasEx=l.E.length||(doc&&doc.ex&&doc.ex.length),nxt=hasEx&&l.L.some(p=>S.planDone[p.id])?`<div class="nxtrow"><button class="nxt" data-act="goex">Exercises ${ic('chev','')}</button></div>`:'';
+ if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes'})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>${nxt}`;
  return `<div class="empty">${ic('doc')}<b>Lesson text not synced yet</b>The synthesis for this lesson will appear here from ${esc(d&&d.file||'your Word file')} after the next sync.</div>
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
 }
@@ -204,7 +205,7 @@ function exBody(l){
  if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${exHtml(l,doc.ex)}</div>`;
  const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length);
  if(!has)out+=`<div class="empty" style="margin-top:12px">${ic('clip')}<b>No practice set written yet</b>Do the official exercises above. Original practice questions are added by the weekly update.</div>`;
- return out;
+ return out+`<div class="finrow"><button class="btn" data-act="exfin">${ic('check')} Finish exercises</button></div>`;
 }
 function briefBody(p){
  const extras=(courseDoc(p.course)||{}).extras||[];
@@ -254,6 +255,7 @@ function vToday(){
  ${brk}${sug}
  <div class="sh">Today's plan · ${list.filter(p=>S.planDone[p.id]).length}/${list.length}</div>
  <div class="grp">${list.length?list.map(planRow).join(''):'<div class="cell"><span class="t"><b>Nothing planned today</b><span>Start Deep Work to get ahead.</span></span></div>'}</div>
+ ${(()=>{const r=!S.active&&LAST();if(!r)return'';const cid=String(r.id).split(':')[0],l=COURSES.some(c=>c.id===cid)?lessonsOf(cid).find(x=>x.id===r.id):null;if(!l)return'';const x=C(cid);return `<div class="grp" style="margin-top:14px"><button class="cell has-ico" data-act="resume" style="--c:${x.color}"><span class="sq" style="--c:${x.color}">${ic('play')}</span><span class="t"><b>Resume</b><span>${x.short} · ${esc(lessonName(l))} · ${r.tab==='ex'?'Exercises':'Lesson'}</span></span>${ic('chev','chev')}</button></div>`})()}
  <div class="grp" style="margin-top:14px"><button class="cell has-ico" data-act="freeopen"><span class="sq" style="--c:var(--accent)">${ic('timer')}</span><span class="t"><b>Free session</b></span>${ic('chev','chev')}</button><button class="cell has-ico" data-act="lessonopen"><span class="sq" style="--c:var(--green)">${ic('plus')}</span><span class="t"><b>Add a lesson</b></span>${ic('chev','chev')}</button>
  ${cardsRow()}
  ${due?`<button class="cell has-ico" data-v="redo" data-act="open"><span class="sq" style="--c:var(--orange)">${ic('redo')}</span><span class="t"><b>${due} exercise${due>1?'s':''} to redo</b></span>${ic('chev','chev')}</button>`:''}</div></div>`;
@@ -283,10 +285,13 @@ function readChip(l){
  const day=today(),t=readMin(day,l.course),all=Math.floor(S.reads.filter(r=>r.lid===l.id).reduce((a,r)=>a+r.sec,0)/60);
  return `<div class="sf" style="margin:10px 0 0">${ic('clock','')} Reading mode: no session needed. Time is tracked as review (${t?fmt(readMin(day)):'0 min'} today${all?` · ${fmt(all)} on this chapter`:''}).</div>`;
 }
+function LAST(){try{return JSON.parse(localStorage.getItem('lu-last')||'null')}catch(e){return null}}
+function setLast(id,tab,y){try{localStorage.setItem('lu-last',JSON.stringify({id,tab,y:y||0,ts:Date.now()}))}catch(e){}}
+let lastT=0;document.addEventListener('scroll',()=>{if(view!=='lesson'||S.active||Date.now()-lastT<800)return;lastT=Date.now();setLast(param,lTab,window.scrollY)},{passive:true,capture:true});
 function vLesson(){
  const cid=String(param).split(':')[0],l=lessonsOf(cid).find(x=>x.id===param),c=C(cid);
  if(!l)return `<div class="view">${navbar('Back')}${title('Lesson')}<div class="empty">Lesson not found.</div></div>`;
- const g=lessonProg(l);
+ const g=lessonProg(l);if(!S.active)setLast(l.id,lTab,0);
  return `<div class="view">${navbar(c.short)}${title(esc(l.title),(/^\d+$/.test(l.num)?'Chapter '+l.num+' · ':'')+c.name)}
  <div class="segc tabs-s" style="margin-top:10px"><button class="${lTab==='lesson'?'on':''}" data-act="ltab" data-k="lesson">Lesson ${g.Lt?g.Ld+'/'+g.Lt:''}</button><button class="${lTab==='ex'?'on':''}" data-act="ltab" data-k="ex">Exercises ${g.Et?g.Ed+'/'+g.Et:''}</button></div>
  ${readChip(l)}
@@ -603,8 +608,10 @@ async function cloudConnect(token){
 /* ---------- session screen (opens the course page) ---------- */
 function curItem(){const a=S.active;return a&&a.items?planAll().find(p=>p.id===a.cur):null}
 function sessRing(pct,color){return `<div class="tr">${ringSvg(92,40,7,pct,color).replace('class="pg"','class="pg" id="sring"')}<span class="timer" id="stimer" style="font-size:21px"></span></div>`}
+function recapHtml(a){const v=Object.values(a.xrm||{});if(!v.length)return'';const ok=v.filter(Boolean).length,ko=v.length-ok;
+ return `<div class="recap"><div><b>${ok}</b><span>right</span></div><div><b>${ko}</b><span>missed, in flashcards</span></div></div>`}
 function renderSession(){
- const el=$('sess');
+ const el=$('sess');try{if(S.active&&S.active.items){const p0=curItem(),l0=p0&&lessonsFor(p0)[0];if(l0)setLast(l0.id,S.active.tab==='ex'?'ex':'lesson',0)}}catch(e){}
  if(!S.active){sessOpen=false;hud=false;el.classList.remove('open','hud');el.innerHTML='';return}
  const a=S.active,x=C(a.course);
  el.classList.toggle('open',sessOpen);el.classList.add('blk');
@@ -616,7 +623,7 @@ function renderSession(){
   const items=(a.items||[]).map(id=>planAll().find(p=>p.id===id)).filter(Boolean);
   if(!a.mast)a.mast={};
   el.innerHTML=`<div class="sess-h"><div class="sess-top"><span style="width:30px"></span><span class="eyebrow">${x.short} · Deep Work</span><span style="width:30px"></span></div></div>
-  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p></div>
+  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p></div>${recapHtml(a)}
   <div class="sh">How much did you master?</div>${items.map(p=>{const v=(a.mast||{})[p.id],ex=p.kind==='E';return `<div class="mq"><b>${esc(shortTitle(p.title))}</b><span>${ex?'How did the exercises go?':'Share of this lesson you really understood'}</span><div class="pcts">${[0,25,50,75,100].map(n=>`<button class="${v===n?'on':''}" data-act="mpct" data-id="${p.id}" data-p="${n}">${n}%</button>`).join('')}</div></div>`}).join('')}
   <div class="sh" style="text-align:center">How was your focus?</div>
   <div class="rate"><button data-act="rate" data-f="1">😕<span>Low</span></button><button data-act="rate" data-f="2">🙂<span>OK</span></button><button data-act="rate" data-f="3">🔥<span>Deep</span></button></div></div></div>`;
@@ -710,6 +717,9 @@ const A={
  scur(el){const a=S.active;a.cur=el.dataset.id;const p=curItem();a.tab=p&&p.kind==='E'?'ex':'lesson';save();renderSession()},
  stab(el){S.active.tab=el.dataset.k;save();renderSession()},
  ltab(el){lTab=el.dataset.k;render()},
+ goex(){if(S.active){S.active.tab='ex';save();renderSession();const b=document.querySelector('#sess .sess-b');if(b)b.scrollTop=0}else{lTab='ex';render();window.scrollTo(0,0)}},
+ exfin(){if(S.active&&S.active.mode!=='free'){A.stop()}else if(S.active){A.stop()}else{A.back&&A.back()}},
+ resume(){const r=LAST();if(!r)return;hist.push([view,param]);view='lesson';param=r.id;lTab=r.tab||'lesson';render();setTimeout(()=>window.scrollTo(0,r.y||0),30)},
  mpct(el){const a=S.active;a.mast=a.mast||{};a.mast[el.dataset.id]=+el.dataset.p;save();renderSession()},
  fitem(el){const a=S.active,id=el.dataset.id,i=a.fin.indexOf(id);if(i>=0)a.fin.splice(i,1);else a.fin.push(id);save();renderSession()},
  rate(el){const a=S.active,secs=activeSecs(),m=a.mast||{},ids=[];
@@ -1027,7 +1037,7 @@ function xrefresh(id){
  const r=QREG[id];if(!r)return;
  document.querySelectorAll('[data-qid="'+id+'"]').forEach(n=>{const t=document.createElement('div');t.innerHTML=qCard(r.q,r.ctx);n.replaceWith(t.firstElementChild)});
 }
-function xrecord(id,ok){S.exr=S.exr||{};S.exr[id]={ok:ok?1:0,ts:Date.now()};save()}
+function xrecord(id,ok){if(S.active){const a=S.active;a.xrm=a.xrm||{};a.xrm[id]=ok?1:0}S.exr=S.exr||{};S.exr[id]={ok:ok?1:0,ts:Date.now()};save()}
 document.addEventListener('input',e=>{
  const el=e.target,id=el.dataset&&el.dataset.xq;if(!id)return;
  const st=xstate(id);
