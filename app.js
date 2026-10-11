@@ -613,8 +613,8 @@ function curItem(){const a=S.active;return a&&a.items?planAll().find(p=>p.id===a
 function sessRing(pct,color){return `<div class="tr">${ringSvg(92,40,7,pct,color).replace('class="pg"','class="pg" id="sring"')}<span class="timer" id="stimer" style="font-size:21px"></span></div>`}
 function recapHtml(a){const v=Object.values(a.xrm||{});if(!v.length)return'';const ok=v.filter(Boolean).length,ko=v.length-ok;
  return `<div class="recap"><div><b>${ok}</b><span>right</span></div><div><b>${ko}</b><span>missed, in flashcards</span></div></div>`}
-function renderSession(){
- const el=$('sess');try{if(S.active&&S.active.items){const p0=curItem(),l0=p0&&lessonsFor(p0)[0];if(l0)setLast(l0.id,S.active.tab==='ex'?'ex':'lesson',0)}}catch(e){}
+function renderSession(top){
+ const el=$('sess');const oldB=el.querySelector('.sess-b'),oldY=!top&&oldB?oldB.scrollTop:0;try{if(S.active&&S.active.items){const p0=curItem(),l0=p0&&lessonsFor(p0)[0];if(l0)setLast(l0.id,S.active.tab==='ex'?'ex':'lesson',0)}}catch(e){}
  if(!S.active){sessOpen=false;hud=false;el.classList.remove('open','hud');el.innerHTML='';return}
  const a=S.active,x=C(a.course);
  el.classList.toggle('open',sessOpen);el.classList.add('blk');
@@ -650,6 +650,7 @@ function renderSession(){
   <div class="sess-f"><div><button class="btn gray sm" data-act="stop">${free?'Stop and save':'Finish early'}</button><button class="btn red sm" data-act="cancel" aria-label="Discard">${ic('x')}</button></div></div>
   <div class="sline"><i id="sline" style="background:${x.color}"></i></div><div class="sess-hint">Esc or swipe right for controls</div>`;
  updateTimers();
+ if(oldY){const nb=el.querySelector('.sess-b');if(nb)nb.scrollTop=oldY}
 }
 function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||activeSecs()>=WORK);return hud||free||!!fin||!!a.pausedAt}
 let hudT=0,hudXY=null;
@@ -717,10 +718,10 @@ const A={
  sclose(){closeSheet()},
  sopen(){sessOpen=true;syncUI()},
  smin(){sessOpen=false;syncUI()},
- scur(el){const a=S.active;a.cur=el.dataset.id;const p=curItem();a.tab=p&&p.kind==='E'?'ex':'lesson';save();renderSession()},
- stab(el){S.active.tab=el.dataset.k;save();renderSession()},
+ scur(el){const a=S.active;a.cur=el.dataset.id;const p=curItem();a.tab=p&&p.kind==='E'?'ex':'lesson';save();renderSession(true)},
+ stab(el){S.active.tab=el.dataset.k;save();renderSession(true)},
  ltab(el){lTab=el.dataset.k;render()},
- goex(){if(S.active){S.active.tab='ex';save();renderSession();const b=document.querySelector('#sess .sess-b');if(b)b.scrollTop=0}else{lTab='ex';render();window.scrollTo(0,0)}},
+ goex(){if(S.active){S.active.tab='ex';save();renderSession(true);const b=document.querySelector('#sess .sess-b');if(b)b.scrollTop=0}else{lTab='ex';render();window.scrollTo(0,0)}},
  exfin(){if(S.active&&S.active.mode!=='free'){A.stop()}else if(S.active){A.stop()}else{A.back&&A.back()}},
  resume(){const r=LAST();if(!r)return;hist.push([view,param]);view='lesson';param=r.id;lTab=r.tab||'lesson';render();setTimeout(()=>window.scrollTo(0,r.y||0),30)},
  mpct(el){const a=S.active;a.mast=a.mast||{};a.mast[el.dataset.id]=+el.dataset.p;save();renderSession()},
