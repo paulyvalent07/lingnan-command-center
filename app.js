@@ -76,7 +76,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[]},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
@@ -93,6 +93,7 @@ function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="$
 
 /* ---------- time helpers ---------- */
 function minsOn(day,course){return S.sessions.filter(s=>dkey(s.start)===day&&(!course||s.course===course)).reduce((a,s)=>a+s.minutes,0)}
+function readMin(day,course){return Math.floor(S.reads.filter(r=>r.day===day&&(!course||r.course===course)).reduce((a,r)=>a+r.sec,0)/60)}
 function weekStart(d=new Date()){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
 function weekDays(off=0){const w=weekStart();w.setDate(w.getDate()+off*7);return [...Array(7)].map((_,i)=>{const d=new Date(w);d.setDate(w.getDate()+i);return dkey(d)})}
 function streak(){let n=0,d=new Date();if(!minsOn(dkey(d)))d.setDate(d.getDate()-1);while(minsOn(dkey(d))>0){n++;d.setDate(d.getDate()-1)}return n}
@@ -235,7 +236,7 @@ function vToday(){
   lab=`<div class="lab">In session</div><div class="sub">Tap to open your course</div>`;
  }else{
   btn=`<button class="go" data-act="pstart" aria-label="Start Deep Work">${ic('play')}</button>`;
-  lab=`<div class="lab">Start Deep Work</div><div class="sub">${fmt(mins)} of ${S.settings.daily} h${st?` · ${ic('flame','')} ${st}-day streak`:''}</div>`;
+  lab=`<div class="lab">Start Deep Work</div><div class="sub">${fmt(mins)} of ${S.settings.daily} h${st?` · ${ic('flame','')} ${st}-day streak`:''}</div>${readMin(day)?`<div class="sub" style="margin-top:2px">+ ${fmt(readMin(day))} of review</div>`:''}`;
  }
  const brk=(!S.active&&S.brk&&Date.now()<S.brk.until)?`<div class="grp" style="margin-top:14px"><div class="cell"><span class="sq" style="--c:var(--orange)">${ic('cup')}</span><span class="t"><b>Break</b><span>Back to it when the timer ends</span></span><b id="brk" class="v" style="font-size:20px;color:var(--label)">${fmtMS((S.brk.until-Date.now())/1000)}</b><button class="btn tint sm" data-act="skipbrk">Skip</button></div></div>`:'';
  let sug='';
@@ -274,14 +275,19 @@ function vCourse(){
  <div class="sh">Word synthesis</div><div class="grp"><div class="cell has-ico"><span class="sq" style="--c:var(--accent)">${ic('doc')}</span><span class="t"><b>${esc(syncLine(c.id))}</b></span></div></div>
  <div class="row c" style="margin-top:8px"><button class="link" data-act="lessonopen" data-course="${c.id}">Add a lesson</button></div></div>`;
 }
+function readChip(l){
+ const day=today(),t=readMin(day,l.course),all=Math.floor(S.reads.filter(r=>r.lid===l.id).reduce((a,r)=>a+r.sec,0)/60);
+ return `<div class="sf" style="margin:10px 0 0">${ic('clock','')} Reading mode: no session needed. Time is tracked as review (${t?fmt(readMin(day)):'0 min'} today${all?` · ${fmt(all)} on this chapter`:''}).</div>`;
+}
 function vLesson(){
  const cid=String(param).split(':')[0],l=lessonsOf(cid).find(x=>x.id===param),c=C(cid);
  if(!l)return `<div class="view">${navbar('Back')}${title('Lesson')}<div class="empty">Lesson not found.</div></div>`;
  const g=lessonProg(l);
  return `<div class="view">${navbar(c.short)}${title(esc(l.title),(/^\d+$/.test(l.num)?'Chapter '+l.num+' · ':'')+c.name)}
  <div class="segc tabs-s" style="margin-top:10px"><button class="${lTab==='lesson'?'on':''}" data-act="ltab" data-k="lesson">Lesson ${g.Lt?g.Ld+'/'+g.Lt:''}</button><button class="${lTab==='ex'?'on':''}" data-act="ltab" data-k="ex">Exercises ${g.Et?g.Ed+'/'+g.Et:''}</button></div>
+ ${readChip(l)}
  ${lTab==='lesson'?lessonBody(l):exBody(l)}
- <div style="margin-top:18px"><button class="btn" data-act="pstart" data-course="${c.id}" data-ids="${[...l.L,...l.E].filter(p=>!S.planDone[p.id]).map(p=>p.id).slice(0,1).join(',')}">${ic('play')} Study this now</button></div></div>`;
+ <div style="margin-top:18px"><button class="btn tint" data-act="pstart" data-course="${c.id}" data-ids="${[...l.L,...l.E].filter(p=>!S.planDone[p.id]).map(p=>p.id).slice(0,1).join(',')}">${ic('play')} Study this now</button></div></div>`;
 }
 function vTimetable(){
  const off=S.tw||0,days=weekDays(off);
@@ -349,6 +355,14 @@ function weekdayChart(){
  return `<div class="chart" style="height:${H}px"><div class="cols">${m.map((v,i)=>`<div class="bcol wide" title="${names[i]} ${fmt(v)}"><div class="stk">${v?`<div class="seg" style="height:${Math.max(2,v/max*H)}px;background:var(--s1)"></div>`:''}</div></div>`).join('')}</div></div>
  <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>`;
 }
+function reviewCard(){
+ const days=weekDays(0),names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],m=days.map(d=>readMin(d)),tot=m.reduce((a,b)=>a+b,0),max=Math.max(30,...m),H=90;
+ const per=COURSES.map(c=>({c,v:days.reduce((a,d)=>a+readMin(d,c.id),0)})).filter(x=>x.v);
+ return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>Review & reading</h3><span class="mute small">${fmt(tot)} this week · not counted in your focus goal</span></div>
+ <div class="chart" style="height:${H}px"><div class="cols">${m.map((v,i)=>`<div class="bcol wide" title="${names[i]} ${fmt(v)}"><div class="stk">${v?`<div class="seg" style="height:${Math.max(2,v/max*H)}px;background:var(--s3)"></div>`:''}</div></div>`).join('')}</div></div>
+ <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>
+ ${per.length?`<div class="tipline mute small">${per.map(x=>x.c.short+' '+fmt(x.v)).join(' · ')}</div>`:'<div class="tipline mute small">Open a lesson and read: the time is counted automatically while the page is open.</div>'}</div>`;
+}
 function vInsights(){
  const seg=(opts,cur,act)=>`<div class="segc" style="flex:1">${opts.map(([k,l])=>`<button class="${cur===k?'on':''}" data-act="${act}" data-k="${k}">${l}</button>`).join('')}</div>`;
  const st=streak(),week=weekDays(0).reduce((a,d)=>a+minsOn(d),0);
@@ -357,7 +371,8 @@ function vInsights(){
  <div class="card"><div class="card-h"><h3>Time worked</h3></div>
  <div class="stack" style="margin-bottom:14px">${seg([['d','30 days'],['w','12 weeks'],['m','6 months']],insR,'insr')}${seg([['course','By course'],['kind','By type']],insBy,'insby')}</div>${stackChart()}</div>
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>When you work</h3><span class="mute small">hour of day</span></div>${hourChart()}</div>
- <div class="card" style="margin-top:14px"><div class="card-h"><h3>Which days</h3></div>${weekdayChart()}</div></div>`;
+ <div class="card" style="margin-top:14px"><div class="card-h"><h3>Which days</h3></div>${weekdayChart()}</div>
+ ${reviewCard()}</div>`;
 }
 
 /* ----- more + sub views ----- */
@@ -533,6 +548,7 @@ function mergeState(r){
  o.sessions=[...m.values()].sort((a,b)=>a.start-b.start);
  o.planDone=Object.assign({},older.planDone,newer.planDone);
  o.auto=Object.assign({},older.auto,newer.auto);
+ const rm=new Map();[...(older.reads||[]),...(newer.reads||[])].forEach(x=>{const y=rm.get(x.id);if(!y||x.sec>y.sec)rm.set(x.id,x)});o.reads=[...rm.values()];
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
@@ -691,8 +707,8 @@ const A={
  lessongo(){const t=$('m-title').value.trim();if(!t)return;
   const made=addLesson($('m-course').value,t,+$('m-n').value,$('m-ex').value==='1');
   setSheet(`<div class="grp">${made.map(p=>`<div class="cell"><span class="t"><b>${esc(p.title)}</b><span>${new Date(p.date+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</span></span></div>`).join('')}</div>`,`<button class="btn" data-act="sclose">Done</button>`);render()},
- open(el){hist.push([view,param]);view=el.dataset.v;param=el.dataset.p||null;if(view==='lesson')lTab='lesson';render();window.scrollTo(0,0)},
- back(){const h=hist.pop();view=h?h[0]:'today';param=h?h[1]:null;render();window.scrollTo(0,0)},
+ open(el){flushRead();hist.push([view,param]);view=el.dataset.v;param=el.dataset.p||null;if(view==='lesson')lTab='lesson';render();window.scrollTo(0,0)},
+ back(){flushRead();const h=hist.pop();view=h?h[0]:'today';param=h?h[1]:null;render();window.scrollTo(0,0)},
  tprev(){S.tw=(S.tw||0)-1;save();render()},tnext(){S.tw=(S.tw||0)+1;save();render()},tnow(){S.tw=0;save();render()},
  insr(el){insR=el.dataset.k;render()},insby(el){insBy=el.dataset.k;render()},
  tip(el){const t=$('tipline');if(t)t.textContent=el.dataset.tip},
@@ -726,7 +742,7 @@ const A={
 };
 document.addEventListener('click',e=>{
  const tb=e.target.closest('[data-tab]');
- if(tb){view=tb.dataset.tab;param=null;hist=[];if(S.tw&&view==='timetable'){}render();window.scrollTo(0,0);return}
+ if(tb){flushRead();view=tb.dataset.tab;param=null;hist=[];if(S.tw&&view==='timetable'){}render();window.scrollTo(0,0);return}
  const el=e.target.closest('[data-act]');
  if(el&&A[el.dataset.act]&&!['SELECT','INPUT'].includes(el.tagName))A[el.dataset.act](el,e);
 });
@@ -741,8 +757,25 @@ document.addEventListener('change',e=>{
  if(a==='conf'){S.settings.confidence[el.dataset.id]=+el.value;save();render()}
 });
 
+/* ---------- reading time (automatic, separate from focus sessions) ---------- */
+let rd={act:Date.now(),carry:0};
+['scroll','click','touchstart','keydown','mousemove'].forEach(ev=>document.addEventListener(ev,()=>{rd.act=Date.now()},{passive:true}));
+function readTick(){
+ if(S.active||view!=='lesson'||document.hidden||!param){return}
+ if(Date.now()-rd.act>120000)return;
+ rd.carry++;
+ if(rd.carry>=30){addRead(String(param),rd.carry);rd.carry=0}
+}
+function addRead(lid,sec){
+ const id=today()+'|'+lid;let r=S.reads.find(x=>x.id===id);
+ if(!r){r={id,course:lid.split(':')[0],lid,day:today(),sec:0};S.reads.push(r)}
+ r.sec+=sec;save();
+}
+function flushRead(){if(rd.carry>=5&&view==='lesson'&&param)addRead(String(param),rd.carry);rd.carry=0}
+
 /* ---------- ticking ---------- */
 function tick(){
+ readTick();
  const a=S.active;
  if(a){
   if(a.mode==='block'&&!a.endTs&&activeSecs()>=WORK){a.endTs=a.startTs+WORK*1000;a.alerted=true;sessOpen=true;save();ping();syncUI();return}
