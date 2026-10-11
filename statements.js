@@ -98,3 +98,15 @@ const STATEMENTS={
    "Required: prepare the journal entries, then complete the trial balance at September 28, 2024 and the classified balance sheet."]}
  }
 };
+
+// Background shown above a question that refers to material from the course (match = regex on the question text).
+const CONTEXT=[
+ {match:"EY gaming-industry report",title:"Background: EY report (Lesson 1 warm-up)",lines:[
+  "EY, \"What's possible for the gaming industry in the next dimension?\" (Gaming Industry Survey 2022). Warm-up question: do you support a favourable global business environment for the gaming industry? Explain your reasons.",
+  "• Global gaming revenue exceeded $193 billion in 2021 (2.9 billion players worldwide), 15.6% CAGR from 2016 to 2021; forecast $211 billion by 2025 (mobile: $116bn).",
+  "• Drivers: faster processors and graphics, new hardware, rising global internet access, 5G (cloud gaming, VR/AR).",
+  "• 72% of surveyed executives see more competition as an opportunity; 83% say the industry is under constant pressure to innovate; 43% cite cross-industry partnerships. M&A was large ($36.3bn of deals in 2021, incl. Microsoft's proposed $68.7bn Activision Blizzard acquisition) but most executives prioritise organic growth.",
+  "• Cyber and data-security risk: 47% cite it as a key challenge today, 58% three years out.",
+  "• 97% believe gaming is central to the metaverse; NFTs and play-to-earn are unproven (90% lack a viable model to monetise digital assets).",
+  "• Recommended responses: a clear metaverse vision, an updated operating model (new talent and skills), customer experience designed around what users want to do."]}
+];

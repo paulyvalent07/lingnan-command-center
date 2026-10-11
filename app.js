@@ -999,7 +999,9 @@ function qCard(q,ctx){
   }
  }
  const badge=!chk&&prev?`<span class="xprev ${prev.ok?'ok':'bad'}">${prev.ok?'✓ last time':'✗ last time'}</span>`:'';
- return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${body}${res}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
+ const cx=typeof CONTEXT!=='undefined'?CONTEXT.find(c=>new RegExp(c.match,'i').test((q.stem||[]).join(' '))):null;
+ const ctxh=cx?`<details class="xctx" open><summary>${esc(cx.title)}</summary>${cx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:'';
+ return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${ctxh}${body}${res}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
 }
 function exHtml(l,blocks){
  const items=CD.parseEx(blocks),SM=(typeof STATEMENTS!=='undefined'&&STATEMENTS[l.id])||{};
