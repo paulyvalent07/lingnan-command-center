@@ -41,6 +41,7 @@ const IC={
  x:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  doc:'<path d="M7 3h7l4.5 4.5V20a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v4.5h4.5M9 12.5h6M9 16h6"/>',
+ cards:'<rect x="3.5" y="7" width="13" height="13" rx="2.5"/><path d="M7.5 4h11a2 2 0 012 2v11"/>',
  clip:'<rect x="5" y="4.5" width="14" height="16.5" rx="3"/><path d="M9 3.5h6v3H9zM9 12h6M9 16h3.5"/>',
  flag:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/>',
  target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.4"/><circle cx="12" cy="12" r=".6"/>',
@@ -76,7 +77,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{}},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[]},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
@@ -85,9 +86,9 @@ function load(){
 function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof schedulePush==='function')schedulePush()}
 
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null;
-const TABS=[['today','Today','timer'],['courses','Courses','book'],['timetable','Week','cal'],['insights','Insights','chart'],['more','More','more']];
+const TABS=[['today','Today','timer'],['courses','Courses','book'],['cards','Cards','cards'],['timetable','Week','cal'],['insights','Insights','chart'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='cards'&&view==='study')||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -167,15 +168,15 @@ function pickItems(cid){
 
 /* ---------- content from the Word files ---------- */
 function courseDoc(cid){return (typeof CONTENT!=='undefined'&&CONTENT.courses&&CONTENT.courses[cid])||null}
-function blocksHtml(arr){
- let out='',ul=false;
+function blocksHtml(arr,ctx){
+ let out='',ul=false,ti=0;
  for(const b of arr){
   if(b.t!=='li'&&ul){out+='</ul>';ul=false}
   if(b.t==='h')out+=b.l<=2?`<h4>${md(b.x)}</h4>`:`<h5>${md(b.x)}</h5>`;
   else if(b.t==='p')out+=`<p>${md(b.x)}</p>`;
   else if(b.t==='li'){if(!ul){out+='<ul>';ul=true}out+=`<li>${md(b.x)}</li>`}
   else if(b.t==='a')out+=`<details><summary>Show answer</summary>${String(b.x).split('\n').map(s=>`<p>${md(s)}</p>`).join('')}</details>`;
-  else if(b.t==='table')out+=`<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  else if(b.t==='table'){out+=`<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;if(ctx&&tPractical(b.rows))out+=`<button class="btn tint sm tprac" data-act="tpractice" data-lid="${ctx.lid}" data-k="${ctx.k}" data-i="${ti}">${ic('clip')} Fill it in from memory · ~${tMins(b.rows)} min</button>`;ti++}
  }
  return out+(ul?'</ul>':'');
 }
@@ -188,7 +189,7 @@ function syncLine(cid){
 function lessonBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('');
- if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes)}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>`;
+ if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes'})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>`;
  return `<div class="empty">${ic('doc')}<b>Lesson text not synced yet</b>The synthesis for this lesson will appear here from ${esc(d&&d.file||'your Word file')} after the next sync.</div>
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
 }
@@ -200,7 +201,7 @@ function exBody(l){
  const keys=[...new Set(l.E.map(p=>p.ex).filter(Boolean))];
  keys.forEach(k=>{const s=exSet(k);if(!s)return;
   out+=`<div class="sh">${esc(s.title)}</div><div class="grp">${s.items.map((it,i)=>`<div class="q"><span class="n">${i+1}.</span>${esc(it.q)}<details><summary>Show answer</summary><p>${esc(it.a)}</p></details></div>`).join('')}</div>${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
- if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${blocksHtml(doc.ex)}</div>`;
+ if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${blocksHtml(doc.ex,{lid:l.id,k:'ex'})}</div>`;
  const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length);
  if(!has)out+=`<div class="empty" style="margin-top:12px">${ic('clip')}<b>No practice set written yet</b>Do the official exercises above. Original practice questions are added by the weekly update.</div>`;
  return out;
@@ -254,6 +255,7 @@ function vToday(){
  <div class="sh">Today's plan · ${list.filter(p=>S.planDone[p.id]).length}/${list.length}</div>
  <div class="grp">${list.length?list.map(planRow).join(''):'<div class="cell"><span class="t"><b>Nothing planned today</b><span>Start Deep Work to get ahead.</span></span></div>'}</div>
  <div class="grp" style="margin-top:14px"><button class="cell has-ico" data-act="freeopen"><span class="sq" style="--c:var(--accent)">${ic('timer')}</span><span class="t"><b>Free session</b></span>${ic('chev','chev')}</button><button class="cell has-ico" data-act="lessonopen"><span class="sq" style="--c:var(--green)">${ic('plus')}</span><span class="t"><b>Add a lesson</b></span>${ic('chev','chev')}</button>
+ ${cardsRow()}
  ${due?`<button class="cell has-ico" data-v="redo" data-act="open"><span class="sq" style="--c:var(--orange)">${ic('redo')}</span><span class="t"><b>${due} exercise${due>1?'s':''} to redo</b></span>${ic('chev','chev')}</button>`:''}</div></div>`;
 }
 
@@ -422,7 +424,7 @@ function vData(){
  <div class="sf">Backups remain available below.</div>
  <div style="margin-top:22px"><button class="btn red" data-act="reset">Erase everything</button></div></div>`;
 }
-const VMAP={today:vToday,courses:vCourses,course:vCourse,lesson:vLesson,timetable:vTimetable,insights:vInsights,more:vMore,redo:vRedo,plan:vPlan,sessions:vSessions,targets:vTargets,data:vData};
+const VMAP={cards:vCards,study:vStudy,today:vToday,courses:vCourses,course:vCourse,lesson:vLesson,timetable:vTimetable,insights:vInsights,more:vMore,redo:vRedo,plan:vPlan,sessions:vSessions,targets:vTargets,data:vData};
 function render(){
  const f=document.activeElement,id=f&&f.id,val=f&&f.value;
  tabbar();$('main').innerHTML=(VMAP[view]||vToday)();
@@ -552,6 +554,8 @@ function mergeState(r){
  o.auto=Object.assign({},older.auto,newer.auto);
  const rm=new Map();[...(older.reads||[]),...(newer.reads||[])].forEach(x=>{const y=rm.get(x.id);if(!y||x.sec>y.sec)rm.set(x.id,x)});o.reads=[...rm.values()];
  o.mast=Object.assign({},older.mast);Object.entries(newer.mast||{}).forEach(([k,v])=>{const y=o.mast[k];if(!y||v.ts>=y.ts)o.mast[k]=v});
+ o.cards=Object.assign({},older.cards);Object.entries(newer.cards||{}).forEach(([k,v])=>{const y=o.cards[k];if(!y||(v.ts||0)>=(y.ts||0))o.cards[k]=v});
+ const xm=new Map();[...(older.xcards||[]),...(newer.xcards||[])].forEach(x=>xm.set(x.id,x));o.xcards=[...xm.values()];
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
@@ -770,17 +774,19 @@ document.addEventListener('change',e=>{
 let rd={act:Date.now(),carry:0};
 ['scroll','click','touchstart','keydown','mousemove'].forEach(ev=>document.addEventListener(ev,()=>{rd.act=Date.now()},{passive:true}));
 function readTick(){
- if(S.active||view!=='lesson'||document.hidden||!param){return}
+ if(S.active||document.hidden)return;
+ const st=view==='study'&&STUDY&&STUDY.queue.length?cardById(STUDY.queue[0]):null;
+ if(!st&&(view!=='lesson'||!param))return;
  if(Date.now()-rd.act>120000)return;
- rd.carry++;
- if(rd.carry>=30){addRead(String(param),rd.carry);rd.carry=0}
+ rd.carry++;rd.lid=st?st.c+':cards':String(param);
+ if(rd.carry>=30){addRead(rd.lid,rd.carry);rd.carry=0}
 }
 function addRead(lid,sec){
  const id=today()+'|'+lid;let r=S.reads.find(x=>x.id===id);
  if(!r){r={id,course:lid.split(':')[0],lid,day:today(),sec:0};S.reads.push(r)}
  r.sec+=sec;save();
 }
-function flushRead(){if(rd.carry>=5&&view==='lesson'&&param)addRead(String(param),rd.carry);rd.carry=0}
+function flushRead(){if(rd.carry>=5&&rd.lid&&(view==='lesson'||view==='study'))addRead(rd.lid,rd.carry);rd.carry=0}
 
 /* ---------- ticking ---------- */
 function tick(){
@@ -796,6 +802,117 @@ function tick(){
  }
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();render();renderSession();if(S.active)keepAwake(true);cloudPull()}});
+
+/* ---------- flashcards ---------- */
+const NEWDAY=20;
+const CD=window.CARDS||{};
+let STUDY=null,DECK=null;
+function deck(){if(!DECK)DECK=(CD.buildDeck&&typeof CONTENT!=='undefined')?CD.buildDeck(CONTENT):[];return DECK}
+function allCards(){return deck().concat(S.xcards||[])}
+function cardById(id){return allCards().find(c=>c.id===id)}
+function unlocked(){const t=today(),set=new Set();planAll().forEach(p=>{if(p.date<=t||S.planDone[p.id])pLids(p).forEach(l=>set.add(l))});return set}
+function cardQueue(course){
+ const now=Date.now(),un=unlocked(),all=allCards().filter(c=>!course||c.c===course);
+ const dueC=all.filter(c=>S.cards[c.id]&&S.cards[c.id].due<=now).sort((a,b)=>S.cards[a.id].due-S.cards[b.id].due);
+ const introduced=Object.values(S.cards).filter(s=>s.fd===today()).length;
+ const left=Math.max(0,NEWDAY-introduced);
+ const fresh=all.filter(c=>!S.cards[c.id]);
+ const err=fresh.filter(c=>c.src==='e');
+ let pool=fresh.filter(c=>c.src!=='e'&&(un.size?un.has(c.l):true));
+ /* round-robin across courses so one subject does not take all new cards */
+ const by={};pool.forEach(c=>(by[c.c]=by[c.c]||[]).push(c));
+ const rr=[];let more=true;while(more){more=false;Object.keys(by).forEach(k=>{if(by[k].length){rr.push(by[k].shift());more=true}})}
+ const nw=err.concat(rr.slice(0,course?Math.min(left,NEWDAY):left));
+ return {due:dueC,fresh:nw,all:dueC.concat(nw)};
+}
+function cardsRow(){
+ const q=cardQueue(),n=q.all.length;if(!n)return'';
+ return `<button class="cell has-ico" data-v="cards" data-act="open"><span class="sq" style="--c:var(--accent)">${ic('cards')}</span><span class="t"><b>Flashcards</b><span>${q.due.length} due · ${q.fresh.length} new · ~${Math.max(1,Math.round(n/4))} min</span></span>${ic('chev','chev')}</button>`;
+}
+function vCards(){
+ const q=cardQueue(),day=today();
+ const doneToday=Object.values(S.cards).filter(s=>s.ts&&dkey(s.ts)===day).length;
+ const rows=COURSES.map(c=>{const k=cardQueue(c.id);const tot=allCards().filter(x=>x.c===c.id).length,seen=allCards().filter(x=>x.c===c.id&&S.cards[x.id]).length;
+  return `<button class="cell has-ico" data-act="cstart" data-course="${c.id}" ${k.all.length?'':'disabled'} style="--c:${c.color}"><span class="sq big" style="--c:${c.color}">${ic(c.ic)}</span><span class="t"><b>${esc(c.short)}</b><span>${k.due.length} due · ${k.fresh.length} new · ${seen}/${tot} learned</span></span>${ic('chev','chev')}</button>`}).join('');
+ const xc=(S.xcards||[]).length;
+ return `<div class="view">${title('Flashcards')}
+ <div class="grp"><div class="cell"><span class="t"><b>${q.due.length} due · ${q.fresh.length} new</b><span>About ${Math.max(1,Math.round(q.all.length/4))} min · ${doneToday} reviewed today · counts as extra review time</span></span></div></div>
+ <div style="margin:14px 0"><button class="btn" data-act="cstart" ${q.all.length?'':'disabled'}>${ic('play')} Study all</button></div>
+ <div class="sh">By course</div><div class="grp">${rows}</div>
+ <div class="sf">Tap a card to flip it. Swipe right if you knew it, left if not (it comes back soon). Or use Again / Hard / Good / Easy. ${xc?`${xc} card${xc>1?'s':''} came from your own mistakes.`:'Mistakes in fill-in tables become cards here.'}</div></div>`;
+}
+function vStudy(){
+ const st=STUDY;if(!st)return vCards();
+ const c=st.queue.length?cardById(st.queue[0]):null;
+ if(!c){return `<div class="view">${navbar('Cards','')}<div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">Session done</h1><p class="mute">${st.done} answers · ${st.again} to see again soon</p></div><div style="margin-top:20px"><button class="btn" data-act="cexit">Back to cards</button></div></div>`}
+ const x=C(c.c),nl=s=>md(s).replace(/\n/g,'<br>'),S0=S.cards[c.id];
+ const btn=(g,n,cl)=>`<button class="cg ${cl}" data-act="cgrade" data-g="${g}"><b>${n}</b><span>${CD.label(S0,g)}</span></button>`;
+ return `<div class="view study">${navbar('Cards',`<span class="mute" style="font-size:14px">${st.queue.length} left</span>`)}
+ <div class="fc ${st.flipped?'flip':''}" id="fc"><div class="fc-top"><i style="background:${x.color}"></i>${esc(x.short)} · ${esc(c.sec||c.lt||'')}</div>
+  <div class="fc-q">${nl(c.q)}</div>
+  ${st.flipped?`<div class="fc-sep"></div><div class="fc-a">${nl(c.a)}</div>`:`<div class="fc-hint">Tap to show the answer</div>`}</div>
+ ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div><div class="fc-tip">← swipe left: again · swipe right: good →</div>`:''}</div>`;
+}
+function startStudy(course){
+ const q=cardQueue(course).all;if(!q.length)return;
+ STUDY={course:course||null,queue:q.map(c=>c.id),flipped:false,done:0,again:0};
+ hist.push([view,param]);view='study';param=null;render();window.scrollTo(0,0);
+}
+function cgrade(g){
+ if(!STUDY||!STUDY.queue.length)return;
+ const id=STUDY.queue.shift();S.cards[id]=CD.grade(S.cards[id],g);
+ STUDY.done++;if(g===0){STUDY.again++;STUDY.queue.splice(Math.min(3,STUDY.queue.length),0,id)}
+ STUDY.flipped=false;save();render();window.scrollTo(0,0);
+}
+let drag=null;
+document.addEventListener('pointerdown',e=>{const f=e.target.closest&&e.target.closest('#fc');if(!f||view!=='study')return;drag={x:e.clientX,dx:0,el:f};try{f.setPointerCapture(e.pointerId)}catch(_){}});
+document.addEventListener('pointermove',e=>{if(!drag)return;drag.dx=e.clientX-drag.x;if(!STUDY||!STUDY.flipped)return;const d=drag.dx;drag.el.style.transform=`translateX(${d}px) rotate(${d/25}deg)`;drag.el.classList.toggle('sw-r',d>60);drag.el.classList.toggle('sw-l',d<-60)});
+document.addEventListener('pointerup',()=>{if(!drag)return;const d=drag.dx,el=drag.el;drag=null;
+ if(Math.abs(d)<8){if(STUDY&&!STUDY.flipped){STUDY.flipped=true;render()}return}
+ if(STUDY&&STUDY.flipped&&d>100)cgrade(2);else if(STUDY&&STUDY.flipped&&d<-100)cgrade(0);else{el.style.transform='';el.classList.remove('sw-r','sw-l')}});
+document.addEventListener('keydown',e=>{if(view!=='study'||!STUDY||/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;
+ if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!STUDY.flipped){STUDY.flipped=true;render()}}
+ else if(STUDY.flipped&&'1234'.includes(e.key))cgrade(+e.key-1)});
+
+/* ---------- fill-in tables ---------- */
+const parseNum=s=>{let t=String(s).replace(/[\$€£\s,]/g,'').replace(/[−–]/g,'-');let neg=/^\(.*\)$/.test(t);t=t.replace(/[()%]/g,'');let v=parseFloat(t);if(isNaN(v))return NaN;return neg?-Math.abs(v):v};
+function tPractical(rows){const t=CD.numTable(rows);return t.n>=4&&t.ratio>=.5}
+function tMins(rows){return Math.max(3,Math.round(CD.numTable(rows).n*.6))}
+let TP=null;
+function tableOf(lid,k,i){const [cid,num]=String(lid).split(':'),d=courseDoc(cid),doc=d&&d.lessons&&d.lessons[num];if(!doc)return null;const tbs=(doc[k]||[]).filter(b=>b.t==='table');const lastH=(()=>{let h='',n=-1;for(const b of doc[k]||[]){if(b.t==='h')h=CD.strip(b.x);if(b.t==='table'){n++;if(n===i)return h}}return''})();return tbs[i]?{rows:tbs[i].rows,h:lastH,cid,num,lt:doc.title}:null}
+function tpBody(done){
+ const t=TP,R=t.rows;let ii=0,cap='';
+ const trs=R.map((r,ri)=>{
+  if(ri===0&&r.slice(1).every(c=>!String(c).trim())){cap=CD.strip(r[0]);return''}
+  return `<tr>${r.map((c,ci)=>{
+   if(ci>0&&CD.isNum(c)){const id=ii++,u=t.ans[id];
+    if(!done)return `<td><input class="tin" id="ti${id}" inputmode="decimal" autocomplete="off" value="${esc(u==null?'':u)}"></td>`;
+    const ok=t.res[id];return `<td class="${ok?'tok':'tbad'}">${ok?md(c):`<s>${esc(u||'—')}</s> <b>${md(c)}</b>`}</td>`}
+   return `<td>${md(c)}</td>`}).join('')}</tr>`}).join('');
+ t.cap=cap;
+ return `${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''} added to your flashcards`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
+}
+Object.assign(A,{
+ cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
+ cflip(){if(STUDY){STUDY.flipped=true;render()}},
+ cgrade(el){cgrade(+el.dataset.g)},
+ cexit(){STUDY=null;const h=hist.pop();view='cards';param=null;render();window.scrollTo(0,0)},
+ tpractice(el){
+  const t=tableOf(el.dataset.lid,el.dataset.k,+el.dataset.i);if(!t)return;
+  TP=Object.assign(t,{ans:{},res:{},t0:Date.now(),est:tMins(t.rows),n:CD.numTable(t.rows).n});
+  openSheet('Fill it in',tpBody(false),`<button class="btn" data-act="tcheck">Check my answers</button>`);
+ },
+ tcheck(){
+  const t=TP;if(!t)return;let id=0,ok=0,wrong=0;
+  const cells=[];const R=t.rows;
+  R.forEach((r,ri)=>{if(ri===0&&r.slice(1).every(c=>!String(c).trim()))return;r.forEach((c,ci)=>{if(ci>0&&CD.isNum(c)){cells.push({id:id++,v:c,lab:CD.strip(r[0]),col:CD.strip(R[ri>0&&R[0].slice(1).some(x=>String(x).trim())?0:0][ci]||'')})}})});
+  cells.forEach(c=>{const inp=$('ti'+c.id),u=inp?inp.value.trim():'';t.ans[c.id]=u;const a=parseNum(u),b=parseNum(c.v);const good=!isNaN(a)&&Math.abs(a-b)<=Math.max(.01,Math.abs(b)*.005);t.res[c.id]=good;if(good)ok++;else{wrong++;
+   const q=`${t.cap||t.h||t.lt} — ${c.lab}${c.col&&R[0].slice(1).some(x=>String(x).trim())&&R[0][1]!==''?` (${c.col})`:''}`,idc='x:'+CD.hash(t.cid+t.num+q);
+   const ex=(S.xcards||[]).find(x=>x.id===idc);if(!ex)S.xcards.push({id:idc,c:t.cid,l:t.cid+':'+t.num,lt:t.lt,sec:t.h||t.cap||'',src:'e',q:q,a:CD.strip(c.v)});delete S.cards[idc]}});
+  t.score=ok;t.wrong=wrong;t.mins=Math.max(1,Math.round((Date.now()-t.t0)/60000));
+  save();setSheet(tpBody(true),`<button class="btn" data-act="sclose">Done</button>`);
+ },
+});
 
 setTheme(S.settings.theme);
 autoPlan();
