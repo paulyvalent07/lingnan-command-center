@@ -1092,6 +1092,12 @@ Object.assign(A,{
  },
 });
 
+{let et=0;const rs=()=>{const q=s=>{const e=document.querySelector(s);if(!e||!e.offsetHeight)return null;return e.getBoundingClientRect()};
+const so=document.getElementById('sess').classList.contains('open');
+const h=so?q('.sess-h'):null,f=so?q('.sess-f'):q('.tabbar');
+const r=document.documentElement.style;r.setProperty('--ft',(h?h.bottom:0)+'px');r.setProperty('--fb',(f?innerHeight-f.top:0)+'px')};
+document.addEventListener('scroll',()=>{rs();document.body.classList.add('scrl');clearTimeout(et);et=setTimeout(()=>document.body.classList.remove('scrl'),700)},{passive:true,capture:true})}
+
 setTheme(S.settings.theme);
 autoPlan();
 syncUI();

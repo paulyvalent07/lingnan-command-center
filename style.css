@@ -328,3 +328,9 @@ td.tok{background:rgba(48,209,88,.18)}td.tbad{background:rgba(255,69,58,.16)}
 @keyframes nxtin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
 .finrow{margin:22px 0 8px}
 .recap{display:flex;gap:10px;margin:14px 0}.recap>div{flex:1;background:var(--fill);border-radius:12px;padding:10px;text-align:center}.recap b{display:block;font-size:24px}.recap span{font-size:12px;color:var(--l2)}
+
+/* v30 soft edge blur while scrolling */
+.edge{position:fixed;left:0;right:0;height:26px;z-index:56;pointer-events:none;opacity:0;transition:opacity .35s;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.edge.t{top:var(--ft,0px);-webkit-mask-image:linear-gradient(#000,transparent);mask-image:linear-gradient(#000,transparent)}
+.edge.b{bottom:var(--fb,0px);-webkit-mask-image:linear-gradient(transparent,#000);mask-image:linear-gradient(transparent,#000)}
+body.scrl .edge{opacity:1}
