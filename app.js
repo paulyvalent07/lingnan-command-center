@@ -178,7 +178,7 @@ function blocksHtml(arr){
   if(b.t==='h')out+=b.l<=2?`<h4>${md(b.x)}</h4>`:`<h5>${md(b.x)}</h5>`;
   else if(b.t==='p')out+=`<p>${md(b.x)}</p>`;
   else if(b.t==='li'){if(!ul){out+='<ul>';ul=true}out+=`<li>${md(b.x)}</li>`}
-  else if(b.t==='a')out+=`<details><summary>Show answer</summary><p>${md(b.x)}</p></details>`;
+  else if(b.t==='a')out+=`<details><summary>Show answer</summary>${String(b.x).split('\n').map(s=>`<p>${md(s)}</p>`).join('')}</details>`;
   else if(b.t==='table')out+=`<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
  }
  return out+(ul?'</ul>':'');

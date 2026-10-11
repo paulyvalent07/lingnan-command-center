@@ -23,9 +23,9 @@ COURSES = {
     "BUS1103": "Financial Accounting", "BUS2108": "Global Business Environment",
     "BUS2205": "Marketing Management", "BUS2105": "Microeconomics", "BUS2202": "Organisational Behaviour",
 }
-CH = re.compile(r"(?:chapitre|chapter|chap\.?|ch\.?)\s*(\d+)", re.I)
+CH = re.compile(r"(?:chapitre|chapter|chap\.?|ch\.?|lesson|le[cç]on)\s*(\d+)", re.I)
 EX = re.compile(r"exercic|exercise|practice|corrig|solution|qcm|mcq|quiz|entra[iî]nement|worksheet", re.I)
-ANS = re.compile(r"^\s*(r[ée]ponse|answer|solution|corrig[ée]|correction)\s*[:：\-–]\s*", re.I)
+ANS = re.compile(r"^\s*(?:r[ée]ponse|(?:suggested |model |official )?answer|(?:official )?solution|corrig[ée]|correction)\s*(?:\([^)]*\))?\s*[:：]\s*", re.I)
 
 
 def iter_blocks(doc):
@@ -55,42 +55,87 @@ def lesson_id(heading):
     return None
 
 
+KEY = re.compile(r"^\s*(?:\*\*)?\s*(answer key|answers? and (?:reasoning|explanations?)|model answers?|worked solutions?|solutions?)\b", re.I)
+
+
 def convert(path):
     doc = Document(path)
     lessons, extras = {}, []
     cur, part = None, "notes"
+    amode = None          # None | "key" (until next heading) | "label" (while list items / tables follow)
+    buf = []              # accumulating answer lines
+    last_short = None
+
+    def target():
+        return lessons[cur][part] if cur else extras
+
+    def flush():
+        nonlocal buf
+        if buf:
+            target().append({"t": "a", "x": "\n".join(buf)})
+        buf = []
+
     for b in iter_blocks(doc):
         if isinstance(b, Table):
+            flush()
             rows = [[c.text.strip() for c in r.cells] for r in b.rows]
-            blk = {"t": "table", "rows": rows}
-            (lessons[cur][part] if cur else extras).append(blk)
+            target().append({"t": "table", "rows": rows})
             continue
         text = runs_text(b)
         if not text: continue
-        style = (b.style.name or "").lower()
+        style = ((b.style.name if b.style is not None else "") or "").lower()
         hm = re.match(r"heading (\d)", style)
-        lvl = int(hm.group(1)) if hm else (0 if style != "title" else 1)
-        if lvl == 1:
-            lid = lesson_id(text)
-            if lid:
-                cur, part = lid, "notes"
-                lessons.setdefault(cur, {"title": re.sub(r"^\s*(?:chapitre|chapter|chap\.?|ch\.?)\s*\d+\s*[:\-–—·.]*\s*", "", text, flags=re.I) or text, "notes": [], "ex": []})
-            else:
-                cur, part = None, "notes"
-                extras.append({"t": "h", "l": 1, "x": text})
-            continue
-        if lvl >= 2:
+        lvl = int(hm.group(1)) if hm else (1 if style == "title" else 0)
+        if lvl:
+            flush(); amode = None; last_short = None
+            text = text.replace("**", "").strip()
+            if lvl == 1:
+                lid = lesson_id(text)
+                if lid:
+                    cur, part = lid, "notes"
+                    lessons.setdefault(cur, {"title": re.sub(r"^\s*(?:chapitre|chapter|chap\.?|ch\.?|lesson|le[cç]on)\s*\d+\s*(?:\([^)]*\))?\s*[:\-–—·.]*\s*", "", text, flags=re.I) or text, "notes": [], "ex": []})
+                else:
+                    cur, part = None, "notes"
+                    extras.append({"t": "h", "l": 1, "x": text})
+                continue
             if cur and EX.search(text): part = "ex"
             elif cur and lvl == 2: part = "notes"
-            (lessons[cur][part] if cur else extras).append({"t": "h", "l": lvl, "x": text})
+            target().append({"t": "h", "l": lvl, "x": text})
+            if KEY.match(text): amode = "key"
             continue
-        target = lessons[cur][part] if cur else extras
-        if ANS.match(text):
-            target.append({"t": "a", "x": ANS.sub("", text)})
-        elif "list" in style:
-            target.append({"t": "li", "x": text})
+        plain = text.replace("**", "").strip()
+        is_list = "list" in style
+        if last_short is not None:
+            first_bold = bool(b.runs) and bool(b.runs[0].bold)
+            if (not is_list and not first_bold and not re.match(r"^(\d+[.)]|q\d|[a-e][.)]\s)", plain, re.I)
+                    and not ANS.match(plain) and not KEY.match(plain)):
+                last_short["x"] += "\n" + text
+                last_short = None
+                continue
+            last_short = None
+        if amode == "label" and not is_list:
+            flush(); amode = None
+        if amode:
+            buf.append(("• " if is_list else "") + text)
+            continue
+        m = ANS.match(plain)
+        if m or (KEY.match(plain) and len(plain) < 80):
+            rest = ANS.sub("", plain) if m else re.sub(r"^\s*(answer key|answers? and \w+|model answers?|worked solutions?|solutions?)\s*[:：\-–—]?\s*", "", plain, flags=re.I)
+            if len(rest) == 0:          # bare label: what follows is the answer
+                amode = "label" if (m and not KEY.match(plain) or "suggested" in plain.lower()) else "key"
+                if re.match(r"^(answer key|official solution|solution)", plain, re.I) and not m:
+                    amode = "key"
+                continue
+            blk = {"t": "a", "x": rest}
+            target().append(blk)
+            last_short = blk if (m and len(rest) <= 14) else None
+            if not m: amode = "key"
+            continue
+        if is_list:
+            target().append({"t": "li", "x": text})
         else:
-            target.append({"t": "p", "x": text})
+            target().append({"t": "p", "x": text})
+    flush()
     return lessons, extras
 
 
