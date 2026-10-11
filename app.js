@@ -73,10 +73,11 @@ let S=load();
 function load(){
  let d={};
  try{d=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
- const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:5,1:3,2:0,3:5,4:5,5:5,6:5}},d.settings||{});
+ const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
  const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0},d,{settings:st});
+ if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
  return s;
@@ -487,7 +488,7 @@ function autoPlan(){
   if(!un.length)return;
   const own=planAll().filter(p=>p.course===c.id&&(p.kind==='L'||p.kind==='E')).map(p=>p.date).sort();
   let start=own.length?dayAdd(new Date(own[own.length-1]+'T12:00'),1):now;if(start<now)start=now;
-  const days=Math.max(un.length,Math.round((horizon-start)/864e5)),step=Math.max(1,Math.floor(days/un.length));
+  const days=Math.max(un.length,Math.round((horizon-start)/864e5)),step=own.length?Math.max(1,Math.floor(days/un.length)):0;
   un.forEach((l,i)=>{addLesson(c.id,lessonName(l),2,true,l.id,{start,limit:horizon,from:i*step});S.auto[l.id]=1;ch=true});
  });
  // 2) preparation blocks for deadlines nobody planned yet (starts ~10 days before)

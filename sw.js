@@ -1,4 +1,4 @@
-const V='lu-cc-v6';
+const V='lu-cc-v7';
 const FILES=['./','index.html','style.css','app.js','plan.js','exercises.js','content.js','deadlines.js','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','icon-180.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
