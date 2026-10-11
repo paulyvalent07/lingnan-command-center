@@ -11,23 +11,8 @@ const COURSES=[
 ];
 const KINDS={L:{n:'Lesson',color:'var(--s1)',ic:'doc'},E:{n:'Exercises',color:'var(--s2)',ic:'clip'},M:{n:'Mock / review',color:'var(--s3)',ic:'flag'},A:{n:'Assignment',color:'var(--s4)',ic:'pen'},F:{n:'Free work',color:'var(--l2)',ic:'timer'}};
 const GRADES=['A+','A','A-','B+','B','B-','C+','C'];
-const DEADLINES=[
- {id:'d1',course:'BUS1103',title:'Midterm Test (ch. 1-4, 6)',when:'2026-10-25T12:00'},
- {id:'d2',course:'BUS1103',title:'MYOB project due',when:'2026-12-02T12:00'},
- {id:'d3',course:'BUS2108',title:'Midterm Test (ch. 1-6, 45 MCQ)',when:'2026-10-28T08:00'},
- {id:'d4',course:'BUS2108',title:'Group presentation',when:'2026-11-18T08:00'},
- {id:'d5',course:'BUS2108',title:'Group written report',when:'2026-11-22T17:00'},
- {id:'d6',course:'BUS2205',title:'Midterm Test (ch. 1,2,3,5,8,9)',when:'2026-10-26T17:00'},
- {id:'d7',course:'BUS2205',title:'Individual assignment (Godiva)',when:'2026-11-08T23:59'},
- {id:'d8',course:'BUS2205',title:'Final group presentation (tentative)',when:'2026-11-17T09:00'},
- {id:'d9',course:'BUS2105',title:'Mid-Term Test (ch. 1,3-6,8,9)',when:'2026-11-02T11:15'},
- {id:'d10',course:'BUS2105',title:'Group debate',when:'2026-11-30T09:30'},
- {id:'d11',course:'BUS2202',title:'Individual assignment (Stress Mgmt)',when:'2026-10-20T23:59'},
- {id:'d12',course:'BUS2202',title:'Group presentation',when:'2026-11-23T09:00'},
- {id:'d13',course:'ALL',title:'Final exams period starts (exact dates TBA)',when:'2026-12-08T09:00'}
-];
 const STAGES=[1,3,7,14,30];
-const WORK=50*60,BREAK=15*60;
+const WORK=50*60,BREAK=10*60;
 const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const uid=()=>Math.random().toString(36).slice(2,10);
 const dkey=d=>new Date(d).toLocaleDateString('sv');
@@ -78,6 +63,12 @@ const FILLED=new Set(['play']);
 const ic=(n,extra='')=>`<svg class="ic ${FILLED.has(n)?'f':''} ${extra}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||''}</svg>`;
 
 /* ---------- state ---------- */
+function mergeDl(saved,hide){
+ hide=hide||{};const off=new Set(DEADLINES.map(x=>x.id));
+ const out=DEADLINES.filter(x=>!hide[x.id]).map(x=>Object.assign({},x,{off:1}));
+ (saved||[]).forEach(x=>{if(!off.has(x.id)&&!x.off)out.push(x)});
+ return out;
+}
 let S=load();
 function load(){
  let d={};
@@ -85,11 +76,12 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:5,1:3,2:0,3:5,4:5,5:5,6:5}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:DEADLINES,active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0},d,{settings:st});
+ s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
  return s;
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof schedulePush==='function')schedulePush()}
 
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['timetable','Week','cal'],['insights','Insights','chart'],['more','More','more']];
@@ -406,7 +398,10 @@ function vData(){
  <div class="sh">Goals</div><div class="grp fgrp"><div class="cell"><label>Daily work goal (hours)</label><input type="number" step="0.5" min="1" max="12" value="${S.settings.daily}" data-act="daily" style="width:70px"></div><div class="cell"><label>Weekly work goal (hours)</label><input type="number" step="1" min="1" max="80" value="${S.settings.weekly}" data-act="weekly" style="width:70px"></div></div>
  <div class="sh">Blocks per weekday</div><div class="card"><div class="flexw">${[1,2,3,4,5,6,0].map(d=>`<div class="quota"><div class="mute small" style="text-align:center;margin-bottom:4px">${WD[d]}</div><input type="number" min="0" max="9" value="${q[d]}" data-act="quota" data-d="${d}"></div>`).join('')}</div></div><div class="sf">Used when you add a lesson: 50 min per block.</div>
  <div class="sh">Data</div><div class="grp"><button class="cell has-ico" data-act="notif"><span class="sq" style="--c:var(--red)">${ic('flag')}</span><span class="t"><b>Enable alerts</b></span></button><button class="cell has-ico" data-act="export"><span class="sq" style="--c:var(--accent)">${ic('down')}</span><span class="t"><b>Export backup</b></span></button><label class="cell has-ico"><span class="sq" style="--c:var(--green)">${ic('sync')}</span><span class="t"><b>Import backup</b></span><input type="file" accept=".json" id="imp" hidden></label></div>
- <div class="sf">Your data stays on this device. Export regularly to move it between phone and laptop.</div>
+ <div class="sh">Cloud sync (phone + laptop)</div>${CL.token&&CL.gid
+ ?`<div class="grp"><div class="cell"><span class="t"><b>Connected</b><span>${esc(CL.status||'')}</span></span></div><button class="cell has-ico" data-act="csync"><span class="sq" style="--c:var(--green)">${ic('sync')}</span><span class="t"><b>Sync now</b></span></button><button class="cell has-ico" data-act="ccopy"><span class="sq" style="--c:var(--accent)">${ic('down')}</span><span class="t"><b>Copy token for another device</b></span></button><button class="cell has-ico" data-act="cdisc"><span class="sq" style="--c:var(--red)">${ic('flag')}</span><span class="t"><b>Disconnect this device</b></span></button></div>`
+ :`<div class="grp fgrp"><div class="cell"><input id="cl-token" type="password" placeholder="GitHub token (gist permission only)" autocomplete="off" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="cconnect"><span class="sq" style="--c:var(--accent)">${ic('sync')}</span><span class="t"><b>Connect</b><span>${esc(CL.status||'Same token on every device')}</span></span></button></div><div class="sf">Stored only on this device. Your progress is saved in a private GitHub gist, never in the public repo.</div>`}
+ <div class="sf">Backups remain available below.</div>
  <div style="margin-top:22px"><button class="btn red" data-act="reset">Erase everything</button></div></div>`;
 }
 const VMAP={today:vToday,courses:vCourses,course:vCourse,lesson:vLesson,timetable:vTimetable,insights:vInsights,more:vMore,redo:vRedo,plan:vPlan,sessions:vSessions,targets:vTargets,data:vData};
@@ -464,18 +459,118 @@ function sessionModal(s){
 }
 function redoModal(){openSheet('New exercise to redo',`<div class="grp fgrp">${fld('Course',courseSel(S.course))}${fld('Exercise','<input type="text" id="m-title" placeholder="e.g. E6-3 sales returns" style="text-align:right">')}</div>`,`<button class="btn" data-act="rsave">Add</button>`)}
 function dlModal(){openSheet('New deadline',`<div class="grp fgrp">${fld('Course',`<select id="m-course">${COURSES.map(c=>`<option value="${c.id}">${c.short}</option>`).join('')}<option value="ALL">All courses</option></select>`)}${fld('Title','<input type="text" id="m-title" style="text-align:right">')}${fld('When','<input type="datetime-local" id="m-when">')}</div>`,`<button class="btn" data-act="dlsave">Add</button>`)}
-function addLesson(course,ttl,n,withEx,lidOverride){
- const nd=nextDeadline(course),start=new Date();start.setHours(0,0,0,0);
+function addLesson(course,ttl,n,withEx,lidOverride,opt){
+ opt=opt||{};
+ const nd=nextDeadline(course),start=opt.start?new Date(opt.start):new Date();start.setHours(0,0,0,0);
  let limit=new Date(start);limit.setDate(limit.getDate()+14);
  if(nd){const l=new Date(nd.when);l.setHours(0,0,0,0);l.setDate(l.getDate()-1);if(l>=start)limit=l}
+ if(opt.limit&&opt.limit>=start)limit=new Date(opt.limit);
  const days=[];for(let d=new Date(start);d<=limit;d.setDate(d.getDate()+1))days.push(dkey(d));
  const spare=d=>quotaOf(d)-itemsOn(d).length,made=[],lid=lidOverride||course+':x'+uid();
  const place=(from,kind,t)=>{let i=days.findIndex((d,ix)=>ix>=from&&spare(d)>0);if(i<0)i=Math.max(0,days.length-1);
   const p={id:'x'+uid(),date:days[i],course,kind,title:t,lid};S.extraPlan.push(p);made.push(p);return i};
- let last=0;
+ let last=Math.min(opt.from||0,Math.max(0,days.length-1));
  for(let i=0;i<n;i++)last=place(last,'L',ttl+(n>1?` (${i+1}/${n})`:''));
  if(withEx){const after=days.findIndex((d,ix)=>ix>last&&spare(d)>0);place(after>=0?after:last,'E',ttl+' · exercises')}
  save();return made;
+}
+
+/* ---------- automatic planning (new lessons from the Word files, new dates) ---------- */
+const dayAdd=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const d0=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+function finalsStart(){const f=S.deadlines.find(x=>/final exam/i.test(x.title));return f?d0(f.when):dayAdd(d0(Date.now()),60)}
+function autoPlan(){
+ S.auto=S.auto||{};let ch=false;const now=d0(Date.now()),horizon=dayAdd(finalsStart(),-1);
+ // 1) lessons that exist in the Word files but not in the plan
+ COURSES.forEach(c=>{
+  const un=lessonsOf(c.id).filter(l=>l.unplanned&&!S.auto[l.id]).sort((a,b)=>(+a.num||99)-(+b.num||99));
+  if(!un.length)return;
+  const own=planAll().filter(p=>p.course===c.id&&(p.kind==='L'||p.kind==='E')).map(p=>p.date).sort();
+  let start=own.length?dayAdd(new Date(own[own.length-1]+'T12:00'),1):now;if(start<now)start=now;
+  const days=Math.max(un.length,Math.round((horizon-start)/864e5)),step=Math.max(1,Math.floor(days/un.length));
+  un.forEach((l,i)=>{addLesson(c.id,lessonName(l),2,true,l.id,{start,limit:horizon,from:i*step});S.auto[l.id]=1;ch=true});
+ });
+ // 2) preparation blocks for deadlines nobody planned yet (starts ~10 days before)
+ const spreadOn=(course,kind,title,n,from,to,dl)=>{
+  const days=[];for(let d=d0(from);d<=to;d=dayAdd(d,1))days.push(dkey(d));if(!days.length)days.push(dkey(to));
+  const spare=d=>quotaOf(d)-itemsOn(d).length;
+  for(let i=0;i<n;i++){
+   const tgt=Math.min(days.length-1,Math.floor(i*days.length/n));
+   let j=days.findIndex((d,ix)=>ix>=tgt&&spare(d)>0);if(j<0)j=tgt;
+   S.extraPlan.push({id:'x'+uid(),date:days[j],course,kind,title:title+(n>1?` (${i+1}/${n})`:''),dl});
+  }
+  ch=true;
+ };
+ S.deadlines.forEach(dl=>{
+  const when=new Date(dl.when);if(when<=now||/final exam/i.test(dl.title)||dl.course==='ALL')return;
+  const key='dl:'+dl.id;if(S.auto[key])return;S.auto[key]=1;
+  const lo=dayAdd(d0(when),-12),has=planAll().some(p=>p.course===dl.course&&(p.kind==='M'||p.kind==='A')&&new Date(p.date+'T12:00')>=lo&&new Date(p.date+'T12:00')<=d0(when));
+  if(has)return;
+  const t=dl.title,exam=/mid-?term|test|quiz|exam/i.test(t),pres=/presentation|debate|pitch/i.test(t);
+  const n=exam?3:pres?4:5;
+  spreadOn(dl.course,exam?'M':'A',t+' · prep',n,new Date(Math.max(+now,+dayAdd(d0(when),-10))),dayAdd(d0(when),-1),dl.id);
+ });
+ // 3) final exam review, 4 blocks per course in the 2 weeks before the finals
+ COURSES.forEach(c=>{const key='final:'+c.id;if(S.auto[key]||finalsStart()<=now)return;S.auto[key]=1;
+  spreadOn(c.id,'M','Final exam review · '+c.short,4,new Date(Math.max(+now,+dayAdd(finalsStart(),-14))),horizon,'final');});
+ if(ch)save();return ch;
+}
+
+/* ---------- cloud sync: one private GitHub gist shared by phone and laptop ---------- */
+const CKEY='lu-cc-cloud',GDESC='Lingnan Command Center sync';
+let CL=(()=>{try{return JSON.parse(localStorage.getItem(CKEY))||{}}catch(e){return{}}})(),pushT=null,syncing=false;
+const saveCL=()=>{try{localStorage.setItem(CKEY,JSON.stringify(CL))}catch(e){}};
+const snap=()=>{const x=Object.assign({},S);delete x.active;delete x.brk;return x};
+async function gh(path,opt){
+ const r=await fetch('https://api.github.com'+path,Object.assign({},opt,{headers:{'Authorization':'Bearer '+CL.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'}}));
+ if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+}
+function mergeState(r){
+ const L=S,newer=(r.mod||0)>(L.mod||0)?r:L,older=newer===r?L:r;
+ const o=Object.assign({},older,newer);
+ const m=new Map();[...(older.sessions||[]),...(newer.sessions||[])].forEach(x=>m.set(x.id,x));
+ o.sessions=[...m.values()].sort((a,b)=>a.start-b.start);
+ o.planDone=Object.assign({},older.planDone,newer.planDone);
+ o.auto=Object.assign({},older.auto,newer.auto);
+ o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
+ o.settings=newer.settings||older.settings;
+ o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
+ o.deadlines=mergeDl(o.deadlines,o.dlHide);
+ return o;
+}
+function setCS(t,ok){CL.status=t;CL.ok=ok!==false;saveCL();if(view==='data')render()}
+async function cloudPull(){
+ if(!CL.token||!CL.gid||syncing||typeof fetch==='undefined')return;
+ syncing=true;
+ try{
+  const g=await gh('/gists/'+CL.gid),f=g.files&&g.files['state.json'];
+  let txt=f&&f.content;if(f&&f.truncated&&f.raw_url)txt=await (await fetch(f.raw_url)).text();
+  const remote=txt?JSON.parse(txt):null;
+  if(remote){
+   const before=JSON.stringify(snap());
+   S=mergeState(remote);autoPlan();
+   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+   if(JSON.stringify(snap())!==before&&!S.active&&!sessOpen)render();
+   if(JSON.stringify(snap())!==JSON.stringify(remote))await cloudPush(true);
+  }else await cloudPush(true);
+  setCS('Synced '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}));
+ }catch(e){setCS('Offline or token problem ('+e.message+')',false)}
+ syncing=false;
+}
+async function cloudPush(now){
+ if(!CL.token||!CL.gid||typeof fetch==='undefined')return;
+ try{await gh('/gists/'+CL.gid,{method:'PATCH',body:JSON.stringify({files:{'state.json':{content:JSON.stringify(snap())}}})});if(!now)setCS('Synced '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}))}
+ catch(e){setCS('Not synced yet ('+e.message+')',false)}
+}
+function schedulePush(){if(!CL.token||!CL.gid)return;clearTimeout(pushT);pushT=setTimeout(()=>cloudPush(),2500)}
+async function cloudConnect(token){
+ CL={token:token.trim()};
+ try{
+  const list=await gh('/gists?per_page=100');let g=list.find(x=>x.description===GDESC);
+  if(!g)g=await gh('/gists',{method:'POST',body:JSON.stringify({description:GDESC,public:false,files:{'state.json':{content:JSON.stringify(snap())}}})});
+  CL.gid=g.id;saveCL();await cloudPull();
+  return true;
+ }catch(e){CL={};saveCL();return false}
 }
 
 /* ---------- session screen (opens the course page) ---------- */
@@ -619,8 +714,12 @@ const A={
  newdl(){dlModal()},
  dlsave(){const t=$('m-title').value.trim(),w=$('m-when').value;if(!t||!w)return;
   S.deadlines.push({id:uid(),course:$('m-course').value,title:t,when:w});save();closeSheet();render()},
- dldel(el){S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
+ dldel(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(d&&d.off)S.dlHide[d.id]=1;S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
  notif(){askNotif()},
+ async cconnect(){const v=($('cl-token')||{}).value;if(!v||v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const ok=await cloudConnect(v);if(!ok)alert('Could not connect. The token needs the "gist" permission only.');render()},
+ csync(){cloudPull().then(()=>render())},
+ cdisc(){if(confirm('Disconnect this device from the cloud? Your data stays here.')){CL={};saveCL();render()}},
+ async ccopy(){try{await navigator.clipboard.writeText(CL.token||'');alert('Token copied. Paste it on your other device in Settings > Cloud sync.')}catch(e){alert('Copy failed.')}},
  export(){const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='lingnan-cc-backup-'+today()+'.json';a.click()},
  reset(){if(confirm('Erase ALL data on this device?')){localStorage.removeItem(KEY);S=load();sessOpen=false;syncUI()}}
 };
@@ -653,9 +752,12 @@ function tick(){
   else{const b=$('brk');if(b)b.textContent=fmtMS(left)}
  }
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();render();renderSession();if(S.active)keepAwake(true)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();render();renderSession();if(S.active)keepAwake(true);cloudPull()}});
 
 setTheme(S.settings.theme);
+autoPlan();
 syncUI();
+cloudPull();
+setInterval(()=>{if(!document.hidden&&!S.active)cloudPull()},120000);
 setInterval(tick,1000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
