@@ -17,7 +17,7 @@ function parseEx(blocks){
  const items=[],pool=new Map();let cur=null,raw=false;
  const startQ=(n,b)=>{cur={n,t:[b],ans:[]};items.push({k:'q',q:cur});if(n)pool.set(n,cur)};
  for(const b of blocks){
-  if(b.t==='h'){if(/answer key|solution/i.test(b.x))continue;if(b.l<=2)raw=/official practice|worksheet|suggested/i.test(b.x);pool.clear();cur=null;items.push({k:'b',b});continue}
+  if(b.t==='h'){if(/^\s*(?:\d+\.\d+\s*)?(answer key|suggested solution|solutions?)\b/i.test(strip(b.x)))continue;if(b.l<=2)raw=/official practice|worksheet|suggested/i.test(b.x);pool.clear();cur=null;items.push({k:'b',b});continue}
   if(raw&&!(b.t==='p'&&/^Match\b/i.test(b.x||''))&&!(cur&&b.t==='table')){cur=null;items.push({k:'b',b});continue}
   if(b.t==='p'||b.t==='li'){
    const t=String(b.x||'');
@@ -74,7 +74,8 @@ function classify(q){
  const first=q.ans.find(b=>b.t!=='table'),ft=first?strip(first.x):'';
  const clean=arr=>arr.map(x=>strip(x).replace(/^(?:[QA]?\d+[.)]\s*)/i,'').replace(/^(MCQ|Short answer|Applied scenario|Short problem)\s*:\s*/i,'')).filter(Boolean);
  q.stem=clean(inl||stem);
- if(opts.length>=2){
+ const lett=(first?String(first.x):'').split('\n').filter(l=>/^[•\-*\s]*\**\(?[a-e]\)/i.test(l)).length;
+ if(opts.length>=2&&lett<2&&!q.ans.some(b=>b.t==='table')){
   const m=ft.replace(/^(?:[QA]?\d+[.)]\s*)/i,'').match(/^\(?([A-Ea-e])(?:[.)]|\s|—|–|:|-|$)/);
   if(m&&opts.some(o=>o.k===m[1].toUpperCase())){q.kind='mcq';q.opts=opts;q.key=m[1].toUpperCase();q.expl=ft.replace(/^(?:[QA]?\d+[.)]\s*)?\(?[A-Ea-e]\)?[.):\s—–-]*/,'').trim();return}
  }

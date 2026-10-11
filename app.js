@@ -905,8 +905,8 @@ function tpBody(done){
     const ok=t.res[id];return `<td class="${ok?'tok':'tbad'}">${ok?md(c):`<s>${esc(u||'—')}</s> <b>${md(c)}</b>`}</td>`}
    return `<td>${md(c)}</td>`}).join('')}</tr>`}).join('');
  t.cap=cap;
- const stem=t.stem&&t.stem.length?`<details class="tstem" ${done?'':'open'}><summary>Question</summary>${t.stem.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:'';
- return `${stem}${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''} added to your flashcards`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
+ const stem=t.stem&&t.stem.length?`<details class="tstem" ${done?'':'open'}><summary>Question</summary>${t.stem.map(s=>typeof s==='string'?`<p>${md(s)}</p>`:`<div class="tw xtw"><table>${s.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('')}</details>`:'';
+ return `${stem}${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''} · ${t.qid?'added to Exercises to redo':'added to your flashcards'}`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
 }
 Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
@@ -924,10 +924,10 @@ Object.assign(A,{
   const t=TP;if(!t)return;let id=0,ok=0,wrong=0;
   const cells=[];const R=t.rows;
   R.forEach((r,ri)=>{if(ri===0&&r.slice(1).every(c=>!String(c).trim()))return;r.forEach((c,ci)=>{if(ci>0&&CD.isNum(c)){cells.push({id:id++,v:c,lab:CD.strip(r[0]),col:CD.strip(R[ri>0&&R[0].slice(1).some(x=>String(x).trim())?0:0][ci]||'')})}})});
-  cells.forEach(c=>{const inp=$('ti'+c.id),u=inp?inp.value.trim():'';t.ans[c.id]=u;const a=parseNum(u),b=parseNum(c.v);const good=!isNaN(a)&&Math.abs(a-b)<=Math.max(.01,Math.abs(b)*.005);t.res[c.id]=good;if(good)ok++;else{wrong++;
+  cells.forEach(c=>{const inp=$('ti'+c.id),u=inp?inp.value.trim():'';t.ans[c.id]=u;const a=parseNum(u),b=parseNum(c.v);const good=!isNaN(a)&&Math.abs(a-b)<=Math.max(.01,Math.abs(b)*.005);t.res[c.id]=good;if(good)ok++;else{wrong++;if(t.qid)return;
    const q=`${t.cap||t.h||t.lt} — ${c.lab}${c.col&&R[0].slice(1).some(x=>String(x).trim())&&R[0][1]!==''?` (${c.col})`:''}`,idc='x:'+CD.hash(t.cid+t.num+q);
    const ex=(S.xcards||[]).find(x=>x.id===idc);if(!ex)S.xcards.push({id:idc,c:t.cid,l:t.cid+':'+t.num,lt:t.lt,sec:t.h||t.cap||'',src:'e',q:q,a:CD.strip(c.v)});delete S.cards[idc]}});
-  t.score=ok;t.wrong=wrong;if(t.qid){S.exr=S.exr||{};S.exr[t.qid]={ok:wrong?0:1,ts:Date.now()}}t.mins=Math.max(1,Math.round((Date.now()-t.t0)/60000));
+  t.score=ok;t.wrong=wrong;if(t.qid){S.exr=S.exr||{};S.exr[t.qid]={ok:wrong?0:1,ts:Date.now()};if(wrong){const rt=C(t.cid).short+' · '+(t.cap||t.lt).slice(0,60);if(!S.redo.some(r=>r.title===rt)){const d=new Date();d.setDate(d.getDate()+1);S.redo.push({id:uid(),course:t.cid,title:rt,stage:0,due:dkey(d)})}}}t.mins=Math.max(1,Math.round((Date.now()-t.t0)/60000));
   save();setSheet(tpBody(true),`<button class="btn" data-act="sclose">Done</button>`);
  },
 });
@@ -959,7 +959,7 @@ function xstate(id){return EXS[id]||(EXS[id]={})}
 function qCard(q,ctx){
  const id=exid(q,ctx);QREG[id]={q,ctx};
  const st=xstate(id),chk=!!st.chk,prev=(S.exr||{})[id];
- const stem=(q.stem&&q.stem.length?q.stem:[CD.qFront(q)]).map((s,i)=>`<p class="xs">${i===0&&q.n?`<span class="n">${esc(q.n)}.</span>`:''}${md(s)}</p>`).join('');
+ const stem=(q.stem&&q.stem.length?q.stem:[CD.qFront(q)]).map((s,i)=>typeof s!=='string'?`<div class="tw xtw"><table>${s.rows.map(r=>`<tr>${r.map((c,ci)=>`<td${ci%2&&!/^\$?[\d(]/.test(c)?'':''}>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`:`<p class="xs">${i===0&&q.n?`<span class="n">${esc(q.n)}.</span>`:''}${md(s)}</p>`).join('');
  let body='',res='';
  const tabs=(q.ans||[]).filter(b=>b.t==='table').filter(b=>tPractical(b.rows));
  if(q.kind==='mcq'){
@@ -998,12 +998,23 @@ function qCard(q,ctx){
  return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${body}${res}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
 }
 function exHtml(l,blocks){
- const items=CD.parseEx(blocks);let out='',buf=[],sec='';
+ const items=CD.parseEx(blocks),SM=(typeof STATEMENTS!=='undefined'&&STATEMENTS[l.id])||{};
+ let out='',buf=[],sec='';
  const flush=()=>{if(buf.length){out+=blocksHtml(buf);buf=[]}};
- items.forEach(it=>{
-  if(it.k==='b'){if(it.b.t==='h')sec=CD.strip(it.b.x);buf.push(it.b)}
-  else{flush();out+=qCard(it.q,{course:l.course,num:l.num,lt:l.title,sec})}
- });
+ for(let i=0;i<items.length;i++){
+  const it=items[i];
+  if(it.k==='b'){
+   const key=it.b.t==='h'&&Object.keys(SM).find(k=>CD.strip(it.b.x).startsWith(k));
+   if(key){
+    flush();const def=SM[key],ans=[];let j=i+1;
+    while(j<items.length&&items[j].k==='b'&&items[j].b.t!=='h'){ans.push(items[j].b);j++}
+    const q={n:null,kind:'open',stem:def.stem,t:def.stem.map(s=>({t:'p',x:typeof s==='string'?s:s.rows.map(r=>r.join(' ')).join('; ')})),ans};
+    out+=`<h5>${md(CD.strip(it.b.x).replace(/\s*\(reconstructed.*$/,''))}</h5>`+qCard(q,{course:l.course,num:l.num,lt:l.title,sec:key});
+    i=j-1;continue;
+   }
+   if(it.b.t==='h')sec=CD.strip(it.b.x);buf.push(it.b);
+  }else{flush();out+=qCard(it.q,{course:l.course,num:l.num,lt:l.title,sec})}
+ }
  flush();return out;
 }
 function xrefresh(id){

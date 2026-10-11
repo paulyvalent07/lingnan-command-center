@@ -315,3 +315,6 @@ td.tok{background:rgba(48,209,88,.18)}td.tbad{background:rgba(255,69,58,.16)}
 .xta{margin:6px 0 0}.xans{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--fill)}.xans p{margin:5px 0;font-size:14px;line-height:1.45}
 .xans .tw{margin:8px 0}.tstem{margin-bottom:12px;font-size:15px}.tstem summary{color:var(--accent);font-weight:600;cursor:pointer;margin-bottom:6px}.tstem p{margin:6px 0;line-height:1.45}
 .xq .link{color:var(--accent);font-size:14px}
+
+.xtw{background:var(--fill);margin:8px 0}.xtw table{border-collapse:collapse;width:100%;font-size:13px}.xtw td{padding:5px 8px;border-bottom:.5px solid var(--sep)}
+.xq .xtw tr:first-child td{font-weight:400;background:none}
