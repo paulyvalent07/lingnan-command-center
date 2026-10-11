@@ -11,6 +11,93 @@ const nq=t=>String(t).replace(/[“”"]/g,'').replace(/^\(?\d+[.)]\s*/,'').trim
 function cut(s,n){s=String(s);if(s.length<=n)return s;const k=s.slice(0,n);const i=Math.max(k.lastIndexOf('. '),k.lastIndexOf('; '));return (i>n*.5?k.slice(0,i+1):k.trimEnd()+'…')}
 function numTable(rows){let n=0,t=0;rows.forEach((r,ri)=>r.forEach((c,ci)=>{if(ci>0&&strip(c)){t++;if(isNum(c))n++}}));return {n,t,ratio:t?n/t:0}}
 
+
+const NUMRE=/^\*{0,2}\s*[QA]?(\d+)[.)](?=[\s*])\s*\**\s*/i;
+function parseEx(blocks){
+ const items=[],pool=new Map();let cur=null,raw=false;
+ const startQ=(n,b)=>{cur={n,t:[b],ans:[]};items.push({k:'q',q:cur});if(n)pool.set(n,cur)};
+ for(const b of blocks){
+  if(b.t==='h'){if(/answer key|solution/i.test(b.x))continue;if(b.l<=2)raw=/official practice|worksheet|suggested/i.test(b.x);pool.clear();cur=null;items.push({k:'b',b});continue}
+  if(raw&&!(b.t==='p'&&/^Match\b/i.test(b.x||''))&&!(cur&&b.t==='table')){cur=null;items.push({k:'b',b});continue}
+  if(b.t==='p'||b.t==='li'){
+   const t=String(b.x||'');
+   if(/Extraction gap|^These are the exact exercises/i.test(t))continue;
+   const m=b.t==='p'&&t.match(NUMRE);
+   if(m&&!raw){startQ(m[1],b);continue}
+   if(raw){startQ(null,b);continue}
+   if(cur&&!cur.ans.length){cur.t.push(b);continue}
+   if(cur&&cur.ans.length){cur.ans.push(b);continue}
+   if(b.t==='p'){startQ(null,b);continue}
+   items.push({k:'b',b});continue;
+  }
+  if(b.t==='a'){
+   const lines=String(b.x).split('\n'),marks=[];
+   lines.forEach((ln,i)=>{const m=ln.match(NUMRE);if(m)marks.push([i,m[1]])});
+   if(marks.length>=2&&marks.every(([,num])=>pool.has(num))){
+    marks.forEach(([i,num],k)=>{const q=pool.get(num);if(!q.ans.length)q.ans.push({t:'a',x:lines.slice(i,k+1<marks.length?marks[k+1][0]:undefined).join('\n')})});continue}
+   if(marks.length===1&&pool.has(marks[0][1])&&!pool.get(marks[0][1]).ans.length){pool.get(marks[0][1]).ans.push(b);continue}
+   if(cur){cur.ans.push(b);continue}
+   items.push({k:'b',b});continue;
+  }
+  if(b.t==='table'){if(cur)cur.ans.push(b);else items.push({k:'b',b});continue}
+  items.push({k:'b',b});
+ }
+ /* a question group without any answer is just text */
+ const out=[];
+ items.forEach(it=>{if(it.k==='q'&&!it.q.ans.length)it.q.t.forEach(b=>out.push({k:'b',b}));else out.push(it)});
+ out.forEach(it=>{if(it.k==='q')classify(it.q)});
+ return out;
+}
+const qFront=q=>q.t.map(b=>strip(b.x)).join('\n').replace(/^(?:[QA]?\d+[.)]\s*)/i,'');
+const ansText=q=>q.ans.filter(b=>b.t!=='table').map(b=>strip(String(b.x).replace(/\n/g,' \n ')).replace(/ ?\n ?/g,'\n')).join('\n').replace(/^(?:[QA]?\d+[.)]\s*)/i,'').trim();
+function ansNum(seg){
+ const s=String(seg).replace(/\*\*/g,'');
+ const eq=[...s.matchAll(/[=≈~]\s*[~≈]?\s*(-?\$?\(?-?[\d][\d,]*(?:\.\d+)?)/g)];
+ const toks=eq.length?eq:[...s.matchAll(/(-?\$?\(?-?[\d][\d,]*(?:\.\d+)?)/g)];
+ if(!toks.length)return null;
+ const raw=toks[toks.length-1][1],neg=/^-|\(/.test(raw);
+ const v=parseFloat(raw.replace(/[$(),-]/g,''));return isNaN(v)?null:(neg?-v:v);
+}
+function classify(q){
+ /* options */
+ const texts=q.t.map(b=>String(b.x||''));
+ const opts=[];let stem=[],inl=null;
+ texts.forEach((t,i)=>{
+  const s=strip(t),m=s.match(/^\(?([A-Ea-e])[.)]\s+(.+)$/);
+  if(m&&i>0){opts.push({k:m[1].toUpperCase(),x:m[2]});return}
+  if(!opts.length)stem.push(t);
+ });
+ if(opts.length<2){
+  const s=strip(texts.join(' '));const parts=s.split(/\s\(([a-e])\)\s/);
+  if(parts.length>=5){inl=[parts[0]];opts.length=0;for(let i=1;i<parts.length;i+=2)opts.push({k:parts[i].toUpperCase(),x:parts[i+1].trim()})}
+ }
+ const first=q.ans.find(b=>b.t!=='table'),ft=first?strip(first.x):'';
+ const clean=arr=>arr.map(x=>strip(x).replace(/^(?:[QA]?\d+[.)]\s*)/i,'').replace(/^(MCQ|Short answer|Applied scenario|Short problem)\s*:\s*/i,'')).filter(Boolean);
+ q.stem=clean(inl||stem);
+ if(opts.length>=2){
+  const m=ft.replace(/^(?:[QA]?\d+[.)]\s*)/i,'').match(/^\(?([A-Ea-e])(?:[.)]|\s|—|–|:|-|$)/);
+  if(m&&opts.some(o=>o.k===m[1].toUpperCase())){q.kind='mcq';q.opts=opts;q.key=m[1].toUpperCase();q.expl=ft.replace(/^(?:[QA]?\d+[.)]\s*)?\(?[A-Ea-e]\)?[.):\s—–-]*/,'').trim();return}
+ }
+ const tb=q.ans.find(b=>b.t==='table');
+ if(/^\s*match/i.test(q.stem[0]||'')&&tb&&tb.rows.length>=4&&tb.rows[0].length>=3){
+  const rows=tb.rows.slice(1).filter(r=>r[1]&&r[2]);
+  if(rows.length>=3){q.kind='match';q.rows=rows.map(r=>({t:strip(r[1]),d:strip(r[2])}));return}
+ }
+ /* open question: numbered sub-parts with numeric answers? */
+ q.kind='open';q.stem=clean(texts);
+ const TAIL=/=\s*[\-−–]?\s*\(?\$?\s*[\d][\d,]*(?:\.\d+)?\)?\s*(?:%|[kKmM])?\s*\.?\s*$/,BARE=/^[\-−–]?\s*[\$€£]?\s*\(?[\d][\d,]*(?:\.\d+)?\)?\s*%?\s*\.?$/;
+ const calc=x=>{const t=strip(x);return TAIL.test(t)?ansNum(t):BARE.test(t)?ansNum(t):null};
+ const lines=(first?String(first.x):'').split('\n');const parts=[];
+ lines.forEach(ln=>{const m=ln.replace(/^[•\-*\s]+/,'').match(/^\**\(?([a-z]|[ivx]+)\)\s*\**\s*(.*)$/i);if(m)parts.push({l:m[1],x:m[2]});else if(parts.length)parts[parts.length-1].x+=' '+ln});
+ if(parts.length>=2){parts.forEach(p=>{p.x=p.x.replace(/^[QA]\d+[.)]\s*/,'');p.n=calc(p.x)});if(parts.every(p=>p.n!=null)){q.parts=parts;return}}
+ if(ft.length<400){
+  const sents=ft.replace(/^[QA]\d+[.)]\s*/,'').split(/(?<=\.)\s+(?=[A-Z(])/).map(x=>x.trim()).filter(Boolean);
+  if(sents.length&&sents.length<=4){
+   const ps=sents.map(x=>({l:'',lab:(x.split('=')[0]||'').replace(/^[A-Z]\d+[.)]\s*/,'').trim().slice(0,40),x,n:/=/.test(x)?calc(x):null}));
+   if(ps.every(p=>p.n!=null))q.parts=ps;
+  }
+ }
+}
 function tq(label,h){
  label=nq(label);const hl=strip(h).replace(/[.…]+$/,'').trim(),l=hl.toLowerCase();
  if(/^definition$|^meaning$|^description$/.test(l))return Q(label);
@@ -87,34 +174,13 @@ function buildDeck(CONTENT){
      });
     }
    });
-   /* ---- exercises: question / answer pairs ---- */
-   const pool=new Map();let cur=null,esec=lt;
-   (L.ex||[]).forEach(b=>{
-    if(b.t==='h'){esec=strip(b.x);if(!/answer|key|solution/i.test(b.x)){pool.clear();cur=null}return}
-    if(b.t==='p'||b.t==='li'){
-     const t=String(b.x||'');
-     if(/Extraction gap|^These are the exact/i.test(t))return;
-     const m=t.match(/^\*{0,2}\s*[QA]?(\d+)[.)]\s*/i);
-     if(m&&b.t==='p'){cur={n:m[1],t:[t],a:null};pool.set(m[1],cur)}
-     else if(cur&&!cur.a)cur.t.push(t);
-     else if(b.t==='p'){cur={n:null,t:[t],a:null};pool.set('u'+pool.size+t.length,cur)}
-     return;
-    }
-    if(b.t==='a'){
-     const lines=String(b.x).split('\n');
-     const marks=[];lines.forEach((ln,i)=>{const m=ln.match(/^\*{0,2}\s*[QA]?(\d+)[.)]\s*/i);if(m)marks.push([i,m[1]])});
-     if(marks.length>=2){
-      marks.forEach(([i,num],k)=>{const q=pool.get(num);if(q&&!q.a)q.a=lines.slice(i,k+1<marks.length?marks[k+1][0]:undefined).join('\n')});
-     }else if(cur&&!cur.a){cur.a=String(b.x)}
-     else if(marks.length===1){const q=pool.get(marks[0][1]);if(q&&!q.a)q.a=String(b.x)}
-     cur=null;
-    }
-   });
-   pool.forEach(q=>{
-    if(!q.a)return;
-    const front=q.t.map(strip).join('\n').replace(/^(?:[QA]?\d+[.)]\s*)/i,'');
-    if(front.length<12||front.length>900)return;
-    add(c,n,lt,esec,'x',front,cut(strip(q.a).replace(/^[QA]?\d+[.)]\s*/i,'')||q.a,640));
+   /* ---- exercises: question / answer pairs (shared parser) ---- */
+   let esec=lt;
+   parseEx(L.ex||[]).forEach(it=>{
+    if(it.k==='b'){if(it.b.t==='h')esec=strip(it.b.x);return}
+    const q=it.q,front=qFront(q),at=ansText(q);
+    if(front.length<12||front.length>900||!at)return;
+    add(c,n,lt,esec,'x',front,cut(at,640));
    });
   }
  }
@@ -142,6 +208,6 @@ function label(st,gr,now){
  if(gr===0)return '10 min';
  return s.i>=30?Math.round(s.i/30)+' mo':s.i+' d';
 }
-const api={buildDeck,grade,label,fresh,isNum,numTable,strip,hash};
+const api={classify,parseEx,qFront,ansText,exId:(c,n,front)=>c+':'+n+':'+hash(strip(front)),buildDeck,grade,label,fresh,isNum,numTable,strip,hash};
 if(typeof module!=='undefined')module.exports=api;else g.CARDS=api;
 })(typeof window!=='undefined'?window:globalThis);

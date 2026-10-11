@@ -77,7 +77,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{}},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{},exr:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
@@ -85,7 +85,7 @@ function load(){
 }
 function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof schedulePush==='function')schedulePush()}
 
-let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null;
+let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['cards','Cards','cards'],['timetable','Week','cal'],['insights','Insights','chart'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
 function tabOn(k){return view===k||(k==='cards'&&view==='study')||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
@@ -176,7 +176,7 @@ function blocksHtml(arr,ctx){
   else if(b.t==='p')out+=`<p>${md(b.x)}</p>`;
   else if(b.t==='li'){if(!ul){out+='<ul>';ul=true}out+=`<li>${md(b.x)}</li>`}
   else if(b.t==='a')out+=`<details><summary>Show answer</summary>${String(b.x).split('\n').map(s=>`<p>${md(s)}</p>`).join('')}</details>`;
-  else if(b.t==='table'){out+=`<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;if(ctx&&tPractical(b.rows))out+=`<button class="btn tint sm tprac" data-act="tpractice" data-lid="${ctx.lid}" data-k="${ctx.k}" data-i="${ti}">${ic('clip')} Fill it in from memory · ~${tMins(b.rows)} min</button>`;ti++}
+  else if(b.t==='table'){out+=`<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;ti++}
  }
  return out+(ul?'</ul>':'');
 }
@@ -200,8 +200,8 @@ function exBody(l){
  if(l.E.length)out+=`<div class="grp">${l.E.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title.split(' · ')[0])}</b><span>${esc(officialOf(p))}${officialOf(p)?' · ':''}${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('')}</div>`;
  const keys=[...new Set(l.E.map(p=>p.ex).filter(Boolean))];
  keys.forEach(k=>{const s=exSet(k);if(!s)return;
-  out+=`<div class="sh">${esc(s.title)}</div><div class="grp">${s.items.map((it,i)=>`<div class="q"><span class="n">${i+1}.</span>${esc(it.q)}<details><summary>Show answer</summary><p>${esc(it.a)}</p></details></div>`).join('')}</div>${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
- if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${blocksHtml(doc.ex,{lid:l.id,k:'ex'})}</div>`;
+  out+=`<div class="sh">${esc(s.title)}</div>${s.items.map((it,i)=>{const q={n:String(i+1),t:[{t:'p',x:it.q}],ans:[{t:'a',x:it.a}]};CD.classify(q);return qCard(q,{course:k.split(':')[0],num:'s'+CD.hash(k),lt:s.title,sec:''})}).join('')}${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
+ if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${exHtml(l,doc.ex)}</div>`;
  const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length);
  if(!has)out+=`<div class="empty" style="margin-top:12px">${ic('clip')}<b>No practice set written yet</b>Do the official exercises above. Original practice questions are added by the weekly update.</div>`;
  return out;
@@ -558,6 +558,7 @@ function mergeState(r){
  o.edits=Object.assign({},older.edits);Object.entries(newer.edits||{}).forEach(([k,v])=>{const y=o.edits[k];if(!y||(v.ts||0)>=(y.ts||0))o.edits[k]=v});
  o.flags=Object.assign({},older.flags);Object.entries(newer.flags||{}).forEach(([k,v])=>{const y=o.flags[k];if(!y||(v.ts||0)>=(y.ts||0))o.flags[k]=v});
  const xm=new Map();[...(older.xcards||[]),...(newer.xcards||[])].forEach(x=>xm.set(x.id,x));o.xcards=[...xm.values()];
+ o.exr=Object.assign({},older.exr);Object.entries(newer.exr||{}).forEach(([k,v])=>{const y=o.exr[k];if(!y||(v.ts||0)>=(y.ts||0))o.exr[k]=v});
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
@@ -604,11 +605,12 @@ function curItem(){const a=S.active;return a&&a.items?planAll().find(p=>p.id===a
 function sessRing(pct,color){return `<div class="tr">${ringSvg(92,40,7,pct,color).replace('class="pg"','class="pg" id="sring"')}<span class="timer" id="stimer" style="font-size:21px"></span></div>`}
 function renderSession(){
  const el=$('sess');
- if(!S.active){sessOpen=false;el.classList.remove('open');el.innerHTML='';return}
+ if(!S.active){sessOpen=false;hud=false;el.classList.remove('open','hud');el.innerHTML='';return}
  const a=S.active,x=C(a.course);
- el.classList.toggle('open',sessOpen);
+ el.classList.toggle('open',sessOpen);el.classList.add('blk');
  const secs=activeSecs(),free=a.mode==='free';
  const fin=!free&&(a.endTs||secs>=WORK);
+ el.classList.toggle('hud',hudOn());
  if(fin){
   const mins=Math.min(50,Math.round(secs/60*10)/10);
   const items=(a.items||[]).map(id=>planAll().find(p=>p.id===id)).filter(Boolean);
@@ -635,14 +637,21 @@ function renderSession(){
  const paused=!!a.pausedAt;
  el.innerHTML=`<div class="sess-h c"><div class="sess-row"><button class="xbtn" data-act="smin" aria-label="Minimize">${ic('chevd')}</button><div class="info"><b>${esc(cur)}</b><span>${esc(sub)}</span></div><button class="tpill ${paused?'p':''}" data-act="spause" aria-label="Pause or resume"><span id="stimer"></span><em>${paused?'Resume':'Pause'}</em></button></div><div class="sbar"><i id="sbar" style="background:${x.color}"></i></div></div>
   <div class="sess-b"><div>${body}</div></div>
-  <div class="sess-f"><div><button class="btn gray sm" data-act="stop">${free?'Stop and save':'Finish early'}</button><button class="btn red sm" data-act="cancel" aria-label="Discard">${ic('x')}</button></div></div>`;
+  <div class="sess-f"><div><button class="btn gray sm" data-act="stop">${free?'Stop and save':'Finish early'}</button><button class="btn red sm" data-act="cancel" aria-label="Discard">${ic('x')}</button></div></div>
+  <div class="sline"><i id="sline" style="background:${x.color}"></i></div><div class="sess-hint">Esc or swipe right for controls</div>`;
  updateTimers();
 }
+function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||activeSecs()>=WORK);return hud||free||!!fin||!!a.pausedAt}
+function toggleHud(){if(!S.active||!sessOpen)return;hud=!hud;const el=$('sess');el.classList.toggle('hud',hudOn());if(document.activeElement&&document.activeElement.blur&&/TEXTAREA|INPUT/.test(document.activeElement.tagName))document.activeElement.blur()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.active&&sessOpen){e.preventDefault();toggleHud()}});
+let sw0=null;
+document.addEventListener('touchstart',e=>{const t=e.touches[0];sw0=e.target.closest&&e.target.closest('#sess')&&!e.target.closest('.tw,textarea,input,select')?{x:t.clientX,y:t.clientY,t:Date.now()}:null},{passive:true});
+document.addEventListener('touchend',e=>{if(!sw0)return;const t=e.changedTouches[0],dx=t.clientX-sw0.x,dy=t.clientY-sw0.y,dt=Date.now()-sw0.t;sw0=null;if(dx>70&&Math.abs(dy)<60&&dt<700)toggleHud()},{passive:true});
 function updateTimers(){
  const a=S.active;if(!a)return;
  const secs=activeSecs(),free=a.mode==='free',txt=free?fmtHMS(secs):fmtMS(WORK-secs),pct=free?0:secs/WORK;
  ['stimer','htimer','mtimer'].forEach(id=>{const n=$(id);if(n)n.textContent=id==='stimer'&&free?fmtMS(secs):txt});
- const sb=$('sbar');if(sb)sb.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';
+ const sb=$('sbar');if(sb)sb.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';const sl=$('sline');if(sl)sl.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';
  [['sring',2*Math.PI*40],['mring',2*Math.PI*15]].forEach(([id,c])=>{const n=$(id);if(n&&n.style)n.style.strokeDashoffset=(c*(1-Math.min(1,pct))).toFixed(1)});
 }
 function renderMini(){
@@ -896,7 +905,8 @@ function tpBody(done){
     const ok=t.res[id];return `<td class="${ok?'tok':'tbad'}">${ok?md(c):`<s>${esc(u||'—')}</s> <b>${md(c)}</b>`}</td>`}
    return `<td>${md(c)}</td>`}).join('')}</tr>`}).join('');
  t.cap=cap;
- return `${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''} added to your flashcards`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
+ const stem=t.stem&&t.stem.length?`<details class="tstem" ${done?'':'open'}><summary>Question</summary>${t.stem.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:'';
+ return `${stem}${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''} added to your flashcards`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
 }
 Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
@@ -910,11 +920,6 @@ Object.assign(A,{
  csaveedit(el){const q=($('ed-q')||{}).value||'',a=($('ed-a')||{}).value||'';if(!q.trim()||!a.trim())return;S.edits[el.dataset.id]={q:q.trim(),a:a.trim(),ts:Date.now()};save();closeSheet();render()},
  cresetedit(el){S.edits[el.dataset.id]={del:true,ts:Date.now()};save();closeSheet();render()},
  cexit(){STUDY=null;const h=hist.pop();view='cards';param=null;render();window.scrollTo(0,0)},
- tpractice(el){
-  const t=tableOf(el.dataset.lid,el.dataset.k,+el.dataset.i);if(!t)return;
-  TP=Object.assign(t,{ans:{},res:{},t0:Date.now(),est:tMins(t.rows),n:CD.numTable(t.rows).n});
-  openSheet('Fill it in',tpBody(false),`<button class="btn" data-act="tcheck">Check my answers</button>`);
- },
  tcheck(){
   const t=TP;if(!t)return;let id=0,ok=0,wrong=0;
   const cells=[];const R=t.rows;
@@ -922,8 +927,137 @@ Object.assign(A,{
   cells.forEach(c=>{const inp=$('ti'+c.id),u=inp?inp.value.trim():'';t.ans[c.id]=u;const a=parseNum(u),b=parseNum(c.v);const good=!isNaN(a)&&Math.abs(a-b)<=Math.max(.01,Math.abs(b)*.005);t.res[c.id]=good;if(good)ok++;else{wrong++;
    const q=`${t.cap||t.h||t.lt} — ${c.lab}${c.col&&R[0].slice(1).some(x=>String(x).trim())&&R[0][1]!==''?` (${c.col})`:''}`,idc='x:'+CD.hash(t.cid+t.num+q);
    const ex=(S.xcards||[]).find(x=>x.id===idc);if(!ex)S.xcards.push({id:idc,c:t.cid,l:t.cid+':'+t.num,lt:t.lt,sec:t.h||t.cap||'',src:'e',q:q,a:CD.strip(c.v)});delete S.cards[idc]}});
-  t.score=ok;t.wrong=wrong;t.mins=Math.max(1,Math.round((Date.now()-t.t0)/60000));
+  t.score=ok;t.wrong=wrong;if(t.qid){S.exr=S.exr||{};S.exr[t.qid]={ok:wrong?0:1,ts:Date.now()}}t.mins=Math.max(1,Math.round((Date.now()-t.t0)/60000));
   save();setSheet(tpBody(true),`<button class="btn" data-act="sclose">Done</button>`);
+ },
+});
+
+/* ---------- interactive exercises: answer first, then get corrected; mistakes become flashcards ---------- */
+const EXS={},QREG={};
+const exid=(q,ctx)=>CD.exId(ctx.course,ctx.num,CD.qFront(q));
+const numOk=(u,n)=>{const a=parseNum(u);if(isNaN(a))return false;const t=Math.max(.01,Math.abs(n)*.005);return Math.abs(a-n)<=t||Math.abs(Math.abs(a)-Math.abs(n))<=t};
+function shuf(n,seed){const a=[...Array(n).keys()];let s=0;for(const ch of String(seed))s=(s*31+ch.charCodeAt(0))>>>0;for(let i=n-1;i>0;i--){s=(s*1664525+1013904223)>>>0;const j=s%(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+function ansHtml(ans){
+ return ans.map(b=>{
+  if(b.t==='table')return `<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  return String(b.x).split('\n').filter(s=>s.trim()).map(s=>`<p>${md(s)}</p>`).join('');
+ }).join('');
+}
+function missed(id,q,ctx,cards){
+ const now=Date.now();
+ (cards||[{id,q:CD.qFront(q),a:CD.ansText(q)}]).forEach(c=>{
+  if(!c.a)return;
+  const ex=cardById(c.id);
+  if(ex){const o=S.cards[c.id]||{};S.cards[c.id]=Object.assign(CD.fresh(),o,{n:0,i:0,due:now,ts:now,f:(o.f||0)+1})}
+  else{
+   if(!(S.xcards||[]).some(x=>x.id===c.id))S.xcards.push({id:c.id,c:ctx.course,l:ctx.course+':'+ctx.num,lt:ctx.lt,sec:ctx.sec||'',src:'e',q:c.q,a:c.a});
+   delete S.cards[c.id];
+  }
+ });
+}
+function xstate(id){return EXS[id]||(EXS[id]={})}
+function qCard(q,ctx){
+ const id=exid(q,ctx);QREG[id]={q,ctx};
+ const st=xstate(id),chk=!!st.chk,prev=(S.exr||{})[id];
+ const stem=(q.stem&&q.stem.length?q.stem:[CD.qFront(q)]).map((s,i)=>`<p class="xs">${i===0&&q.n?`<span class="n">${esc(q.n)}.</span>`:''}${md(s)}</p>`).join('');
+ let body='',res='';
+ const tabs=(q.ans||[]).filter(b=>b.t==='table').filter(b=>tPractical(b.rows));
+ if(q.kind==='mcq'){
+  body=q.opts.map(o=>`<button class="xo ${st.sel===o.k?'on':''} ${chk?(o.k===q.key?'ok':st.sel===o.k?'bad':''):''}" data-act="xsel" data-q="${id}" data-k="${o.k}" ${chk?'disabled':''}><b>${o.k}</b><span>${md(o.x)}</span></button>`).join('');
+  if(!chk)body+=`<div class="xbar"><button class="btn tint sm" data-act="xcheck" data-q="${id}" ${st.sel?'':'disabled'}>Check</button></div>`;
+  else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.ok?'Correct':'Not quite · answer '+q.key}</b>${q.expl?`<p>${md(q.expl)}</p>`:''}${st.ok?'':'<p class="xnote">Added to your flashcards.</p>'}</div>`;
+ }else if(q.kind==='match'){
+  const ord=shuf(q.rows.length,id),L=i=>String.fromCharCode(65+i);
+  const pos={};ord.forEach((ri,k)=>pos[ri]=k);
+  body=`<div class="xmt">${q.rows.map((r,i)=>{
+   const u=(st.m||[])[i]||'',good=chk&&u===L(pos[i]);
+   return `<div class="xmr ${chk?(good?'ok':'bad'):''}"><span class="mn">${i+1}</span><span class="mt">${md(r.t)}</span>${chk?`<span class="mv">${good?'✓ '+u:`<s>${esc(u||'—')}</s> <b>${L(pos[i])}</b>`}</span>`:`<select data-xm="${id}" data-i="${i}"><option value="">—</option>${ord.map((_,k)=>`<option value="${L(k)}" ${u===L(k)?'selected':''}>${L(k)}</option>`).join('')}</select>`}</div>`}).join('')}</div>
+  <div class="xlist">${ord.map((ri,k)=>`<p><b>${L(k)}.</b> ${md(q.rows[ri].d)}</p>`).join('')}</div>`;
+  if(!chk)body+=`<div class="xbar"><button class="btn tint sm" data-act="xcheck" data-q="${id}">Check</button></div>`;
+  else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.score}/${q.rows.length} correct</b>${st.ok?'':'<p class="xnote">Wrong pairs were added to your flashcards.</p>'}</div>`;
+ }else if(q.parts&&q.parts.every(p=>p.n!=null)){
+  body=q.parts.map((p,i)=>{
+   const u=(st.v||[])[i]||'',good=chk&&(st.pr||[])[i];
+   return `<div class="xpr ${chk?(good?'ok':'bad'):''}"><span class="pl">${p.l?'('+esc(p.l)+')':esc(p.lab||'Answer')}</span>${chk?`<span class="pv">${good?md(u):`<s>${esc(u||'—')}</s>`}</span>`:`<input class="tin xin" data-xq="${id}" data-i="${i}" inputmode="decimal" autocomplete="off" value="${esc(u)}" placeholder="0">`}${chk?`<p class="pw">${md(p.x)}</p>`:''}</div>`}).join('');
+  if(!chk)body+=`<div class="xbar"><button class="btn tint sm" data-act="xcheck" data-q="${id}">Check</button></div>`;
+  else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.score}/${q.parts.length} correct</b>${st.ok?'':'<p class="xnote">Added to your flashcards.</p>'}</div>`;
+ }else{
+  if(tabs.length&&!st.show)body+=tabs.map(t=>`<div class="xbar"><button class="btn tint sm tprac" data-act="xtable" data-q="${id}" data-j="${q.ans.filter(b=>b.t==='table').indexOf(t)}">${ic('clip')} Fill in the table · ~${tMins(t.rows)} min</button></div>`).join('');
+  const sj=(q.stem||[]).join(' '),numq=!tabs.length&&/\d/.test(CD.ansText(q))&&/\d/.test(sj)&&/(calculat|comput|find|determin|how much|how many|what is|what are|what would|\bPED\b|elasticit|revenue|equilibri|\bcost|price|profit|income|quantity|%)/i.test(sj);
+  if(numq)body+=`<div class="xpr"><span class="pl">Result</span><input class="tin xin" data-xq="${id}" data-k="num" inputmode="decimal" autocomplete="off" value="${esc(st.num||'')}" placeholder="your number" ${st.show?'disabled':''}></div>`;
+  if(!tabs.length||st.show||st.txt)body+=`<textarea class="edta xta" rows="${numq?2:3}" data-xq="${id}" data-k="txt" placeholder="${numq?'Working or explanation (optional)':'Your answer…'}" ${st.show?'disabled':''}>${esc(st.txt||'')}</textarea>`;
+  if(!st.show)body+=`<div class="xbar"><button class="btn tint sm" data-act="xshow" data-q="${id}">Show answer</button></div>`;
+  else{
+   body+=`<div class="xans">${ansHtml(q.ans||[])}</div>`;
+   if(!chk&&st.num&&st.hit===false)body+=`<p class="xnote" style="margin:8px 0 0;color:var(--l2);font-size:13px">Your result ${esc(st.num)} is not in the solution. Compare your working.</p>`;
+   if(!chk)body+=`<div class="xbar"><span class="mute" style="font-size:13px">Did you get it?</span><button class="btn sm xg" data-act="xgrade" data-q="${id}" data-ok="1">Got it</button><button class="btn sm xm" data-act="xgrade" data-q="${id}" data-ok="0">Missed</button></div>`;
+   else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.ok?(st.hit?'Correct · your result is in the solution':'Marked as known'):'Marked as missed'}</b>${st.ok?'':'<p class="xnote">Added to your flashcards.</p>'}</div>`;
+  }
+ }
+ const badge=!chk&&prev?`<span class="xprev ${prev.ok?'ok':'bad'}">${prev.ok?'✓ last time':'✗ last time'}</span>`:'';
+ return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${body}${res}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
+}
+function exHtml(l,blocks){
+ const items=CD.parseEx(blocks);let out='',buf=[],sec='';
+ const flush=()=>{if(buf.length){out+=blocksHtml(buf);buf=[]}};
+ items.forEach(it=>{
+  if(it.k==='b'){if(it.b.t==='h')sec=CD.strip(it.b.x);buf.push(it.b)}
+  else{flush();out+=qCard(it.q,{course:l.course,num:l.num,lt:l.title,sec})}
+ });
+ flush();return out;
+}
+function xrefresh(id){
+ const r=QREG[id];if(!r)return;
+ document.querySelectorAll('[data-qid="'+id+'"]').forEach(n=>{const t=document.createElement('div');t.innerHTML=qCard(r.q,r.ctx);n.replaceWith(t.firstElementChild)});
+}
+function xrecord(id,ok){S.exr=S.exr||{};S.exr[id]={ok:ok?1:0,ts:Date.now()};save()}
+document.addEventListener('input',e=>{
+ const el=e.target,id=el.dataset&&el.dataset.xq;if(!id)return;
+ const st=xstate(id);
+ if(el.dataset.k==='txt')st.txt=el.value;else if(el.dataset.k==='num')st.num=el.value;else{st.v=st.v||[];st.v[+el.dataset.i]=el.value}
+});
+document.addEventListener('change',e=>{
+ const el=e.target,id=el.dataset&&el.dataset.xm;if(!id)return;
+ const st=xstate(id);st.m=st.m||[];st.m[+el.dataset.i]=el.value;
+});
+Object.assign(A,{
+ xsel(el){const st=xstate(el.dataset.q);st.sel=el.dataset.k;xrefresh(el.dataset.q)},
+ xshow(el){
+  const id=el.dataset.q,r=QREG[id],st=xstate(id);st.show=true;
+  if(st.num&&st.num.trim()){
+   const nums=[...CD.ansText(r.q).matchAll(/[\-−]?\$?\(?\d[\d,]*(?:\.\d+)?/g)].map(m=>parseNum(m[0])).filter(x=>!isNaN(x));
+   st.hit=nums.some(n=>numOk(st.num,n)||numOk(st.num,n*100)||numOk(st.num,n/100));
+   if(st.hit){st.chk=true;st.ok=true;xrecord(id,true)}
+  }
+  xrefresh(id);
+ },
+ xretry(el){delete EXS[el.dataset.q];xrefresh(el.dataset.q)},
+ xgrade(el){
+  const id=el.dataset.q,r=QREG[id],st=xstate(id),ok=el.dataset.ok==='1';
+  st.chk=true;st.ok=ok;if(!ok)missed(id,r.q,r.ctx);xrecord(id,ok);xrefresh(id);
+ },
+ xcheck(el){
+  const id=el.dataset.q,r=QREG[id],q=r.q,st=xstate(id);
+  if(q.kind==='mcq'){
+   if(!st.sel)return;st.ok=st.sel===q.key;
+   if(!st.ok)missed(id,q,r.ctx,[{id,q:CD.qFront(q),a:q.key+'. '+((q.opts.find(o=>o.k===q.key)||{}).x||'')+(q.expl?'\n'+q.expl:'')}]);
+  }else if(q.kind==='match'){
+   const ord=shuf(q.rows.length,id),pos={};ord.forEach((ri,k)=>pos[ri]=k);
+   let sc=0;const bad=[];
+   q.rows.forEach((row,i)=>{if((st.m||[])[i]===String.fromCharCode(65+pos[i]))sc++;else bad.push({id:id+':m'+i,q:'What is '+CD.strip(row.t)+'?',a:row.d})});
+   st.score=sc;st.ok=!bad.length;
+   if(bad.length)missed(id,q,r.ctx,bad);
+  }else{
+   let sc=0;st.pr=q.parts.map((p,i)=>{const g=numOk((st.v||[])[i]||'',p.n);if(g)sc++;return g});
+   st.score=sc;st.ok=sc===q.parts.length;
+   if(!st.ok)missed(id,q,r.ctx);
+  }
+  st.chk=true;xrecord(id,st.ok);xrefresh(id);
+ },
+ xtable(el){
+  const r=QREG[el.dataset.q],tb=r.q.ans.filter(b=>b.t==='table')[+el.dataset.j];if(!tb)return;
+  TP={rows:tb.rows,h:'',cid:r.ctx.course,num:r.ctx.num,lt:r.ctx.lt,stem:r.q.stem||[],qid:el.dataset.q,ans:{},res:{},t0:Date.now(),est:tMins(tb.rows),n:CD.numTable(tb.rows).n};
+  openSheet('Fill it in',tpBody(false),`<button class="btn" data-act="tcheck">Check my answers</button>`);
  },
 });
 

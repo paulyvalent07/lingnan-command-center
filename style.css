@@ -284,3 +284,34 @@ td.tok{background:rgba(48,209,88,.18)}td.tbad{background:rgba(255,69,58,.16)}
 
 .edta{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid var(--sep);background:var(--fill);color:var(--label);font:inherit;font-size:15px;line-height:1.4;margin:6px 0 12px;resize:vertical}
 .fc-tip{display:flex;justify-content:center;gap:14px}
+
+/* immersive focus: black screen, only a progress line; Esc / swipe right shows the controls */
+#sess.blk{--bg:#000;--card:#101012;--elev:#1c1c1e;--label:#e5e5ea;--l2:rgba(235,235,245,.55);--l3:rgba(235,235,245,.3);--sep:rgba(84,84,88,.5);--fill:rgba(120,120,128,.2);--fill2:rgba(120,120,128,.32);--accent:#0a84ff;--green:#30d158;--red:#ff453a;--mat:rgba(16,16,18,.94);background:#000;color:var(--label);color-scheme:dark}
+#sess.blk:not(.hud) .sess-h,#sess.blk:not(.hud) .sess-f,#sess.blk:not(.hud) .chips,#sess.blk:not(.hud) .tabs-s{display:none}
+#sess.blk:not(.hud) .sess-b{padding-top:calc(var(--st) + 14px);padding-bottom:40px}
+#sess.blk.hud .sline,#sess.blk.hud .sess-hint{display:none}
+.sline{position:fixed;top:0;left:0;right:0;height:3px;z-index:70;background:rgba(255,255,255,.07)}
+.sline i{display:block;height:100%;width:0;transition:width 1s linear}
+.sess-hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + var(--sb));white-space:nowrap;font-size:11px;color:var(--l2);background:rgba(28,28,30,.96);padding:4px 12px;border-radius:12px;pointer-events:none;animation:hintf 7s forwards}
+@keyframes hintf{0%,70%{opacity:1}100%{opacity:0}}
+/* interactive exercises */
+.xq{position:relative;background:var(--card);border-radius:14px;padding:14px;margin:12px 0}
+.xq.ok{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--green) 55%,transparent)}.xq.bad{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--red) 50%,transparent)}
+.xq .xs{margin:0 0 8px;font-size:16px;line-height:1.45}.xq .xs .n{color:var(--l2);font-weight:600;margin-right:6px}
+.xprev{position:absolute;top:8px;right:12px;font-size:11px;font-weight:600}.xprev.ok{color:var(--green)}.xprev.bad{color:var(--red)}
+.xo{display:flex;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;background:var(--fill);margin-top:6px;border:1.5px solid transparent;font-size:15px;line-height:1.35;color:var(--label)}
+.xo b{flex:none;width:20px;color:var(--l2)}.xo.on{border-color:var(--accent)}
+.xo.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 16%,transparent)}.xo.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+.xbar{display:flex;align-items:center;gap:8px;margin-top:10px}.xbar .btn{width:auto;padding:0 16px;height:34px;min-height:34px}.xbar .btn[disabled]{opacity:.4}
+.xbar .xg{background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green)}.xbar .xm{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
+.xr{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:15px}.xr.ok{background:color-mix(in srgb,var(--green) 14%,transparent)}.xr.bad{background:color-mix(in srgb,var(--red) 12%,transparent)}
+.xr p{margin:6px 0 0;font-size:14px;line-height:1.4}.xr .xnote{color:var(--l2);font-size:13px}
+.xmr{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:.5px solid var(--sep)}.xmr .mn{flex:none;width:20px;color:var(--l2);font-weight:600}.xmr .mt{flex:1;font-size:15px}
+.xmr select{flex:none;min-width:58px;padding:6px 8px;border-radius:8px;border:1px solid var(--sep);background:var(--fill);color:var(--label);font-size:15px}
+.xmr.ok .mv{color:var(--green)}.xmr.bad .mv{color:var(--red)}.xmr .mv{flex:none;font-size:14px}
+.xlist{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--fill)}.xlist p{margin:5px 0;font-size:14px;line-height:1.4}
+.xpr{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0}.xpr .pl{flex:none;min-width:34px;color:var(--l2);font-weight:600}.xin{width:140px}
+.xpr .pv{font-weight:600}.xpr.ok .pv{color:var(--green)}.xpr.bad .pv{color:var(--red)}.xpr .pw{flex-basis:100%;margin:0;font-size:13px;color:var(--l2)}
+.xta{margin:6px 0 0}.xans{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--fill)}.xans p{margin:5px 0;font-size:14px;line-height:1.45}
+.xans .tw{margin:8px 0}.tstem{margin-bottom:12px;font-size:15px}.tstem summary{color:var(--accent);font-weight:600;cursor:pointer;margin-bottom:6px}.tstem p{margin:6px 0;line-height:1.45}
+.xq .link{color:var(--accent);font-size:14px}
