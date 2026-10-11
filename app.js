@@ -77,7 +77,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{}},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
@@ -555,6 +555,7 @@ function mergeState(r){
  const rm=new Map();[...(older.reads||[]),...(newer.reads||[])].forEach(x=>{const y=rm.get(x.id);if(!y||x.sec>y.sec)rm.set(x.id,x)});o.reads=[...rm.values()];
  o.mast=Object.assign({},older.mast);Object.entries(newer.mast||{}).forEach(([k,v])=>{const y=o.mast[k];if(!y||v.ts>=y.ts)o.mast[k]=v});
  o.cards=Object.assign({},older.cards);Object.entries(newer.cards||{}).forEach(([k,v])=>{const y=o.cards[k];if(!y||(v.ts||0)>=(y.ts||0))o.cards[k]=v});
+ o.edits=Object.assign({},older.edits);Object.entries(newer.edits||{}).forEach(([k,v])=>{const y=o.edits[k];if(!y||(v.ts||0)>=(y.ts||0))o.edits[k]=v});
  o.flags=Object.assign({},older.flags);Object.entries(newer.flags||{}).forEach(([k,v])=>{const y=o.flags[k];if(!y||(v.ts||0)>=(y.ts||0))o.flags[k]=v});
  const xm=new Map();[...(older.xcards||[]),...(newer.xcards||[])].forEach(x=>xm.set(x.id,x));o.xcards=[...xm.values()];
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
@@ -809,7 +810,7 @@ const NEWDAY=20;
 const CD=window.CARDS||{};
 let STUDY=null,DECK=null;
 function deck(){if(!DECK)DECK=(CD.buildDeck&&typeof CONTENT!=='undefined')?CD.buildDeck(CONTENT):[];return DECK}
-function allCards(){return deck().concat(S.xcards||[])}
+function allCards(){const E=S.edits||{};return deck().concat(S.xcards||[]).map(c=>E[c.id]&&!E[c.id].del?Object.assign({},c,{q:E[c.id].q,a:E[c.id].a,ed:1}):c)}
 function cardById(id){return allCards().find(c=>c.id===id)}
 function unlocked(){const t=today(),set=new Set();planAll().forEach(p=>{if(p.date<=t||S.planDone[p.id])pLids(p).forEach(l=>set.add(l))});return set}
 const nfl=()=>Object.values(S.flags||{}).filter(f=>f.on).length;
@@ -856,7 +857,7 @@ function vStudy(){
   <div class="fc-q">${nl(c.q)}</div>
   ${st.flipped?`<div class="fc-sep"></div><div class="fc-a">${nl(c.a)}</div>`:`<div class="fc-hint">Tap to show the answer</div>`}</div>
  ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div>`:''}
- <div class="fc-tip"><button class="fc-rw" data-act="cflag">To rework</button></div></div>`;
+ <div class="fc-tip"><button class="fc-rw" data-act="cflag">To rework</button><button class="fc-rw" data-act="cedit">Edit</button></div></div>`;
 }
 function startStudy(course){
  const q=cardQueue(course).all;if(!q.length)return;
@@ -905,6 +906,9 @@ Object.assign(A,{
  cunflag(el){S.flags[el.dataset.id]={on:false,ts:Date.now()};save();A.cflagged()},
  cflagged(){const l=allCards().filter(c=>flagged(c.id));openSheet('To rework',l.length?`<div class="grp">${l.map(c=>`<div class="cell"><span class="t"><b style="font-size:14px">${esc(c.q.slice(0,120))}</b><span>${esc(C(c.c).short)} · ${esc((c.sec||'').slice(0,50))}</span></span><button class="btn tint sm" data-act="cunflag" data-id="${c.id}">Restore</button></div>`).join('')}</div>`:'<p class="mute">Nothing flagged.</p>',l.length?'<button class="btn" data-act="ccopy2">Copy the list</button>':'')},
  ccopy2(){const t=allCards().filter(c=>flagged(c.id)).map(c=>`[${c.c} ${c.l}] ${c.q.replace(/\n/g,' / ')} => ${c.a.replace(/\n/g,' / ')}`).join('\n');try{navigator.clipboard.writeText(t)}catch(e){}const b=$('sf');if(b)b.innerHTML='<button class="btn" data-act="sclose">Copied. Close</button>'},
+ cedit(){const c=STUDY&&STUDY.queue.length&&cardById(STUDY.queue[0]);if(!c)return;openSheet('Edit card',`<div class="fgrp"><label class="sh" for="ed-q">Question</label><textarea id="ed-q" class="edta" rows="3">${esc(c.q)}</textarea><label class="sh" for="ed-a">Answer</label><textarea id="ed-a" class="edta" rows="6">${esc(c.a)}</textarea></div>`,`<button class="btn" data-act="csaveedit" data-id="${c.id}">Save</button>${c.ed?`<button class="btn gray" style="margin-top:8px" data-act="cresetedit" data-id="${c.id}">Back to original</button>`:''}`)},
+ csaveedit(el){const q=($('ed-q')||{}).value||'',a=($('ed-a')||{}).value||'';if(!q.trim()||!a.trim())return;S.edits[el.dataset.id]={q:q.trim(),a:a.trim(),ts:Date.now()};save();closeSheet();render()},
+ cresetedit(el){S.edits[el.dataset.id]={del:true,ts:Date.now()};save();closeSheet();render()},
  cexit(){STUDY=null;const h=hist.pop();view='cards';param=null;render();window.scrollTo(0,0)},
  tpractice(el){
   const t=tableOf(el.dataset.lid,el.dataset.k,+el.dataset.i);if(!t)return;
