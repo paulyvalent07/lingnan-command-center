@@ -644,7 +644,7 @@ function renderSession(){
 function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||activeSecs()>=WORK);return hud||free||!!fin||!!a.pausedAt}
 let hudT=0,hudXY=null;
 function autoHide(){if(hud&&S.active&&sessOpen){hud=false;$('sess').classList.toggle('hud',hudOn())}}
-document.addEventListener('mousemove',e=>{if(!hud||!sessOpen||!S.active)return;if(e.target.closest&&e.target.closest('.sess-h,.sess-f'))return;if(!hudXY||Date.now()-hudT<500){hudXY={x:e.clientX,y:e.clientY};return}if(Math.hypot(e.clientX-hudXY.x,e.clientY-hudXY.y)>24)autoHide()},{passive:true});
+document.addEventListener('wheel',e=>{if(!hud||!sessOpen||!S.active||e.deltaY<=4||Date.now()-hudT<500)return;if(e.target.closest&&e.target.closest('.sess-h,.sess-f'))return;autoHide()},{passive:true});
 document.addEventListener('scroll',e=>{const t=e.target;if(!hud||!t||!t.classList||!t.classList.contains('sess-b'))return;const y=t.scrollTop,p=t._sy||0;t._sy=y;if(y-p>12&&Date.now()-hudT>500)autoHide()},true);
 function toggleHud(){if(!S.active||!sessOpen)return;hud=!hud;hudT=Date.now();hudXY=null;const el=$('sess');el.classList.toggle('hud',hudOn());if(document.activeElement&&document.activeElement.blur&&/TEXTAREA|INPUT/.test(document.activeElement.tagName))document.activeElement.blur()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.active&&sessOpen){e.preventDefault();toggleHud()}});

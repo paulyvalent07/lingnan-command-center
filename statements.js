@@ -108,5 +108,14 @@ const CONTEXT=[
   "• 72% of surveyed executives see more competition as an opportunity; 83% say the industry is under constant pressure to innovate; 43% cite cross-industry partnerships. M&A was large ($36.3bn of deals in 2021, incl. Microsoft's proposed $68.7bn Activision Blizzard acquisition) but most executives prioritise organic growth.",
   "• Cyber and data-security risk: 47% cite it as a key challenge today, 58% three years out.",
   "• 97% believe gaming is central to the metaverse; NFTs and play-to-earn are unproven (90% lack a viable model to monetise digital assets).",
-  "• Recommended responses: a clear metaverse vision, an updated operating model (new talent and skills), customer experience designed around what users want to do."]}
+  "• Recommended responses: a clear metaverse vision, an updated operating model (new talent and skills), customer experience designed around what users want to do."]},
+ {match:"giving two of the three reasons discussed in class",title:"Background: satisfaction vs performance (Lesson 4)",lines:[
+  "The three reasons the link is only moderate:",
+  "• General attitudes (job satisfaction) are poor predictors of specific behaviours such as task performance.",
+  "• Employees often have limited control over their own performance (procedures, machines, targets constrain it).",
+  "• Causality can run the other way: good performance, if rewarded, increases satisfaction. Without rewards this reverse loop does not strengthen the link."]},
+ {match:"Using Ben's data above",title:"Ben's data",lines:[
+  "Ben has $32/month for e-books ($8 each) and coffee ($4/cup).",
+  "Marginal utility: e-books 40, 32, 24, 16 (1st to 4th); coffee 20, 16, 14, 12, 10, 8, 6, 4 (1st to 8th).",
+  "Utility is maximised where MU/P is equal across goods and the budget is exhausted."]}
 ];
