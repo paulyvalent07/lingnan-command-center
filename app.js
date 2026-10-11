@@ -76,7 +76,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[]},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
@@ -93,11 +93,13 @@ function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="$
 
 /* ---------- time helpers ---------- */
 function minsOn(day,course){return S.sessions.filter(s=>dkey(s.start)===day&&(!course||s.course===course)).reduce((a,s)=>a+s.minutes,0)}
+const mastOf=id=>S.mast&&S.mast[id]?S.mast[id].p:null;
+const mastTxt=id=>{const m=mastOf(id);return m==null?'':' · '+m+'%'};
 function readMin(day,course){return Math.floor(S.reads.filter(r=>r.day===day&&(!course||r.course===course)).reduce((a,r)=>a+r.sec,0)/60)}
 function weekStart(d=new Date()){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
 function weekDays(off=0){const w=weekStart();w.setDate(w.getDate()+off*7);return [...Array(7)].map((_,i)=>{const d=new Date(w);d.setDate(w.getDate()+i);return dkey(d)})}
 function streak(){let n=0,d=new Date();if(!minsOn(dkey(d)))d.setDate(d.getDate()-1);while(minsOn(dkey(d))>0){n++;d.setDate(d.getDate()-1)}return n}
-function activeSecs(){const a=S.active;return a?((a.endTs||Date.now())-a.startTs)/1000:0}
+function activeSecs(){const a=S.active;return a?((a.endTs||a.pausedAt||Date.now())-a.startTs-(a.pms||0))/1000:0}
 function nextDeadline(course){const now=Date.now();return S.deadlines.filter(d=>(d.course===course||d.course==='ALL')&&new Date(d.when)>now).sort((a,b)=>new Date(a.when)-new Date(b.when))[0]}
 function countdown(when){const ms=new Date(when)-Date.now();if(ms<0)return'passed';const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5);return d>0?`${d} d ${h} h`:`${h} h`}
 function urgent(when){const ms=new Date(when)-Date.now();return ms>0&&ms<4*864e5}
@@ -185,7 +187,7 @@ function syncLine(cid){
 }
 function lessonBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
- const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}</span></span></div>`).join('');
+ const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('');
  if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes)}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>`;
  return `<div class="empty">${ic('doc')}<b>Lesson text not synced yet</b>The synthesis for this lesson will appear here from ${esc(d&&d.file||'your Word file')} after the next sync.</div>
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
@@ -194,7 +196,7 @@ function officialOf(p){const m=/official (.+?)(?: \+ practice set)?$/.exec(p.tit
 function exBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  let out='';
- if(l.E.length)out+=`<div class="grp">${l.E.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title.split(' · ')[0])}</b><span>${esc(officialOf(p))}${officialOf(p)?' · ':''}${whenLabel(p.date)}</span></span></div>`).join('')}</div>`;
+ if(l.E.length)out+=`<div class="grp">${l.E.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title.split(' · ')[0])}</b><span>${esc(officialOf(p))}${officialOf(p)?' · ':''}${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('')}</div>`;
  const keys=[...new Set(l.E.map(p=>p.ex).filter(Boolean))];
  keys.forEach(k=>{const s=exSet(k);if(!s)return;
   out+=`<div class="sh">${esc(s.title)}</div><div class="grp">${s.items.map((it,i)=>`<div class="q"><span class="n">${i+1}.</span>${esc(it.q)}<details><summary>Show answer</summary><p>${esc(it.a)}</p></details></div>`).join('')}</div>${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
@@ -215,7 +217,7 @@ function planRow(p){
  const x=C(p.course),done=!!S.planDone[p.id],od=p.date<today()&&!done;
  return `<div class="cell has-ico ${done?'done':''}" style="--c:${x.color}">
   <button class="chk ${done?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Mark done">${ic('check')}</button>
-  <button class="t" style="text-align:left;flex:1;min-width:0" data-act="prow" data-id="${p.id}"><b>${esc(p.title)}</b><span>${x.short} · ${KINDS[p.kind].n}${od?` · <i class="late" style="font-style:normal">${whenLabel(p.date)}</i>`:''}</span></button>
+  <button class="t" style="text-align:left;flex:1;min-width:0" data-act="prow" data-id="${p.id}"><b>${esc(p.title)}</b><span>${x.short} · ${KINDS[p.kind].n}${mastTxt(p.id)}${od?` · <i class="late" style="font-style:normal">${whenLabel(p.date)}</i>`:''}</span></button>
   <span class="sq" style="--c:${x.color}">${ic(KINDS[p.kind].ic)}</span></div>`;
 }
 const navbar=(back,right='')=>`<div class="navbar">${back?`<button class="back" data-act="back">${ic('chevl')}${esc(back)}</button>`:'<span></span>'}${right}</div>`;
@@ -549,6 +551,7 @@ function mergeState(r){
  o.planDone=Object.assign({},older.planDone,newer.planDone);
  o.auto=Object.assign({},older.auto,newer.auto);
  const rm=new Map();[...(older.reads||[]),...(newer.reads||[])].forEach(x=>{const y=rm.get(x.id);if(!y||x.sec>y.sec)rm.set(x.id,x)});o.reads=[...rm.values()];
+ o.mast=Object.assign({},older.mast);Object.entries(newer.mast||{}).forEach(([k,v])=>{const y=o.mast[k];if(!y||v.ts>=y.ts)o.mast[k]=v});
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
@@ -603,10 +606,10 @@ function renderSession(){
  if(fin){
   const mins=Math.min(50,Math.round(secs/60*10)/10);
   const items=(a.items||[]).map(id=>planAll().find(p=>p.id===id)).filter(Boolean);
-  if(!a.fin)a.fin=secs>=45*60?items.map(p=>p.id):[];
+  if(!a.mast)a.mast={};
   el.innerHTML=`<div class="sess-h"><div class="sess-top"><span style="width:30px"></span><span class="eyebrow">${x.short} · Deep Work</span><span style="width:30px"></span></div></div>
-  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tick what you finished.</p></div>
-  <div class="grp">${items.map(p=>`<button class="cell has-ico" data-act="fitem" data-id="${p.id}"><span class="chk green ${a.fin.includes(p.id)?'on':''}">${ic('check')}</span><span class="t"><b>${esc(p.title)}</b><span>${KINDS[p.kind].n}</span></span></button>`).join('')}</div>
+  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p></div>
+  <div class="sh">How much did you master?</div>${items.map(p=>{const v=(a.mast||{})[p.id],ex=p.kind==='E';return `<div class="mq"><b>${esc(shortTitle(p.title))}</b><span>${ex?'How did the exercises go?':'Share of this lesson you really understood'}</span><div class="pcts">${[0,25,50,75,100].map(n=>`<button class="${v===n?'on':''}" data-act="mpct" data-id="${p.id}" data-p="${n}">${n}%</button>`).join('')}</div></div>`}).join('')}
   <div class="sh" style="text-align:center">How was your focus?</div>
   <div class="rate"><button data-act="rate" data-f="1">😕<span>Low</span></button><button data-act="rate" data-f="2">🙂<span>OK</span></button><button data-act="rate" data-f="3">🔥<span>Deep</span></button></div></div></div>`;
   return;
@@ -623,16 +626,17 @@ function renderSession(){
   }else body=chips+(p?briefBody(p):'');
  }
  const sub=free?'Free session':x.short+' · '+KINDS[p?p.kind:'F'].n+(a.items.length>1?' · '+a.items.length+' selected':'');
- el.innerHTML=`<div class="sess-h"><div class="sess-top"><button class="xbtn" data-act="smin" aria-label="Minimize">${ic('chevd')}</button><span class="eyebrow">${x.short} · Deep Work</span><span style="width:30px"></span></div>
-  <div class="sess-time">${sessRing(free?0:secs/WORK,x.color)}<div class="info"><b>${esc(cur)}</b><span>${esc(sub)}</span></div></div></div>
+ const paused=!!a.pausedAt;
+ el.innerHTML=`<div class="sess-h c"><div class="sess-row"><button class="xbtn" data-act="smin" aria-label="Minimize">${ic('chevd')}</button><div class="info"><b>${esc(cur)}</b><span>${esc(sub)}</span></div><button class="tpill ${paused?'p':''}" data-act="spause" aria-label="Pause or resume"><span id="stimer"></span><em>${paused?'Resume':'Pause'}</em></button></div><div class="sbar"><i id="sbar" style="background:${x.color}"></i></div></div>
   <div class="sess-b"><div>${body}</div></div>
-  <div class="sess-f"><div><button class="btn gray" data-act="stop">${free?'Stop and save':'Finish early'}</button><button class="btn red" style="width:auto;padding:0 18px" data-act="cancel" aria-label="Discard">${ic('x')}</button></div></div>`;
+  <div class="sess-f"><div><button class="btn gray sm" data-act="stop">${free?'Stop and save':'Finish early'}</button><button class="btn red sm" data-act="cancel" aria-label="Discard">${ic('x')}</button></div></div>`;
  updateTimers();
 }
 function updateTimers(){
  const a=S.active;if(!a)return;
  const secs=activeSecs(),free=a.mode==='free',txt=free?fmtHMS(secs):fmtMS(WORK-secs),pct=free?0:secs/WORK;
  ['stimer','htimer','mtimer'].forEach(id=>{const n=$(id);if(n)n.textContent=id==='stimer'&&free?fmtMS(secs):txt});
+ const sb=$('sbar');if(sb)sb.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';
  [['sring',2*Math.PI*40],['mring',2*Math.PI*15]].forEach(([id,c])=>{const n=$(id);if(n&&n.style)n.style.strokeDashoffset=(c*(1-Math.min(1,pct))).toFixed(1)});
 }
 function renderMini(){
@@ -640,7 +644,7 @@ function renderMini(){
  if(!a||sessOpen){m.innerHTML='';return}
  const x=C(a.course),p=curItem();
  const free=a.mode==='free';
- m.innerHTML=`<div class="mini" data-act="sopen" role="button" aria-label="Open session"><div class="mr">${ringSvg(38,15,4,0,x.color).replace('class="pg"','class="pg" id="mring"')}${`<span style="position:relative;color:${x.color};font-size:15px;display:grid">${ic(x.ic)}</span>`}</div><div class="mt"><b>${esc(free?'Free session':shortTitle(p?p.title:''))}</b><span>${x.short} · tap to open</span></div><span class="tm" id="mtimer"></span></div>`;
+ m.innerHTML=`<div class="mini" data-act="sopen" role="button" aria-label="Open session"><div class="mr">${ringSvg(38,15,4,0,x.color).replace('class="pg"','class="pg" id="mring"')}${`<span style="position:relative;color:${x.color};font-size:15px;display:grid">${ic(x.ic)}</span>`}</div><div class="mt"><b>${esc(free?'Free session':shortTitle(p?p.title:''))}</b><span>${a.pausedAt?'Paused · ':''}${x.short} · tap to open</span></div><span class="tm" id="mtimer"></span></div>`;
  updateTimers();
 }
 function syncUI(){render();renderSession();renderMini()}
@@ -687,15 +691,20 @@ const A={
  scur(el){const a=S.active;a.cur=el.dataset.id;const p=curItem();a.tab=p&&p.kind==='E'?'ex':'lesson';save();renderSession()},
  stab(el){S.active.tab=el.dataset.k;save();renderSession()},
  ltab(el){lTab=el.dataset.k;render()},
+ mpct(el){const a=S.active;a.mast=a.mast||{};a.mast[el.dataset.id]=+el.dataset.p;save();renderSession()},
  fitem(el){const a=S.active,id=el.dataset.id,i=a.fin.indexOf(id);if(i>=0)a.fin.splice(i,1);else a.fin.push(id);save();renderSession()},
- rate(el){const a=S.active,secs=activeSecs();finishSession(Math.min(50,secs/60),+el.dataset.f,a.fin||[]);S.brk={until:Date.now()+BREAK*1000};save();syncUI()},
+ rate(el){const a=S.active,secs=activeSecs(),m=a.mast||{},ids=[];
+  Object.keys(m).forEach(id=>{S.mast[id]={p:m[id],ts:Date.now()};const p=planAll().find(q=>q.id===id);if(m[id]>=70)ids.push(id);
+   if(p&&p.kind==='E'&&m[id]<=50){const t=C(p.course).short+' · '+shortTitle(p.title);if(!S.redo.some(r=>r.title===t)){const d=new Date();d.setDate(d.getDate()+1);S.redo.push({id:uid(),course:p.course,title:t,stage:0,due:dkey(d)})}}});
+  finishSession(Math.min(50,secs/60),+el.dataset.f,ids);S.brk={until:Date.now()+BREAK*1000};save();syncUI()},
  stop(){
   const a=S.active,m=activeSecs()/60;
   if(a.mode==='free'){if(m>=1)finishSession(m,0,[]);else{S.active=null;sessOpen=false}keepAwake(false);save();syncUI();return}
   if(m<1){S.active=null;sessOpen=false;keepAwake(false);save();syncUI();return}
-  a.endTs=Date.now();save();renderSession();renderMini();
+  a.endTs=a.pausedAt||Date.now();save();renderSession();renderMini();
  },
  cancel(){if(confirm('Discard this session?')){S.active=null;sessOpen=false;keepAwake(false);save();syncUI()}},
+ spause(){const a=S.active;if(!a||a.endTs)return;if(a.pausedAt){a.pms=(a.pms||0)+Date.now()-a.pausedAt;a.pausedAt=null}else a.pausedAt=Date.now();save();renderSession();renderMini()},
  skipbrk(){S.brk=null;save();render()},
  freeopen(){freeModal()},
  freego(){const c=$('m-course').value,t=$('m-title').value.trim();askNotif();
@@ -778,7 +787,7 @@ function tick(){
  readTick();
  const a=S.active;
  if(a){
-  if(a.mode==='block'&&!a.endTs&&activeSecs()>=WORK){a.endTs=a.startTs+WORK*1000;a.alerted=true;sessOpen=true;save();ping();syncUI();return}
+  if(a.mode==='block'&&!a.endTs&&activeSecs()>=WORK){a.endTs=a.startTs+(a.pms||0)+WORK*1000;a.alerted=true;sessOpen=true;save();ping();syncUI();return}
   updateTimers();
  }else if(S.brk){
   const left=(S.brk.until-Date.now())/1000;
