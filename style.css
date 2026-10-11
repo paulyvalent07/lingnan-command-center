@@ -271,3 +271,5 @@ details summary{cursor:pointer}
 td.tok{background:rgba(48,209,88,.18)}td.tbad{background:rgba(255,69,58,.16)}
 .tprac{margin:8px 0 14px}
 @media(max-width:380px){.tabbar span{font-size:9px}}
+
+.fc-flag{position:absolute;top:8px;right:10px;background:none;border:0;font-size:15px;color:var(--l2);opacity:.35;padding:6px 8px;cursor:pointer}.fc-flag:hover{opacity:.9;color:var(--orange)}

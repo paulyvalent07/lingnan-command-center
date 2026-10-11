@@ -77,7 +77,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[]},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
@@ -555,6 +555,7 @@ function mergeState(r){
  const rm=new Map();[...(older.reads||[]),...(newer.reads||[])].forEach(x=>{const y=rm.get(x.id);if(!y||x.sec>y.sec)rm.set(x.id,x)});o.reads=[...rm.values()];
  o.mast=Object.assign({},older.mast);Object.entries(newer.mast||{}).forEach(([k,v])=>{const y=o.mast[k];if(!y||v.ts>=y.ts)o.mast[k]=v});
  o.cards=Object.assign({},older.cards);Object.entries(newer.cards||{}).forEach(([k,v])=>{const y=o.cards[k];if(!y||(v.ts||0)>=(y.ts||0))o.cards[k]=v});
+ o.flags=Object.assign({},older.flags);Object.entries(newer.flags||{}).forEach(([k,v])=>{const y=o.flags[k];if(!y||(v.ts||0)>=(y.ts||0))o.flags[k]=v});
  const xm=new Map();[...(older.xcards||[]),...(newer.xcards||[])].forEach(x=>xm.set(x.id,x));o.xcards=[...xm.values()];
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.settings=newer.settings||older.settings;
@@ -811,8 +812,10 @@ function deck(){if(!DECK)DECK=(CD.buildDeck&&typeof CONTENT!=='undefined')?CD.bu
 function allCards(){return deck().concat(S.xcards||[])}
 function cardById(id){return allCards().find(c=>c.id===id)}
 function unlocked(){const t=today(),set=new Set();planAll().forEach(p=>{if(p.date<=t||S.planDone[p.id])pLids(p).forEach(l=>set.add(l))});return set}
+const nfl=()=>Object.values(S.flags||{}).filter(f=>f.on).length;
+const flagged=id=>S.flags&&S.flags[id]&&S.flags[id].on;
 function cardQueue(course){
- const now=Date.now(),un=unlocked(),all=allCards().filter(c=>!course||c.c===course);
+ const now=Date.now(),un=unlocked(),all=allCards().filter(c=>(!course||c.c===course)&&!flagged(c.id));
  const dueC=all.filter(c=>S.cards[c.id]&&S.cards[c.id].due<=now).sort((a,b)=>S.cards[a.id].due-S.cards[b.id].due);
  const introduced=Object.values(S.cards).filter(s=>s.fd===today()).length;
  const left=Math.max(0,NEWDAY-introduced);
@@ -839,6 +842,7 @@ function vCards(){
  <div class="grp"><div class="cell"><span class="t"><b>${q.due.length} due · ${q.fresh.length} new</b><span>About ${Math.max(1,Math.round(q.all.length/4))} min · ${doneToday} reviewed today · counts as extra review time</span></span></div></div>
  <div style="margin:14px 0"><button class="btn" data-act="cstart" ${q.all.length?'':'disabled'}>${ic('play')} Study all</button></div>
  <div class="sh">By course</div><div class="grp">${rows}</div>
+ ${nfl()?`<div class="grp" style="margin-top:14px"><button class="cell has-ico" data-act="cflagged"><span class="sq" style="--c:var(--orange)">⚑</span><span class="t"><b>To rework</b><span>${nfl()} flagged card${nfl()>1?'s':''}, hidden from study</span></span>${ic('chev','chev')}</button></div>`:''}
  <div class="sf">Tap a card to flip it. Swipe right if you knew it, left if not (it comes back soon). Or use Again / Hard / Good / Easy. ${xc?`${xc} card${xc>1?'s':''} came from your own mistakes.`:'Mistakes in fill-in tables become cards here.'}</div></div>`;
 }
 function vStudy(){
@@ -848,7 +852,7 @@ function vStudy(){
  const x=C(c.c),nl=s=>md(s).replace(/\n/g,'<br>'),S0=S.cards[c.id];
  const btn=(g,n,cl)=>`<button class="cg ${cl}" data-act="cgrade" data-g="${g}"><b>${n}</b><span>${CD.label(S0,g)}</span></button>`;
  return `<div class="view study">${navbar('Cards',`<span class="mute" style="font-size:14px">${st.queue.length} left</span>`)}
- <div class="fc ${st.flipped?'flip':''}" id="fc"><div class="fc-top"><i style="background:${x.color}"></i>${esc(x.short)} · ${esc(c.sec||c.lt||'')}</div>
+ <div class="fc ${st.flipped?'flip':''}" id="fc"><button class="fc-flag" data-act="cflag" aria-label="Flag this card to rework" title="Flag to rework">⚑</button><div class="fc-top"><i style="background:${x.color}"></i>${esc(x.short)} · ${esc(c.sec||c.lt||'')}</div>
   <div class="fc-q">${nl(c.q)}</div>
   ${st.flipped?`<div class="fc-sep"></div><div class="fc-a">${nl(c.a)}</div>`:`<div class="fc-hint">Tap to show the answer</div>`}</div>
  ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div><div class="fc-tip">← swipe left: again · swipe right: good →</div>`:''}</div>`;
@@ -865,7 +869,7 @@ function cgrade(g){
  STUDY.flipped=false;save();render();window.scrollTo(0,0);
 }
 let drag=null;
-document.addEventListener('pointerdown',e=>{const f=e.target.closest&&e.target.closest('#fc');if(!f||view!=='study')return;drag={x:e.clientX,dx:0,el:f};try{f.setPointerCapture(e.pointerId)}catch(_){}});
+document.addEventListener('pointerdown',e=>{const f=e.target.closest&&e.target.closest('#fc');if(!f||view!=='study'||e.target.closest('.fc-flag'))return;drag={x:e.clientX,dx:0,el:f};try{f.setPointerCapture(e.pointerId)}catch(_){}});
 document.addEventListener('pointermove',e=>{if(!drag)return;drag.dx=e.clientX-drag.x;if(!STUDY||!STUDY.flipped)return;const d=drag.dx;drag.el.style.transform=`translateX(${d}px) rotate(${d/25}deg)`;drag.el.classList.toggle('sw-r',d>60);drag.el.classList.toggle('sw-l',d<-60)});
 document.addEventListener('pointerup',()=>{if(!drag)return;const d=drag.dx,el=drag.el;drag=null;
  if(Math.abs(d)<8){if(STUDY&&!STUDY.flipped){STUDY.flipped=true;render()}return}
@@ -896,6 +900,10 @@ Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
  cflip(){if(STUDY){STUDY.flipped=true;render()}},
  cgrade(el){cgrade(+el.dataset.g)},
+ cflag(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.flags[id]={on:true,ts:Date.now()};STUDY.flipped=false;save();render()},
+ cunflag(el){S.flags[el.dataset.id]={on:false,ts:Date.now()};save();A.cflagged()},
+ cflagged(){const l=allCards().filter(c=>flagged(c.id));openSheet('To rework',l.length?`<div class="grp">${l.map(c=>`<div class="cell"><span class="t"><b style="font-size:14px">${esc(c.q.slice(0,120))}</b><span>${esc(C(c.c).short)} · ${esc((c.sec||'').slice(0,50))}</span></span><button class="btn tint sm" data-act="cunflag" data-id="${c.id}">Restore</button></div>`).join('')}</div>`:'<p class="mute">Nothing flagged.</p>',l.length?'<button class="btn" data-act="ccopy2">Copy the list</button>':'')},
+ ccopy2(){const t=allCards().filter(c=>flagged(c.id)).map(c=>`[${c.c} ${c.l}] ${c.q.replace(/\n/g,' / ')} => ${c.a.replace(/\n/g,' / ')}`).join('\n');try{navigator.clipboard.writeText(t)}catch(e){}const b=$('sf');if(b)b.innerHTML='<button class="btn" data-act="sclose">Copied. Close</button>'},
  cexit(){STUDY=null;const h=hist.pop();view='cards';param=null;render();window.scrollTo(0,0)},
  tpractice(el){
   const t=tableOf(el.dataset.lid,el.dataset.k,+el.dataset.i);if(!t)return;
