@@ -1,6 +1,6 @@
 {
-  "name": "Lingnan Deep Work",
-  "short_name": "Deep Work",
+  "name": "Daily",
+  "short_name": "Daily",
   "description": "Deep work sessions, deadlines and progress for my Lingnan courses",
   "start_url": "./index.html",
   "scope": "./",
