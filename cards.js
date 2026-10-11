@@ -4,9 +4,27 @@ const strip=s=>String(s||'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
 const hash=s=>{let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(36)};
 const NUM=/^[\$€£(−\-–]?\s*\(?[\d][\d,]*(\.\d+)?\)?\s*(%|[kKmM])?$/;
 const isNum=c=>{const t=strip(c).replace(/[\$€£\s]/g,'');return t.length>0&&NUM.test(t)};
+const isPl=t=>{const h=strip(t).replace(/\(.*?\)/g,'').split(/ (?:of|to|for|in|and|vs\.?|from|on|by) |[,/:;]/)[0].trim();const w=h.split(/\s+/).pop()||'';return /[a-z]s$/i.test(w)&&!/(ss|us|is|ics|ness|ous|'s|’s)$/i.test(w)&&!/^(business|gas|bias|lens|series|news|physics)$/i.test(w)};
+const be=t=>isPl(t)?'are':'is';
+const Q=(t,s)=>'What '+be(t)+' '+t+(s?' '+s:'')+'?';
+const nq=t=>String(t).replace(/[“”"]/g,'').replace(/^\(?\d+[.)]\s*/,'').trim();
 function cut(s,n){s=String(s);if(s.length<=n)return s;const k=s.slice(0,n);const i=Math.max(k.lastIndexOf('. '),k.lastIndexOf('; '));return (i>n*.5?k.slice(0,i+1):k.trimEnd()+'…')}
 function numTable(rows){let n=0,t=0;rows.forEach((r,ri)=>r.forEach((c,ci)=>{if(ci>0&&strip(c)){t++;if(isNum(c))n++}}));return {n,t,ratio:t?n/t:0}}
 
+function tq(label,h){
+ label=nq(label);const hl=strip(h).replace(/[.…]+$/,'').trim(),l=hl.toLowerCase();
+ if(/^definition$|^meaning$|^description$/.test(l))return Q(label);
+ if(/^examples?\b/.test(l))return 'Give an example of '+label+'.';
+ if(/^(what|how|who|when|where|why|which)\b/.test(l)){
+  if(/^what happens/.test(l))return 'What happens in '+label+'?';
+  if(/^how it works/.test(l))return 'How '+(isPl(label)?'do ':'does ')+label+' work?';
+  if(/^what it covers/.test(l))return 'What '+(isPl(label)?'do ':'does ')+label+' cover?';
+  return hl.charAt(0).toUpperCase()+hl.slice(1)+' — '+label+'?';
+ }
+ if(/^best when/.test(l))return 'When '+be(label)+' '+label+' best used?';
+ if(/^(role|focus|purpose|period|goal|aim|effect|impact|function|key (idea|point)|payment earned|workplace relevance)$/.test(l))return 'What is the '+l+' of '+label+'?';
+ return label+' — '+l.replace(/^./,m=>m)+'?';
+}
 function buildDeck(CONTENT){
  const out=[],seen=new Set();
  const add=(c,l,lt,sec,src,q,a)=>{
@@ -41,7 +59,13 @@ function buildDeck(CONTENT){
      const t2=term.replace(/^\d+[.)]\s+/,'');
      const fn=/\b(when|with|of|to|for|than|by|from)$/i.test(t2),long=t2.split(' ').length>=5||/[.!]$/.test(t2);
      const weak=t2.split(' ').length<=2&&t2.length<16||fn||/^(definition|location|step \d|example|purpose|result|impact)/i.test(t2);
-     const q=long?'Explain: '+t2.replace(/[.!]$/,''):weak?(s2.length<12?'':s2+' — ')+t2+(fn?' …?':/\?$/.test(t2)?'':'?'):'What is “'+t2+'”?';
+     const T=nq(t2),s3=s2.replace(/^\(?\d+[.)]\s*/,'');let q;
+     if(long)q='Explain: '+T.replace(/[.!]$/,'');
+     else if(/^definition$/i.test(T))q='What is the definition of '+s2+'?';
+     else if(fn)q='In '+s2+': '+T+' …?';
+     else if(/^(why|how|what|when|who|which)\b/i.test(T))q=T.charAt(0).toUpperCase()+T.slice(1)+' ('+s2+')?';
+     else if(weak&&s2.length>=12&&!s2.toLowerCase().includes(T.toLowerCase()))q='What '+be(T)+' '+T+(/^step \d/i.test(T)?' of ':' in ')+s3+'?';
+     else q=Q(T);
      add(c,n,lt,sec,'b',q,cut(def.charAt(0).toUpperCase()+def.slice(1),420));
     }else if(b.t==='table'&&b.rows&&b.rows.length>=2){
      const rows=b.rows,H=rows[0].map(strip);
@@ -55,9 +79,9 @@ function buildDeck(CONTENT){
       const cells=r.map(strip);
       if(!cells[0]||cells[0].length>90||/^(debit|credit)\b/i.test(cells[0])||cells.slice(1).every(x=>!x))return;
       let q,a;
-      if(dup&&cells.length>=3){q='“'+H[0]+': '+cells[0]+' · '+H[1]+': '+cells[1]+'” → '+H.slice(2).join(' / ')+'?';a=cells.slice(2).map((x,i)=>H[i+2]+': '+x).join('\n')}
-      else if(cells.length===2){q=HQ||/mean|defin|descri|explan/i.test(H[1])?'What does “'+cells[0]+'” mean?':'“'+cells[0]+'” — '+H[1]+'?';a=cells[1]}
-      else{cells.slice(1).forEach((x,i)=>{if(x&&H[i+1])add(c,n,lt,sec,'t','“'+cells[0]+'” — '+H[i+1]+'?',cut(x,420))});return}
+      if(dup&&cells.length>=3){q='When '+H[0]+' is '+nq(cells[0])+' and '+H[1]+' is '+nq(cells[1])+', what happens to '+H.slice(2).join(' / ')+'?';a=cells.slice(2).map((x,i)=>H[i+2]+': '+x).join('\n')}
+      else if(cells.length===2){q=HQ||/mean|defin|descri|explan/i.test(H[1])?Q(nq(cells[0])):tq(cells[0],H[1]);a=cells[1]}
+      else{cells.slice(1).forEach((x,i)=>{if(x&&H[i+1])add(c,n,lt,sec,'t',tq(cells[0],H[i+1]),cut(x,420))});return}
       if(!a||a.length<2)return;
       add(c,n,lt,sec,'t',q,cut(a,520));
      });
