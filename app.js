@@ -635,7 +635,9 @@ function renderSession(top){
  const p=curItem(),ls=p?lessonsFor(p):[];
  const cur=free?'Free work':shortTitle(p?p.title:'');
  let body='';
- if(free)body=`<div class="empty">${ic('timer')}<b>${esc(a.title||'Free work')}</b>Stop when you are done. The time is added to ${x.name}.</div>`;
+ if(free){const fl=lessonsOf(a.course),sel=a.flid?fl.find(l=>l.id===a.flid):null;
+  if(!sel)body=`<div class="sh" style="margin-top:0">${esc(a.title||'Free work')} · ${x.name}</div><div class="grp">${fl.map(l=>`<button class="cell has-ico" data-act="sflid" data-id="${l.id}"><span class="sq" style="--c:${x.color}">${ic('doc')}</span><span class="t"><b>${esc(lessonName(l))}</b></span>${ic('chev','chev')}</button>`).join('')||'<div class="cell"><span class="t mute">No lesson for this course.</span></div>'}</div><div class="sf">Pick a lesson to read it or do its exercises. The timer keeps running.</div>`;
+  else body=`<button class="cell has-ico" data-act="sflid" data-id="" style="margin-bottom:8px"><span class="sq" style="--c:${x.color}">${ic('chevd')}</span><span class="t"><b>Change lesson</b><span>${esc(lessonName(sel))}</span></span></button><div class="segc tabs-s"><button class="${a.tab!=='ex'?'on':''}" data-act="stab" data-k="lesson">${ic('doc')} Lesson</button><button class="${a.tab==='ex'?'on':''}" data-act="stab" data-k="ex">${ic('clip')} Exercises</button></div>${a.tab==='ex'?exBody(sel):lessonBody(sel)}`}
  else{
   const chips=(a.items.length>1)?`<div class="chips">${a.items.map(id=>planAll().find(q=>q.id===id)).filter(Boolean).map(q=>`<button class="chip ${q.id===a.cur?'on':''}" data-act="scur" data-id="${q.id}" style="--c:${x.color}"><i></i>${esc(shortTitle(q.title).slice(0,28))}</button>`).join('')}</div>`:'';
   if(ls.length){
@@ -719,6 +721,7 @@ const A={
  sopen(){sessOpen=true;syncUI()},
  smin(){sessOpen=false;syncUI()},
  scur(el){const a=S.active;a.cur=el.dataset.id;const p=curItem();a.tab=p&&p.kind==='E'?'ex':'lesson';save();renderSession(true)},
+ sflid(el){const a=S.active;a.flid=el.dataset.id||null;a.tab='lesson';save();renderSession(true)},
  stab(el){S.active.tab=el.dataset.k;save();renderSession(true)},
  ltab(el){lTab=el.dataset.k;render()},
  goex(){if(S.active){S.active.tab='ex';save();renderSession(true);const b=document.querySelector('#sess .sess-b');if(b)b.scrollTop=0}else{lTab='ex';render();window.scrollTo(0,0)}},
@@ -899,10 +902,14 @@ function cgrade(g){
 }
 let drag=null;
 document.addEventListener('pointerdown',e=>{const f=e.target.closest&&e.target.closest('#fc');if(!f||view!=='study'||e.target.closest('.fc-flag'))return;drag={x:e.clientX,dx:0,el:f};try{f.setPointerCapture(e.pointerId)}catch(_){}});
-document.addEventListener('pointermove',e=>{if(!drag)return;drag.dx=e.clientX-drag.x;if(!STUDY||!STUDY.flipped)return;const d=drag.dx;drag.el.style.transform=`translateX(${d}px) rotate(${d/25}deg)`;drag.el.classList.toggle('sw-r',d>60);drag.el.classList.toggle('sw-l',d<-60)});
-document.addEventListener('pointerup',()=>{if(!drag)return;const d=drag.dx,el=drag.el;drag=null;
- if(Math.abs(d)<8){if(STUDY&&!STUDY.flipped){STUDY.flipped=true;render()}return}
- if(STUDY&&STUDY.flipped&&d>100)cgrade(2);else if(STUDY&&STUDY.flipped&&d<-100)cgrade(0);else{el.style.transform='';el.classList.remove('sw-r','sw-l')}});
+let dragRaf=0;
+document.addEventListener('pointermove',e=>{if(!drag)return;drag.dx=e.clientX-drag.x;if(!STUDY||!STUDY.flipped)return;drag.el.classList.add('dr');if(dragRaf)return;dragRaf=requestAnimationFrame(()=>{dragRaf=0;if(!drag)return;const d=drag.dx;drag.el.style.transform=`translate3d(${d}px,0,0) rotate(${d/25}deg)`;drag.el.classList.toggle('sw-r',d>60);drag.el.classList.toggle('sw-l',d<-60)})});
+const dragEnd=()=>{if(!drag)return;const d=drag.dx,el=drag.el;drag=null;if(dragRaf){cancelAnimationFrame(dragRaf);dragRaf=0}
+ if(Math.abs(d)<8){el.classList.remove('dr');if(STUDY&&!STUDY.flipped){STUDY.flipped=true;render()}return}
+ const go=STUDY&&STUDY.flipped&&Math.abs(d)>100;
+ if(go){const g=d>0?2:0;el.classList.remove('dr');el.style.transition='transform .16s ease-out,opacity .16s';el.style.transform=`translate3d(${d>0?'110vw':'-110vw'},0,0) rotate(${d>0?18:-18}deg)`;el.style.opacity='0';setTimeout(()=>cgrade(g),150)}
+ else{el.classList.remove('dr','sw-r','sw-l');el.style.transform=''}};
+document.addEventListener('pointerup',dragEnd);document.addEventListener('pointercancel',dragEnd);
 document.addEventListener('keydown',e=>{if(view!=='study'||!STUDY||/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;
  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!STUDY.flipped){STUDY.flipped=true;render()}}
  else if(STUDY.flipped&&'1234'.includes(e.key))cgrade(+e.key-1)});
@@ -1098,6 +1105,9 @@ const h=so?q('.sess-h'):null,f=so?q('.sess-f'):q('.tabbar');
 const r=document.documentElement.style;r.setProperty('--ft',(h?h.bottom:0)+'px');r.setProperty('--fb',(f?innerHeight-f.top:0)+'px')};
 document.addEventListener('scroll',()=>{rs();document.body.classList.add('scrl');clearTimeout(et);et=setTimeout(()=>document.body.classList.remove('scrl'),700)},{passive:true,capture:true})}
 
+if(typeof document.createElement==='function'){const b=document.createElement('button');b.className='sbtog';b.setAttribute('aria-label','Hide or show the menu');b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M9.5 4.5v15"/></svg>';
+ const ap=v=>document.body.classList.toggle('nosb',v);try{ap(localStorage.getItem('lu-nosb')==='1')}catch(_){}
+ b.onclick=()=>{const v=!document.body.classList.contains('nosb');ap(v);try{localStorage.setItem('lu-nosb',v?'1':'0')}catch(_){}};document.body.appendChild(b)}
 setTheme(S.settings.theme);
 autoPlan();
 syncUI();
