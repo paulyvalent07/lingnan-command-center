@@ -392,3 +392,9 @@ body.scrl .edge{opacity:1}
 .bgrid table{width:auto;min-width:100%}
 .bgrid .bin{min-width:62px;width:68px}
 @media(max-width:560px){.bgrid th{font-size:10px;padding:3px 2px}.bgrid .bin{min-width:54px;width:58px;padding:7px 6px}}
+/* v34b: dropdown options readable in dark mode */
+:root{color-scheme:light}
+:root[data-theme=dark]{color-scheme:dark}
+@media(prefers-color-scheme:dark){:root[data-theme=auto]{color-scheme:dark}}
+select option,select optgroup{background:var(--card);color:var(--label)}
+select option:disabled{color:var(--l3)}
