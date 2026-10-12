@@ -328,6 +328,31 @@ function buckets(r){
  if(r==='m')for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);out.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:d.toLocaleDateString('en-GB',{month:'short'}),full:d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}),goal:0})}
  return out;
 }
+const fmtAx=m=>m>=60?(m%60?(m/60).toFixed(1):m/60)+'h':m+'m';
+function yTicks(max,H){
+ const steps=[5,10,15,30,60,120,180,240,300,600,1200,2400],st=steps.find(s=>max/s<=4)||2400;let h='';
+ for(let v=0;v<=max+0.01;v+=st)h+=`<div class="yt" style="bottom:${v/max*H}px"><span>${fmtAx(v)}</span></div>`;
+ return `<div class="yts" style="height:${H}px">${h}</div>`;
+}
+const ywrap=(max,H,inner)=>`<div class="ywrap">${yTicks(max,H)}${inner}</div>`;
+function trendChart(){
+ const bs=buckets(insR),idx={};bs.forEach((b,i)=>{idx[b.key]=i;b.t=0});
+ S.sessions.forEach(s=>{const i=idx[bucketKey(insR,s.start)];if(i!=null)bs[i].t+=s.minutes});
+ const w=insR==='d'?7:insR==='w'?3:2,H=130,n=bs.length;
+ const avg=bs.map((b,i)=>{const sl=bs.slice(Math.max(0,i-w+1),i+1);return sl.reduce((x,y)=>x+y.t,0)/sl.length});
+ const goal=bs[0].goal,max=Math.max(60,goal*1.1,...bs.map(x=>x.t));
+ const X=i=>n>1?(i+0.5)/n*100:50,Y=v=>H-v/max*H;
+ const pts=f=>bs.map((b,i)=>`${X(i).toFixed(2)},${Y(f(b,i)).toFixed(1)}`).join(' ');
+ const area=`0,${H} ${bs.map((b,i)=>`${X(i).toFixed(2)},${Y(avg[i]).toFixed(1)}`).join(' ')} 100,${H}`;
+ const every=insR==='d'?5:insR==='w'?2:1;
+ const labs=bs.map((x,i)=>`<span>${(n-1-i)%every===0?x.label:''}</span>`).join('');
+ const act=bs.filter(b=>b.t>0),tot=bs.reduce((x,y)=>x+y.t,0),unit=insR==='d'?'day':insR==='w'?'week':'month';
+ const first=bs.slice(0,Math.ceil(n/2)).reduce((x,y)=>x+y.t,0),second=bs.slice(Math.ceil(n/2)).reduce((x,y)=>x+y.t,0);
+ const trend=first>0?Math.round((second-first)/first*100):null;
+ const best=bs.reduce((m,b)=>b.t>m.t?b:m,bs[0]);
+ const msg=tot?`Average ${fmt(tot/n)} per ${unit} · best ${best.full} (${fmt(best.t)})${trend==null?'':` · ${trend>=0?'+':''}${trend}% vs the first half`}`:'Finish a few blocks to see your curve.';
+ return ywrap(max,H,`<div class="chart" style="height:${H}px"><svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" class="trend">${goal?`<line x1="0" x2="100" y1="${Y(goal).toFixed(1)}" y2="${Y(goal).toFixed(1)}" class="tg"/>`:''}<polygon points="${area}" class="ta"/><polyline points="${pts(b=>b.t)}" class="tr0"/><polyline points="${pts((b,i)=>avg[i])}" class="tr1"/></svg></div><div class="axis">${labs}</div>`)+`<div class="tipline mute small">${msg}</div><div class="legend"><span class="lg"><i style="background:var(--l3)"></i>${unit==='day'?'Daily':unit==='week'?'Weekly':'Monthly'} total</span><span class="lg"><i style="background:var(--accent)"></i>${w}-${unit} average</span></div>`;
+}
 function stackChart(){
  const bs=buckets(insR),idx={};bs.forEach((b,i)=>idx[b.key]=i);
  const keys=insBy==='course'?COURSES.map(c=>c.id):['L','E','M','A','F'];
@@ -345,8 +370,8 @@ function stackChart(){
  const labs=bs.map((x,i)=>`<span>${(bs.length-1-i)%every===0?x.label:''}</span>`).join('');
  const tot=bs.reduce((a,x)=>a+x.t,0);
  const rows=bs.slice().reverse().map(x=>`<tr><td>${esc(x.full)}</td><td>${fmt(x.t)}</td>${keys.map(k=>`<td>${x.v[k]?fmt(x.v[k]):'–'}</td>`).join('')}</tr>`).join('');
- return `<div class="chart" style="height:${H}px">${goal?`<div class="goal" style="bottom:${goal/max*H}px"><span>goal</span></div>`:''}<div class="cols">${cols}</div></div>
- <div class="axis">${labs}</div><div class="tipline mute small" id="tipline">Tap a bar for details · total ${fmt(tot)}</div>
+ return ywrap(max,H,`<div class="chart" style="height:${H}px">${goal?`<div class="goal" style="bottom:${goal/max*H}px"><span>goal</span></div>`:''}<div class="cols">${cols}</div></div>
+ <div class="axis">${labs}</div>`)+`<div class="tipline mute small" id="tipline">Tap a bar for details · total ${fmt(tot)}</div>
  <div class="legend">${keys.map(k=>`<span class="lg"><i style="background:${col(k)}"></i>${nm(k)}</span>`).join('')}</div>
  <details><summary class="mute small">Table</summary><div style="overflow:auto"><table class="tbl"><tr><th>Period</th><th>Total</th>${keys.map(k=>`<th>${nm(k)}</th>`).join('')}</tr>${rows}</table></div></details>`;
 }
@@ -364,13 +389,13 @@ function hourChart(){
  const labs=m.map((_,h)=>`<span>${h%6===0?h:''}</span>`).join('');
  let best=-1,bv=0;n.forEach((c,h)=>{if(c>=2&&f[h]/c>bv){bv=f[h]/c;best=h}});
  const msg=best>=0?`Best focus around ${String(best).padStart(2,'0')}:00 (${bv.toFixed(1)}/3 ${FOCUS[Math.round(bv)]})`:'Rate a few blocks (😕 🙂 🔥) to see when you focus best.';
- return `<div class="chart" style="height:${H}px"><div class="cols">${cols}</div></div><div class="axis">${labs}</div><div class="tipline mute small" id="tipline2">${msg}</div>`;
+ return ywrap(max,H,`<div class="chart" style="height:${H}px"><div class="cols">${cols}</div></div><div class="axis">${labs}</div>`)+`<div class="tipline mute small" id="tipline2">${msg}</div>`;
 }
 function weekdayChart(){
  const m=Array(7).fill(0);S.sessions.forEach(s=>{m[(new Date(s.start).getDay()+6)%7]+=s.minutes});
  const max=Math.max(60,...m),H=110,names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
- return `<div class="chart" style="height:${H}px"><div class="cols">${m.map((v,i)=>`<div class="bcol wide" title="${names[i]} ${fmt(v)}"><div class="stk">${v?`<div class="seg" style="height:${Math.max(2,v/max*H)}px;background:var(--s1)"></div>`:''}</div></div>`).join('')}</div></div>
- <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>`;
+ return ywrap(max,H,`<div class="chart" style="height:${H}px"><div class="cols">${m.map((v,i)=>`<div class="bcol wide" title="${names[i]} ${fmt(v)}"><div class="stk">${v?`<div class="seg" style="height:${Math.max(2,v/max*H)}px;background:var(--s1)"></div>`:''}</div></div>`).join('')}</div></div>
+ <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>`);
 }
 function reviewCard(){
  const days=weekDays(0),names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],m=days.map(d=>readMin(d)),tot=m.reduce((a,b)=>a+b,0),max=Math.max(30,...m),H=90;
@@ -387,6 +412,7 @@ function vInsights(){
  <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${fmt(minsOn(today()))}</b><span>today</span></div><div class="stat"><b>${fmt(week)}</b><span>this week</span></div><div class="stat"><b>${st}</b><span>day streak</span></div></div>
  <div class="card"><div class="card-h"><h3>Time worked</h3></div>
  <div class="stack" style="margin-bottom:14px">${seg([['d','30 days'],['w','12 weeks'],['m','6 months']],insR,'insr')}${seg([['course','By course'],['kind','By type']],insBy,'insby')}</div>${stackChart()}</div>
+ <div class="card" style="margin-top:14px"><div class="card-h"><h3>Progress curve</h3><span class="mute small">your work over time</span></div>${trendChart()}</div>
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>When you work</h3><span class="mute small">hour of day</span></div>${hourChart()}</div>
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>Which days</h3></div>${weekdayChart()}</div>
  ${reviewCard()}</div>`;
