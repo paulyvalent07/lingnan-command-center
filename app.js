@@ -79,6 +79,7 @@ function load(){
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
  const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{},exr:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
+ Object.keys(s.mast||{}).forEach(k=>{if(s.mast[k]&&s.mast[k].p<100&&s.planDone[k])delete s.planDone[k]});
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
  return s;
@@ -164,9 +165,9 @@ function suggest(){
  const s=courseStat(nb.course);
  return {course:nb.course,item:nb,why:nb.date===today()?"On today's plan":(s.nd?`${s.nd.title} in ${countdown(s.nd.when)}`:'Next in your plan'),behind:false};
 }
-const unfinished=p=>!!(!S.planDone[p.id]&&S.mast&&S.mast[p.id]&&S.mast[p.id].p<100);
+const unfinished=p=>!!(S.mast&&S.mast[p.id]&&S.mast[p.id].p<100);
 function pickItems(cid){
- return planAll().filter(p=>p.course===cid&&!S.planDone[p.id]).sort((a,b)=>(unfinished(b)-unfinished(a))||(unfinished(a)&&unfinished(b)?(S.mast[a.id].p-S.mast[b.id].p||S.mast[a.id].ts-S.mast[b.id].ts):0)||a.date.localeCompare(b.date)).slice(0,14);
+ return planAll().filter(p=>p.course===cid&&(!S.planDone[p.id]||unfinished(p))).sort((a,b)=>(unfinished(b)-unfinished(a))||(unfinished(a)&&unfinished(b)?(S.mast[a.id].p-S.mast[b.id].p||S.mast[a.id].ts-S.mast[b.id].ts):0)||a.date.localeCompare(b.date)).slice(0,14);
 }
 
 /* ---------- content from the Word files ---------- */
