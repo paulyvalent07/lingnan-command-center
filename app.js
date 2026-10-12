@@ -654,7 +654,7 @@ function renderSession(top){
  updateTimers();
  if(oldY){const nb=el.querySelector('.sess-b');if(nb)nb.scrollTop=oldY}
 }
-function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||activeSecs()>=WORK);return hud||free||!!fin||!!a.pausedAt}
+function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||activeSecs()>=WORK);return hud||(free&&!a.flid)||!!fin||!!a.pausedAt}
 let hudT=0,hudXY=null;
 function autoHide(){if(hud&&S.active&&sessOpen){hud=false;$('sess').classList.toggle('hud',hudOn())}}
 document.addEventListener('wheel',e=>{if(!hud||!sessOpen||!S.active||e.deltaY<=4||Date.now()-hudT<500)return;if(e.target.closest&&e.target.closest('.sess-h,.sess-f'))return;autoHide()},{passive:true});
@@ -721,7 +721,7 @@ const A={
  sopen(){sessOpen=true;syncUI()},
  smin(){sessOpen=false;syncUI()},
  scur(el){const a=S.active;a.cur=el.dataset.id;const p=curItem();a.tab=p&&p.kind==='E'?'ex':'lesson';save();renderSession(true)},
- sflid(el){const a=S.active;a.flid=el.dataset.id||null;a.tab='lesson';save();renderSession(true)},
+ sflid(el){const a=S.active;a.flid=el.dataset.id||null;a.tab='lesson';hud=true;hudT=Date.now();save();renderSession(true)},
  stab(el){S.active.tab=el.dataset.k;save();renderSession(true)},
  ltab(el){lTab=el.dataset.k;render()},
  goex(){if(S.active){S.active.tab='ex';save();renderSession(true);const b=document.querySelector('#sess .sess-b');if(b)b.scrollTop=0}else{lTab='ex';render();window.scrollTo(0,0)}},
