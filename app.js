@@ -205,8 +205,10 @@ function exBody(l){
  const keys=[...new Set(l.E.map(p=>p.ex).filter(Boolean))];
  keys.forEach(k=>{const s=exSet(k);if(!s)return;
   out+=`<div class="sh">${esc(s.title)}</div>${s.items.map((it,i)=>{const q={n:String(i+1),t:[{t:'p',x:it.q}],ans:[{t:'a',x:it.a}]};CD.classify(q);return qCard(q,{course:k.split(':')[0],num:'s'+CD.hash(k),lt:s.title,sec:''})}).join('')}${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
- if(doc&&doc.ex&&doc.ex.length)out+=`<div class="sh">From your Word file</div><div class="doc">${exHtml(l,exFix(l,doc.ex))}</div>`;
- const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length);
+ const hasB=typeof BUILD!=='undefined'&&!!BUILD[l.id];
+ if(hasB&&!BREPLACE(l))out+=`<div class="sh">Active drills · you build the answer</div><div class="doc">${builderHtml(l)}</div>`;
+ if(doc&&doc.ex&&doc.ex.length||BREPLACE(l))out+=`<div class="sh">${BREPLACE(l)?'Exercises · you build every answer':'From your Word file'}</div><div class="doc">${exHtml(l,exFix(l,(doc&&doc.ex)||[]))}</div>`;
+ const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length)||hasB;
  if(!has)out+=`<div class="empty" style="margin-top:12px">${ic('clip')}<b>No practice set written yet</b>Do the official exercises above. Original practice questions are added by the weekly update.</div>`;
  return out+`<div class="finrow"><button class="btn" data-act="exfin">${ic('check')} Finish exercises</button></div>`;
 }
@@ -1024,7 +1026,18 @@ function qCard(q,ctx){
  const ctxh=cx?`<details class="xctx" open><summary>${esc(cx.title)}</summary>${cx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:'';
  return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${ctxh}${body}${res}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
 }
+function builderHtml(l,blocks){
+ const B=typeof BUILD!=='undefined'&&typeof bCard==='function'&&BUILD[l.id];if(!B)return '';
+ let out='',sec='';
+ B.forEach(ex=>{if(ex.sec&&ex.sec!==sec){sec=ex.sec;out+=`<h5>${esc(sec)}</h5>`}out+=bCard(ex,{course:l.course,num:l.num,lt:l.title,sec:ex.title})});
+ return out;
+}
+const BREPLACE=l=>l.course==='BUS1103'&&typeof BUILD!=='undefined'&&!!BUILD[l.id];
 function exHtml(l,blocks){
+ if(BREPLACE(l)){
+  let mc='';CD.parseEx(blocks).forEach(it=>{if(it.k==='q'&&(it.q.kind==='mcq'||it.q.kind==='match'))mc+=qCard(it.q,{course:l.course,num:l.num,lt:l.title,sec:''})});
+  return builderHtml(l)+(mc?`<h5>Quick checks</h5>${mc}`:'');
+ }
  const items=CD.parseEx(blocks),SM=(typeof STATEMENTS!=='undefined'&&STATEMENTS[l.id])||{};
  let out='',buf=[],sec='';
  const flush=()=>{if(buf.length){out+=blocksHtml(buf);buf=[]}};
@@ -1046,7 +1059,7 @@ function exHtml(l,blocks){
 }
 function xrefresh(id){
  const r=QREG[id];if(!r)return;
- document.querySelectorAll('[data-qid="'+id+'"]').forEach(n=>{const t=document.createElement('div');t.innerHTML=qCard(r.q,r.ctx);n.replaceWith(t.firstElementChild)});
+ document.querySelectorAll('[data-qid="'+id+'"]').forEach(n=>{const t=document.createElement('div');t.innerHTML=r.b?bCard(r.ex,r.ctx):qCard(r.q,r.ctx);n.replaceWith(t.firstElementChild)});
 }
 function xrecord(id,ok){if(S.active){const a=S.active;a.xrm=a.xrm||{};a.xrm[id]=ok?1:0}S.exr=S.exr||{};S.exr[id]={ok:ok?1:0,ts:Date.now()};save()}
 document.addEventListener('input',e=>{
