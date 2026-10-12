@@ -151,6 +151,8 @@ function courseStat(cid){
 }
 /* the course you are most behind on, and the block to start with */
 function suggest(){
+ const un=planAll().filter(unfinished).sort((x,y)=>S.mast[x.id].p-S.mast[y.id].p||S.mast[x.id].ts-S.mast[y.id].ts)[0];
+ if(un)return {course:un.course,item:un,why:`To finish · ${S.mast[un.id].p}% mastered`,behind:false,unfinished:true};
  const st=COURSES.map(c=>Object.assign({c},courseStat(c.id)));
  const behind=st.filter(x=>x.over>0).sort((a,b)=>b.over-a.over||b.pressure-a.pressure)[0];
  if(behind){
@@ -162,8 +164,9 @@ function suggest(){
  const s=courseStat(nb.course);
  return {course:nb.course,item:nb,why:nb.date===today()?"On today's plan":(s.nd?`${s.nd.title} in ${countdown(s.nd.when)}`:'Next in your plan'),behind:false};
 }
+const unfinished=p=>!!(!S.planDone[p.id]&&S.mast&&S.mast[p.id]&&S.mast[p.id].p<100);
 function pickItems(cid){
- return planAll().filter(p=>p.course===cid&&!S.planDone[p.id]).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,14);
+ return planAll().filter(p=>p.course===cid&&!S.planDone[p.id]).sort((a,b)=>(unfinished(b)-unfinished(a))||(unfinished(a)&&unfinished(b)?(S.mast[a.id].p-S.mast[b.id].p||S.mast[a.id].ts-S.mast[b.id].ts):0)||a.date.localeCompare(b.date)).slice(0,14);
 }
 
 /* ---------- content from the Word files ---------- */
@@ -473,7 +476,7 @@ function pickerBody(sg){
  const chips=COURSES.map(c=>{const s=courseStat(c.id);return `<button class="chip ${c.id===P.course?'on':''}" data-act="pcourse" data-id="${c.id}" style="--c:${c.color}"><i></i>${c.short}${s.over?` <b>${s.over}</b>`:''}</button>`}).join('');
  const why=sg&&sg.course===P.course?sg.why:(st.over?`${st.over} block${st.over>1?'s':''} behind schedule`:(st.nd?`${st.nd.title} in ${countdown(st.nd.when)}`:''));
  const rows=items.map(p=>{const on=P.sel.includes(p.id),od=p.date<today();
-  return `<button class="cell has-ico" data-act="ptoggle" data-id="${p.id}"><span class="chk ${on?'on':''}">${ic('check')}</span><span class="t"><b>${esc(noOff(p.title))}</b><span>${KINDS[p.kind].n} · ${od?`<i class="late" style="font-style:normal">${whenLabel(p.date)}</i>`:whenLabel(p.date)}</span></span><span class="sq" style="--c:${C(p.course).color}">${ic(KINDS[p.kind].ic)}</span></button>`}).join('');
+  return `<button class="cell has-ico" data-act="ptoggle" data-id="${p.id}"><span class="chk ${on?'on':''}">${ic('check')}</span><span class="t"><b>${esc(noOff(p.title))}</b><span>${KINDS[p.kind].n}${unfinished(p)?` · <i style="font-style:normal;color:var(--orange)">${S.mast[p.id].p}% mastered</i>`:''} · ${od?`<i class="late" style="font-style:normal">${whenLabel(p.date)}</i>`:whenLabel(p.date)}</span></span><span class="sq" style="--c:${C(p.course).color}">${ic(KINDS[p.kind].ic)}</span></button>`}).join('');
  return `<div class="chips">${chips}</div><div class="sh" style="margin-top:0">${C(P.course).name}${why?' · '+esc(why):''}</div><div class="grp">${rows||'<div class="cell"><span class="t mute">Everything planned is done for this course.</span></div>'}</div>
  <div class="sf">Tick the lessons or exercises for this 50 minute block. The course page opens as soon as you start.</div>
  <div class="row c" style="margin-top:6px"><button class="link" data-act="freeopen">Free session instead</button></div>`;
@@ -732,7 +735,7 @@ const A={
  mpct(el){const a=S.active;a.mast=a.mast||{};a.mast[el.dataset.id]=+el.dataset.p;save();renderSession()},
  fitem(el){const a=S.active,id=el.dataset.id,i=a.fin.indexOf(id);if(i>=0)a.fin.splice(i,1);else a.fin.push(id);save();renderSession()},
  rate(el){const a=S.active,secs=activeSecs(),m=a.mast||{},ids=[];
-  Object.keys(m).forEach(id=>{S.mast[id]={p:m[id],ts:Date.now()};const p=planAll().find(q=>q.id===id);if(m[id]>=70)ids.push(id);
+  Object.keys(m).forEach(id=>{S.mast[id]={p:m[id],ts:Date.now()};const p=planAll().find(q=>q.id===id);if(m[id]>=100)ids.push(id);else delete S.planDone[id];
    if(p&&p.kind==='E'&&m[id]<=50){const t=C(p.course).short+' · '+shortTitle(p.title);if(!S.redo.some(r=>r.title===t)){const d=new Date();d.setDate(d.getDate()+1);S.redo.push({id:uid(),course:p.course,title:t,stage:0,due:dkey(d)})}}});
   finishSession(Math.min(50,secs/60),+el.dataset.f,ids);S.brk={until:Date.now()+BREAK*1000};save();syncUI()},
  stop(){
