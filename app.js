@@ -1024,7 +1024,7 @@ function qCard(q,ctx){
  const badge=!chk&&prev?`<span class="xprev ${prev.ok?'ok':'bad'}">${prev.ok?'✓ last time':'✗ last time'}</span>`:'';
  const cx=typeof CONTEXT!=='undefined'?CONTEXT.find(c=>new RegExp(c.match,'i').test((q.stem||[]).join(' '))):null;
  const ctxh=cx?`<details class="xctx" open><summary>${esc(cx.title)}</summary>${cx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:'';
- return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${ctxh}${body}${res}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
+ return `<div class="xq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}${stem}${ctxh}${body}${res}${chk&&!st.ok&&typeof tutorHtml==='function'?tutorHtml(id):''}${chk?`<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`:''}</div>`;
 }
 function builderHtml(l,blocks){
  const B=typeof BUILD!=='undefined'&&typeof bCard==='function'&&BUILD[l.id];if(!B)return '';
