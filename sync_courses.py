@@ -58,6 +58,43 @@ def lesson_id(heading):
 KEY = re.compile(r"^\s*(?:\*\*)?\s*(answer key|answers? and (?:reasoning|explanations?)|model answers?|worked solutions?|solutions?)\b", re.I)
 
 
+def move_answer_keys(lessons):
+    """An 'Answer Key' section left inside the lesson notes is moved onto the exercise page:
+    each answer goes right after its question (matched by Q-number) so the exercises page holds everything."""
+    moved = 0
+    for L in lessons.values():
+        notes, ex = L.get("notes", []), L.get("ex", [])
+        start = next((i for i, b in enumerate(notes) if b.get("t") == "h" and re.match(r"^\s*(?:\d+\.\d+\s*)?(answer key|answers?|suggested solutions?)\b", b.get("x", ""), re.I)), None)
+        if start is None:
+            continue
+        end = next((i for i in range(start + 1, len(notes)) if notes[i].get("t") == "h" and notes[i].get("l", 9) <= 2), len(notes))
+        key, cur, ans = notes[start:end], None, {}
+        for b in key[1:]:
+            if b.get("t") == "h":
+                m = re.match(r"^\s*Q?(\d+)", b.get("x", ""), re.I)
+                cur = m.group(1) if m else None
+            elif cur:
+                ans.setdefault(cur, []).append(b)
+        if not ans or not ex:
+            continue
+        out, i, used = [], 0, 0
+        qh = lambda b: b.get("t") == "h" and re.match(r"^\s*Q(\d+)", b.get("x", ""), re.I)
+        while i < len(ex):
+            b = ex[i]
+            m = qh(b)
+            out.append(b); i += 1
+            if m:
+                while i < len(ex) and not (ex[i].get("t") == "h"):
+                    out.append(ex[i]); i += 1
+                if m.group(1) in ans:
+                    out.extend(ans.pop(m.group(1))); used += 1
+        if used:
+            L["ex"] = out
+            L["notes"] = notes[:start] + notes[end:]
+            moved += used
+    return moved
+
+
 def convert(path):
     doc = Document(path)
     lessons, extras = {}, []
@@ -158,6 +195,8 @@ def main():
             continue
         f = files[-1]
         lessons, extras = convert(f)
+        mv = move_answer_keys(lessons)
+        if mv: print(f"   {code}: {mv} answers moved from the notes to the exercises page")
         data["courses"][code] = {"file": f.name, "mtime": dt.datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d"), "lessons": lessons, "extras": extras}
         print(f"ok {code}: {f.name} -> {len(lessons)} lessons, "
               f"{sum(len(v['ex']) for v in lessons.values())} exercise blocks, {len(extras)} extra blocks")
@@ -167,4 +206,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 2 and sys.argv[1] == "--fix":      # python3 sync_courses.py --fix content.js
+        p = Path(sys.argv[2]); raw = p.read_text(encoding="utf-8")
+        d = json.loads(raw[raw.index("const CONTENT=") + 14:].rstrip().rstrip(";"))
+        n = sum(move_answer_keys(c["lessons"]) for c in d["courses"].values())
+        p.write_text(raw[:raw.index("const CONTENT=")] + "const CONTENT=" + json.dumps(d, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
+        print("answers moved:", n)
+    else:
+        main()
