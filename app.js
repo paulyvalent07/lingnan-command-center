@@ -872,7 +872,7 @@ const NEWDAY=20;
 const CD=window.CARDS||{};
 let STUDY=null,DECK=null;
 function deck(){if(!DECK)DECK=(CD.buildDeck&&typeof CONTENT!=='undefined')?CD.buildDeck(CONTENT):[];return DECK}
-function allCards(){const E=S.edits||{};return deck().concat(S.xcards||[]).map(c=>E[c.id]&&!E[c.id].del?Object.assign({},c,{q:E[c.id].q,a:E[c.id].a,ed:1}):c)}
+function allCards(){const E=S.edits||{},G=S.gone||{};return deck().concat(S.xcards||[]).filter(c=>!G[c.id]).map(c=>E[c.id]&&!E[c.id].del?Object.assign({},c,{q:E[c.id].q,a:E[c.id].a,ed:1}):c)}
 function cardById(id){return allCards().find(c=>c.id===id)}
 function unlocked(){const t=today(),set=new Set();planAll().forEach(p=>{if(p.date<=t||S.planDone[p.id])pLids(p).forEach(l=>set.add(l))});return set}
 const nfl=()=>Object.values(S.flags||{}).filter(f=>f.on).length;
@@ -919,7 +919,7 @@ function vStudy(){
   <div class="fc-q">${nl(c.q)}</div>
   ${st.flipped?`<div class="fc-sep"></div><div class="fc-a">${nl(c.a)}</div>`:`<div class="fc-hint">Tap to show the answer</div>`}</div>
  ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div>`:''}
- <div class="fc-tip"><button class="fc-rw" data-act="cflag">To rework</button><button class="fc-rw" data-act="cedit">Edit</button></div></div>`;
+ <div class="fc-tip"><button class="fc-rw" data-act="cflag">To rework</button><button class="fc-rw" data-act="cedit">Edit</button><button class="fc-rw" data-act="cdel">Delete</button></div></div>`;
 }
 function startStudy(course){
  const q=cardQueue(course).all;if(!q.length)return;
@@ -969,6 +969,7 @@ Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
  cflip(){if(STUDY){STUDY.flipped=true;render()}},
  cgrade(el){cgrade(+el.dataset.g)},
+ cdel(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.gone=S.gone||{};S.gone[id]=Date.now();delete S.cards[id];STUDY.flipped=false;save();render()},
  cflag(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.flags[id]={on:true,ts:Date.now()};STUDY.flipped=false;save();render()},
  cunflag(el){S.flags[el.dataset.id]={on:false,ts:Date.now()};save();A.cflagged()},
  cflagged(){const l=allCards().filter(c=>flagged(c.id));openSheet('To rework',l.length?`<div class="grp">${l.map(c=>`<div class="cell"><span class="t"><b style="font-size:14px">${esc(c.q.slice(0,120))}</b><span>${esc(C(c.c).short)} · ${esc((c.sec||'').slice(0,50))}</span></span><button class="btn tint sm" data-act="cunflag" data-id="${c.id}">Restore</button></div>`).join('')}</div>`:'<p class="mute">Nothing flagged.</p>',l.length?'<button class="btn" data-act="ccopy2">Copy the list</button>':'')},
