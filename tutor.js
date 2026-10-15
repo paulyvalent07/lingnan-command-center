@@ -144,4 +144,4 @@ Object.assign(A,{
 });
 document.addEventListener('keydown',e=>{if(e.target&&e.target.id==='tin'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();A.tsend()}if(e.key==='Escape'&&TUT.cur)A.tclose()});
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.id==='tin'){t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight)+'px'}});
-function tutorHtml(id){return `<div class="xbar tutbar"><button class="btn tint sm tutbtn" data-act="tutor" data-q="${id}">Explain</button></div>`}
+function tutorHtml(id){const pf=typeof PENDFC!=='undefined'&&PENDFC[id];return `<div class="xbar tutbar"><button class="btn tint sm tutbtn" data-act="tutor" data-q="${id}">Explain</button>${pf?`<button class="btn tint sm tutbtn" data-act="addfc" data-q="${id}" ${pf.done?'disabled':''}>${pf.done?'Added to flashcards ✓':'Add to flashcards'}</button>`:''}</div>`}

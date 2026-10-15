@@ -245,7 +245,7 @@ function vToday(){
  let btn,lab;
  if(S.active){
   const free=S.active.mode==='free',left=free?el:WORK-el;
-  btn=`<button class="go" data-act="sopen" aria-label="Open session"><span id="htimer" style="font-size:34px;font-weight:700;font-variant-numeric:tabular-nums">${free?fmtHMS(el):fmtMS(left)}</span></button>`;
+  btn=`<button class="go" data-act="sopen" aria-label="Open session"><span id="htimer" style="font-size:34px;font-weight:700;font-variant-numeric:tabular-nums">${free?fmtHMS(el):(left<0?'+'+fmtMS(-left):fmtMS(left))}</span></button>`;
   lab=`<div class="lab">In session</div><div class="sub">Tap to open your course</div>`;
  }else{
   btn=`<button class="go" data-act="pstart" aria-label="Start Deep Work">${ic('play')}</button>`;
@@ -651,17 +651,18 @@ function renderSession(top){
  const a=S.active,x=C(a.course);
  el.classList.toggle('open',sessOpen);el.classList.add('blk');
  const secs=activeSecs(),free=a.mode==='free';
- const fin=!free&&(a.endTs||secs>=WORK);
+ const fin=!free&&(a.endTs||(secs>=WORK&&!a.cont));
  el.classList.toggle('hud',hudOn());
  if(fin){
-  const mins=Math.min(50,Math.round(secs/60*10)/10);
+  const rs=(a.endTs||a.cont)?secs:Math.min(secs,WORK),mins=Math.round(rs/60*10)/10;
   const items=(a.items||[]).map(id=>planAll().find(p=>p.id===id)).filter(Boolean);
   if(!a.mast)a.mast={};
   el.innerHTML=`<div class="sess-h"><div class="sess-top"><span style="width:30px"></span><span class="eyebrow">${x.short} · Deep Work</span><span style="width:30px"></span></div></div>
-  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p></div>${recapHtml(a)}
+  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p>${a.endTs?'':`<p class="mute" style="margin-top:6px">Clock still running: <b id="ftimer"></b></p>`}</div>${recapHtml(a)}
   <div class="sh">How much did you master?</div>${items.map(p=>{const v=(a.mast||{})[p.id],ex=p.kind==='E';return `<div class="mq"><b>${esc(shortTitle(p.title))}</b><span>${ex?'How did the exercises go?':'Share of this lesson you really understood'}</span><div class="pcts">${[0,25,50,75,100].map(n=>`<button class="${v===n?'on':''}" data-act="mpct" data-id="${p.id}" data-p="${n}">${n}%</button>`).join('')}</div></div>`}).join('')}
   <div class="sh" style="text-align:center">How was your focus?</div>
-  <div class="rate"><button data-act="rate" data-f="1">😕<span>Low</span></button><button data-act="rate" data-f="2">🙂<span>OK</span></button><button data-act="rate" data-f="3">🔥<span>Deep</span></button></div></div></div>`;
+  <div class="rate">${[[1,'😕','Low'],[2,'🙂','OK'],[3,'🔥','Deep']].map(([f,e,l])=>`<button class="${a.focus===f?'on':''}" data-act="sfocus" data-f="${f}">${e}<span>${l}</span></button>`).join('')}</div>
+  <div style="margin-top:16px"><button class="btn" data-act="rate" ${a.focus?'':'disabled'}>Validate and finish</button><button class="btn gray" style="margin-top:8px" data-act="keep">Keep working</button></div></div></div>`;
   return;
  }
  const p=curItem(),ls=p?lessonsFor(p):[];
@@ -686,7 +687,7 @@ function renderSession(top){
  updateTimers();
  if(oldY){const nb=el.querySelector('.sess-b');if(nb)nb.scrollTop=oldY}
 }
-function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||activeSecs()>=WORK);return hud||(free&&!a.flid)||!!fin||!!a.pausedAt}
+function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||(activeSecs()>=WORK&&!a.cont));return hud||(free&&!a.flid)||!!fin||!!a.pausedAt}
 let hudT=0,hudXY=null;
 function autoHide(){if(hud&&S.active&&sessOpen){hud=false;$('sess').classList.toggle('hud',hudOn())}}
 document.addEventListener('wheel',e=>{if(!hud||!sessOpen||!S.active||e.deltaY<=4||Date.now()-hudT<500)return;if(e.target.closest&&e.target.closest('.sess-h,.sess-f'))return;autoHide()},{passive:true});
@@ -698,9 +699,9 @@ document.addEventListener('touchstart',e=>{const t=e.touches[0];sw0=e.target.clo
 document.addEventListener('touchend',e=>{if(!sw0)return;const t=e.changedTouches[0],dx=t.clientX-sw0.x,dy=t.clientY-sw0.y,dt=Date.now()-sw0.t;sw0=null;if(dx>70&&Math.abs(dy)<60&&dt<700)toggleHud()},{passive:true});
 function updateTimers(){
  const a=S.active;if(!a)return;
- const secs=activeSecs(),free=a.mode==='free',txt=free?fmtHMS(secs):fmtMS(WORK-secs),pct=free?0:secs/WORK;
+ const secs=activeSecs(),free=a.mode==='free',over=!free&&secs>WORK,txt=free?fmtHMS(secs):(over?'+'+fmtMS(secs-WORK):fmtMS(WORK-secs)),pct=free?0:secs/WORK;
  ['stimer','htimer','mtimer'].forEach(id=>{const n=$(id);if(n)n.textContent=id==='stimer'&&free?fmtMS(secs):txt});
- const sb=$('sbar');if(sb)sb.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';const sl=$('sline');if(sl)sl.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';
+ const ft=$('ftimer');if(ft)ft.textContent=fmtMS(Math.min(secs,WORK))+(over?'  (+'+fmtMS(secs-WORK)+')':'');const sb=$('sbar');if(sb)sb.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';const sl=$('sline');if(sl)sl.style.width=(Math.min(1,pct)*100).toFixed(1)+'%';
  [['sring',2*Math.PI*40],['mring',2*Math.PI*15]].forEach(([id,c])=>{const n=$(id);if(n&&n.style)n.style.strokeDashoffset=(c*(1-Math.min(1,pct))).toFixed(1)});
 }
 function renderMini(){
@@ -717,7 +718,7 @@ function syncUI(){render();renderSession();renderMini()}
 function ping(){
  try{navigator.vibrate&&navigator.vibrate([250,120,250])}catch(e){}
  try{const Ctx=window.AudioContext||window.webkitAudioContext;const c=new Ctx();const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.15;o.start();setTimeout(()=>{o.stop();c.close()},450)}catch(e){}
- try{if('Notification' in window&&Notification.permission==='granted')new Notification('Block done',{body:'Rate your focus and take a 15 min break.'})}catch(e){}
+ try{if('Notification' in window&&Notification.permission==='granted')new Notification('Block done',{body:'Validate your block, then take a '+Math.round(BREAK/60)+' min break.'})}catch(e){}
 }
 async function keepAwake(on){try{if(on&&'wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen')}else if(wakeLock){await wakeLock.release();wakeLock=null}}catch(e){}}
 function askNotif(){try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}}
@@ -761,10 +762,12 @@ const A={
  resume(){const r=LAST();if(!r)return;hist.push([view,param]);view='lesson';param=r.id;lTab=r.tab||'lesson';render();setTimeout(()=>window.scrollTo(0,r.y||0),30)},
  mpct(el){const a=S.active;a.mast=a.mast||{};a.mast[el.dataset.id]=+el.dataset.p;save();renderSession()},
  fitem(el){const a=S.active,id=el.dataset.id,i=a.fin.indexOf(id);if(i>=0)a.fin.splice(i,1);else a.fin.push(id);save();renderSession()},
- rate(el){const a=S.active,secs=activeSecs(),m=a.mast||{},ids=[];
+ sfocus(el){const a=S.active;a.focus=+el.dataset.f;save();renderSession()},
+ keep(){const a=S.active;if(!a)return;if(a.endTs){a.pms=(a.pms||0)+Date.now()-a.endTs;a.endTs=null}a.cont=true;a.alerted=true;save();renderSession(true);renderMini()},
+ rate(el){const a=S.active;if(!a.focus)return;const secs=(a.endTs||a.cont)?activeSecs():Math.min(activeSecs(),WORK),m=a.mast||{},ids=[];
   Object.keys(m).forEach(id=>{S.mast[id]={p:m[id],ts:Date.now()};const p=planAll().find(q=>q.id===id);if(m[id]>=100)ids.push(id);else delete S.planDone[id];
    if(p&&p.kind==='E'&&m[id]<=50){const t=C(p.course).short+' · '+shortTitle(p.title);if(!S.redo.some(r=>r.title===t)){const d=new Date();d.setDate(d.getDate()+1);S.redo.push({id:uid(),course:p.course,title:t,stage:0,due:dkey(d)})}}});
-  finishSession(Math.min(50,secs/60),+el.dataset.f,ids);S.brk={until:Date.now()+BREAK*1000};save();syncUI()},
+  finishSession(Math.min(180,secs/60),a.focus,ids);S.brk={until:Date.now()+BREAK*1000};save();syncUI()},
  stop(){
   const a=S.active,m=activeSecs()/60;
   if(a.mode==='free'){if(m>=1)finishSession(m,0,[]);else{S.active=null;sessOpen=false}keepAwake(false);save();syncUI();return}
@@ -857,7 +860,7 @@ function tick(){
  readTick();
  const a=S.active;
  if(a){
-  if(a.mode==='block'&&!a.endTs&&activeSecs()>=WORK){a.endTs=a.startTs+(a.pms||0)+WORK*1000;a.alerted=true;sessOpen=true;save();ping();syncUI();return}
+  if(a.mode==='block'&&!a.endTs&&!a.alerted&&activeSecs()>=WORK){a.alerted=true;sessOpen=true;save();ping();syncUI();return}
   updateTimers();
  }else if(S.brk){
   const left=(S.brk.until-Date.now())/1000;
@@ -969,6 +972,8 @@ Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
  cflip(){if(STUDY){STUDY.flipped=true;render()}},
  cgrade(el){cgrade(+el.dataset.g)},
+ addfc(el){const p=PENDFC[el.dataset.q];if(!p||p.done)return;missed(el.dataset.q,p.q,p.ctx,p.cards);p.done=true;save();el.textContent='Added to flashcards ✓';el.disabled=true},
+ addtfc(el){const t=TP;if(!t||!t.pend)return;t.pend.forEach(c=>{if(!(S.xcards||[]).some(x=>x.id===c.id))S.xcards.push(c);delete S.cards[c.id]});const n=t.pend.length;t.pend=[];save();el.textContent=n+' added ✓';el.disabled=true},
  cdel(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.gone=S.gone||{};S.gone[id]=Date.now();delete S.cards[id];STUDY.flipped=false;save();render()},
  cflag(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.flags[id]={on:true,ts:Date.now()};STUDY.flipped=false;save();render()},
  cunflag(el){S.flags[el.dataset.id]={on:false,ts:Date.now()};save();A.cflagged()},
@@ -982,11 +987,11 @@ Object.assign(A,{
   const t=TP;if(!t)return;let id=0,ok=0,wrong=0;
   const cells=[];const R=t.rows;
   R.forEach((r,ri)=>{if(ri===0&&r.slice(1).every(c=>!String(c).trim()))return;r.forEach((c,ci)=>{if(ci>0&&CD.isNum(c)){cells.push({id:id++,v:c,lab:CD.strip(r[0]),col:CD.strip(R[ri>0&&R[0].slice(1).some(x=>String(x).trim())?0:0][ci]||'')})}})});
-  cells.forEach(c=>{const inp=$('ti'+c.id),u=inp?inp.value.trim():'';t.ans[c.id]=u;const a=parseNum(u),b=parseNum(c.v);const good=!isNaN(a)&&Math.abs(a-b)<=Math.max(.01,Math.abs(b)*.005);t.res[c.id]=good;if(good)ok++;else{wrong++;if(t.qid)return;
+  t.pend=[];cells.forEach(c=>{const inp=$('ti'+c.id),u=inp?inp.value.trim():'';t.ans[c.id]=u;const a=parseNum(u),b=parseNum(c.v);const good=!isNaN(a)&&Math.abs(a-b)<=Math.max(.01,Math.abs(b)*.005);t.res[c.id]=good;if(good)ok++;else{wrong++;if(t.qid)return;
    const q=`${t.cap||t.h||t.lt} — ${c.lab}${c.col&&R[0].slice(1).some(x=>String(x).trim())&&R[0][1]!==''?` (${c.col})`:''}`,idc='x:'+CD.hash(t.cid+t.num+q);
-   const ex=(S.xcards||[]).find(x=>x.id===idc);if(!ex)S.xcards.push({id:idc,c:t.cid,l:t.cid+':'+t.num,lt:t.lt,sec:t.h||t.cap||'',src:'e',q:q,a:CD.strip(c.v)});delete S.cards[idc]}});
+   (t.pend=t.pend||[]).push({id:idc,c:t.cid,l:t.cid+':'+t.num,lt:t.lt,sec:t.h||t.cap||'',src:'e',q:q,a:CD.strip(c.v)})}});
   t.score=ok;t.wrong=wrong;if(t.qid){S.exr=S.exr||{};S.exr[t.qid]={ok:wrong?0:1,ts:Date.now()};if(wrong){const rt=C(t.cid).short+' · '+(t.cap||t.lt).slice(0,60);if(!S.redo.some(r=>r.title===rt)){const d=new Date();d.setDate(d.getDate()+1);S.redo.push({id:uid(),course:t.cid,title:rt,stage:0,due:dkey(d)})}}}t.mins=Math.max(1,Math.round((Date.now()-t.t0)/60000));
-  save();setSheet(tpBody(true),`<button class="btn" data-act="sclose">Done</button>`);
+  save();setSheet(tpBody(true),`${t.pend.length?`<button class="btn tint" style="margin-bottom:8px" data-act="addtfc">Add ${t.pend.length} mistake${t.pend.length>1?'s':''} to flashcards</button>`:''}<button class="btn" data-act="sclose">Done</button>`);
  },
 });
 
@@ -1001,6 +1006,8 @@ function ansHtml(ans){
   return String(b.x).split('\n').filter(s=>s.trim()).map(s=>`<p>${md(s)}</p>`).join('');
  }).join('');
 }
+const PENDFC={};
+function holdMissed(id,q,ctx,cards){PENDFC[id]={q,ctx,cards,done:false}}
 function missed(id,q,ctx,cards){
  const now=Date.now();
  (cards||[{id,q:CD.qFront(q),a:CD.ansText(q)}]).forEach(c=>{
@@ -1116,23 +1123,23 @@ Object.assign(A,{
  xretry(el){delete EXS[el.dataset.q];xrefresh(el.dataset.q)},
  xgrade(el){
   const id=el.dataset.q,r=QREG[id],st=xstate(id),ok=el.dataset.ok==='1';
-  st.chk=true;st.ok=ok;if(!ok)missed(id,r.q,r.ctx);xrecord(id,ok);xrefresh(id);
+  st.chk=true;st.ok=ok;if(!ok)holdMissed(id,r.q,r.ctx);xrecord(id,ok);xrefresh(id);
  },
  xcheck(el){
   const id=el.dataset.q,r=QREG[id],q=r.q,st=xstate(id);
   if(q.kind==='mcq'){
    if(!st.sel)return;st.ok=st.sel===q.key;
-   if(!st.ok)missed(id,q,r.ctx,[{id,q:CD.qFront(q),a:q.key+'. '+((q.opts.find(o=>o.k===q.key)||{}).x||'')+(q.expl?'\n'+q.expl:'')}]);
+   if(!st.ok)holdMissed(id,q,r.ctx,[{id,q:CD.qFront(q),a:q.key+'. '+((q.opts.find(o=>o.k===q.key)||{}).x||'')+(q.expl?'\n'+q.expl:'')}]);
   }else if(q.kind==='match'){
    const ord=shuf(q.rows.length,id),pos={};ord.forEach((ri,k)=>pos[ri]=k);
    let sc=0;const bad=[];
    q.rows.forEach((row,i)=>{if((st.m||[])[i]===String.fromCharCode(65+pos[i]))sc++;else bad.push({id:id+':m'+i,q:'What is '+CD.strip(row.t)+'?',a:row.d})});
    st.score=sc;st.ok=!bad.length;
-   if(bad.length)missed(id,q,r.ctx,bad);
+   if(bad.length)holdMissed(id,q,r.ctx,bad);
   }else{
    let sc=0;st.pr=q.parts.map((p,i)=>{const g=numOk((st.v||[])[i]||'',p.n);if(g)sc++;return g});
    st.score=sc;st.ok=sc===q.parts.length;
-   if(!st.ok)missed(id,q,r.ctx);
+   if(!st.ok)holdMissed(id,q,r.ctx);
   }
   st.chk=true;xrecord(id,st.ok);xrefresh(id);
  },

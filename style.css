@@ -432,3 +432,6 @@ select option:disabled{color:var(--l3)}
 .trend .tr1{fill:none;stroke:var(--accent);stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .trend .ta{fill:var(--accent);opacity:.12}
 .trend .tg{stroke:var(--l2);stroke-width:1;stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
+/* v47 session end: focus selection + disabled finish */
+.rate button.on{background:var(--fill);box-shadow:0 0 0 2px var(--accent) inset}
+.btn[disabled]{opacity:.4;pointer-events:none}

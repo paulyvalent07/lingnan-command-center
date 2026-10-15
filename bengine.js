@@ -176,7 +176,7 @@ function bGrade(id,give){
  st.ok=ex.t==='je'?st.g.every(x=>x.ok):st.g.ok;
  if(give&&st.ok)st.ok=false;
  st.chk=true;
- if(!st.ok){const cards=bCards(ex,st,id);if(cards.length)missed(id,null,r.ctx,cards)}
+ if(!st.ok){const cards=bCards(ex,st,id);if(cards.length)holdMissed(id,null,r.ctx,cards)}
  xrecord(id,st.ok);xrefresh(id);
 }
 document.addEventListener('input',e=>{const el=e.target;if(el.dataset&&el.dataset.bq){const st=bst(el.dataset.bq);st.v[el.dataset.bk]=el.value}});
