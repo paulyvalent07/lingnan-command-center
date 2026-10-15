@@ -645,11 +645,12 @@ function curItem(){const a=S.active;return a&&a.items?planAll().find(p=>p.id===a
 function sessRing(pct,color){return `<div class="tr">${ringSvg(92,40,7,pct,color).replace('class="pg"','class="pg" id="sring"')}<span class="timer" id="stimer" style="font-size:21px"></span></div>`}
 function recapHtml(a){const v=Object.values(a.xrm||{});if(!v.length)return'';const ok=v.filter(Boolean).length,ko=v.length-ok;
  return `<div class="recap"><div><b>${ok}</b><span>right</span></div><div><b>${ko}</b><span>missed, in flashcards</span></div></div>`}
+function noscr(on){try{document.documentElement.classList.toggle('noscroll',on)}catch(e){}}
 function renderSession(top){
  const el=$('sess');const oldB=el.querySelector('.sess-b'),oldY=!top&&oldB?oldB.scrollTop:0;try{if(S.active&&S.active.items){const p0=curItem(),l0=p0&&lessonsFor(p0)[0];if(l0)setLast(l0.id,S.active.tab==='ex'?'ex':'lesson',0)}}catch(e){}
- if(!S.active){sessOpen=false;hud=false;el.classList.remove('open','hud');el.innerHTML='';return}
+ if(!S.active){sessOpen=false;hud=false;noscr(false);el.classList.remove('open','hud');el.innerHTML='';return}
  const a=S.active,x=C(a.course);
- el.classList.toggle('open',sessOpen);el.classList.add('blk');
+ el.classList.toggle('open',sessOpen);el.classList.add('blk');noscr(!!sessOpen);
  const secs=activeSecs(),free=a.mode==='free';
  const fin=!!(a.endTs||(!free&&secs>=WORK&&!a.cont));
  el.classList.toggle('hud',hudOn());

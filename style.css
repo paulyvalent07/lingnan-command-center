@@ -435,3 +435,4 @@ select option:disabled{color:var(--l3)}
 /* v47 session end: focus selection + disabled finish */
 .rate button.on{background:var(--fill);box-shadow:0 0 0 2px var(--accent) inset}
 .btn[disabled]{opacity:.4;pointer-events:none}
+html.noscroll,html.noscroll body{overflow:hidden}
