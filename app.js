@@ -658,7 +658,7 @@ function renderSession(top){
   const items=(a.items||[]).map(id=>planAll().find(p=>p.id===id)).filter(Boolean);
   if(!a.mast)a.mast={};
   el.innerHTML=`<div class="sess-h"><div class="sess-top"><span style="width:30px"></span><span class="eyebrow">${x.short} · Deep Work</span><span style="width:30px"></span></div></div>
-  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p>${a.endTs?'':`<p class="mute" style="margin-top:6px">Clock still running: <b id="ftimer"></b></p>`}</div>${recapHtml(a)}
+  <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':(mins<1?'Under 1 min':fmt(mins)+' logged')}</h1><p class="mute">Tell me how much you took in.</p>${a.endTs?'':`<p class="mute" style="margin-top:6px">Clock still running: <b id="ftimer"></b></p>`}</div>${recapHtml(a)}
   ${items.length?'<div class="sh">How much did you master?</div>':''}${items.map(p=>{const v=(a.mast||{})[p.id],ex=p.kind==='E';return `<div class="mq"><b>${esc(shortTitle(p.title))}</b><span>${ex?'How did the exercises go?':'Share of this lesson you really understood'}</span><div class="pcts">${[0,25,50,75,100].map(n=>`<button class="${v===n?'on':''}" data-act="mpct" data-id="${p.id}" data-p="${n}">${n}%</button>`).join('')}</div></div>`}).join('')}
   <div class="sh" style="text-align:center">How was your focus?</div>
   <div class="rate">${[[1,'😕','Low'],[2,'🙂','OK'],[3,'🔥','Deep']].map(([f,e,l])=>`<button class="${a.focus===f?'on':''}" data-act="sfocus" data-f="${f}">${e}<span>${l}</span></button>`).join('')}</div>
@@ -770,7 +770,6 @@ const A={
   finishSession(Math.min(180,secs/60),a.focus,ids);if(a.mode!=='free')S.brk={until:Date.now()+BREAK*1000};keepAwake(false);save();syncUI()},
  stop(){
   const a=S.active,m=activeSecs()/60;
-  if(m<1){S.active=null;sessOpen=false;keepAwake(false);save();syncUI();return}
   a.endTs=a.pausedAt||Date.now();save();renderSession();renderMini();
  },
  cancel(){if(confirm('Discard this session?')){S.active=null;sessOpen=false;keepAwake(false);save();syncUI()}},
