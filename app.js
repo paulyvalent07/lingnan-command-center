@@ -651,7 +651,7 @@ function renderSession(top){
  const a=S.active,x=C(a.course);
  el.classList.toggle('open',sessOpen);el.classList.add('blk');
  const secs=activeSecs(),free=a.mode==='free';
- const fin=!free&&(a.endTs||(secs>=WORK&&!a.cont));
+ const fin=!!(a.endTs||(!free&&secs>=WORK&&!a.cont));
  el.classList.toggle('hud',hudOn());
  if(fin){
   const rs=(a.endTs||a.cont)?secs:Math.min(secs,WORK),mins=Math.round(rs/60*10)/10;
@@ -659,7 +659,7 @@ function renderSession(top){
   if(!a.mast)a.mast={};
   el.innerHTML=`<div class="sess-h"><div class="sess-top"><span style="width:30px"></span><span class="eyebrow">${x.short} · Deep Work</span><span style="width:30px"></span></div></div>
   <div class="sess-b"><div><div class="done-card"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:28px">${secs>=WORK?'Block complete':fmt(mins)+' logged'}</h1><p class="mute">Tell me how much you took in.</p>${a.endTs?'':`<p class="mute" style="margin-top:6px">Clock still running: <b id="ftimer"></b></p>`}</div>${recapHtml(a)}
-  <div class="sh">How much did you master?</div>${items.map(p=>{const v=(a.mast||{})[p.id],ex=p.kind==='E';return `<div class="mq"><b>${esc(shortTitle(p.title))}</b><span>${ex?'How did the exercises go?':'Share of this lesson you really understood'}</span><div class="pcts">${[0,25,50,75,100].map(n=>`<button class="${v===n?'on':''}" data-act="mpct" data-id="${p.id}" data-p="${n}">${n}%</button>`).join('')}</div></div>`}).join('')}
+  ${items.length?'<div class="sh">How much did you master?</div>':''}${items.map(p=>{const v=(a.mast||{})[p.id],ex=p.kind==='E';return `<div class="mq"><b>${esc(shortTitle(p.title))}</b><span>${ex?'How did the exercises go?':'Share of this lesson you really understood'}</span><div class="pcts">${[0,25,50,75,100].map(n=>`<button class="${v===n?'on':''}" data-act="mpct" data-id="${p.id}" data-p="${n}">${n}%</button>`).join('')}</div></div>`}).join('')}
   <div class="sh" style="text-align:center">How was your focus?</div>
   <div class="rate">${[[1,'😕','Low'],[2,'🙂','OK'],[3,'🔥','Deep']].map(([f,e,l])=>`<button class="${a.focus===f?'on':''}" data-act="sfocus" data-f="${f}">${e}<span>${l}</span></button>`).join('')}</div>
   <div style="margin-top:16px"><button class="btn" data-act="rate" ${a.focus?'':'disabled'}>Validate and finish</button><button class="btn gray" style="margin-top:8px" data-act="keep">Keep working</button></div></div></div>`;
@@ -687,7 +687,7 @@ function renderSession(top){
  updateTimers();
  if(oldY){const nb=el.querySelector('.sess-b');if(nb)nb.scrollTop=oldY}
 }
-function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!free&&(a.endTs||(activeSecs()>=WORK&&!a.cont));return hud||(free&&!a.flid)||!!fin||!!a.pausedAt}
+function hudOn(){const a=S.active;if(!a)return true;const free=a.mode==='free',fin=!!(a.endTs||(!free&&activeSecs()>=WORK&&!a.cont));return hud||(free&&!a.flid)||!!fin||!!a.pausedAt}
 let hudT=0,hudXY=null;
 function autoHide(){if(hud&&S.active&&sessOpen){hud=false;$('sess').classList.toggle('hud',hudOn())}}
 document.addEventListener('wheel',e=>{if(!hud||!sessOpen||!S.active||e.deltaY<=4||Date.now()-hudT<500)return;if(e.target.closest&&e.target.closest('.sess-h,.sess-f'))return;autoHide()},{passive:true});
@@ -767,10 +767,9 @@ const A={
  rate(el){const a=S.active;if(!a.focus)return;const secs=(a.endTs||a.cont)?activeSecs():Math.min(activeSecs(),WORK),m=a.mast||{},ids=[];
   Object.keys(m).forEach(id=>{S.mast[id]={p:m[id],ts:Date.now()};const p=planAll().find(q=>q.id===id);if(m[id]>=100)ids.push(id);else delete S.planDone[id];
    if(p&&p.kind==='E'&&m[id]<=50){const t=C(p.course).short+' · '+shortTitle(p.title);if(!S.redo.some(r=>r.title===t)){const d=new Date();d.setDate(d.getDate()+1);S.redo.push({id:uid(),course:p.course,title:t,stage:0,due:dkey(d)})}}});
-  finishSession(Math.min(180,secs/60),a.focus,ids);S.brk={until:Date.now()+BREAK*1000};save();syncUI()},
+  finishSession(Math.min(180,secs/60),a.focus,ids);if(a.mode!=='free')S.brk={until:Date.now()+BREAK*1000};keepAwake(false);save();syncUI()},
  stop(){
   const a=S.active,m=activeSecs()/60;
-  if(a.mode==='free'){if(m>=1)finishSession(m,0,[]);else{S.active=null;sessOpen=false}keepAwake(false);save();syncUI();return}
   if(m<1){S.active=null;sessOpen=false;keepAwake(false);save();syncUI();return}
   a.endTs=a.pausedAt||Date.now();save();renderSession();renderMini();
  },
