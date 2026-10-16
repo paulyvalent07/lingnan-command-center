@@ -423,7 +423,8 @@ function vInsights(){
 function vMore(){
  const due=S.redo.filter(r=>r.due<=today()).length;
  const it=(v,t,s,i,col,badge)=>`<button class="cell has-ico" data-act="open" data-v="${v}"><span class="sq" style="--c:${col}">${ic(i)}</span><span class="t"><b>${t}</b><span>${s}</span></span>${badge||''}${ic('chev','chev')}</button>`;
- return `<div class="view">${title('More')}<div class="grp">${it('redo','Exercises to redo','Spaced repetition','redo','var(--orange)',due?`<span class="badge red">${due}</span>`:'')}${it('plan','Deadlines','Exams and assignments','flag','var(--red)')}${it('sessions','Sessions','History, add or edit','clock','var(--accent)')}${it('targets','Targets','Grade goals per course','cap','var(--green)')}${it('data','Settings','Goals, theme, backup','gear','#8e8e93')}</div></div>`;
+ const anki=`<a class="cell has-ico" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="sq" style="--c:#2f6fed">${ic('cards')}</span><span class="t"><b>Anki</b><span>Open your AnkiWeb decks</span></span>${ic('chev','chev')}</a>`;
+ return `<div class="view">${title('More')}<div class="grp">${anki}${it('redo','Exercises to redo','Spaced repetition','redo','var(--orange)',due?`<span class="badge red">${due}</span>`:'')}${it('plan','Deadlines','Exams and assignments','flag','var(--red)')}${it('sessions','Sessions','History, add or edit','clock','var(--accent)')}${it('targets','Targets','Grade goals per course','cap','var(--green)')}${it('data','Settings','Goals, theme, backup','gear','#8e8e93')}</div></div>`;
 }
 function vRedo(){
  const day=today(),all=[...S.redo].sort((a,b)=>a.due.localeCompare(b.due));
