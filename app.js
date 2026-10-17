@@ -434,7 +434,7 @@ function vHub(){
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  ${tile('a','href="https://ankiweb.net/decks/" target="_blank" rel="noopener"','#2f6fed','grid','Anki','Open your AnkiWeb decks')}
  ${app('Chess','pawn','#5a8f29','chess.com','https://www.chess.com/home','Chess')}
- ${app('LinkedIn Learning','play','#0a66c2','linkedin.com/learning','https://www.linkedin.com/learning/','LinkedInLearning')}
+ ${app('Learning','play','#0a66c2','linkedin.com/learning','https://www.linkedin.com/learning/','Learning')}
  ${app('El País','doc','#6b6b70','elpais.com','https://elpais.com/','ElPais')}
  ${app('Guess The Country','globe','#0f9d8a','','','GuessTheCountry')}
  ${app('Mental Arithmetic','calc','#ff7a1a','','','Mentalarithmetic')}
