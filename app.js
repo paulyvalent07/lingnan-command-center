@@ -41,6 +41,7 @@ const IC={
  x:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  doc:'<path d="M7 3h7l4.5 4.5V20a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v4.5h4.5M9 12.5h6M9 16h6"/>',
+ grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
  cards:'<rect x="3.5" y="7" width="13" height="13" rx="2.5"/><path d="M7.5 4h11a2 2 0 012 2v11"/>',
  clip:'<rect x="5" y="4.5" width="14" height="16.5" rx="3"/><path d="M9 3.5h6v3H9zM9 12h6M9 16h3.5"/>',
  flag:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/>',
@@ -87,9 +88,9 @@ function load(){
 function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(typeof schedulePush==='function')schedulePush()}
 
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
-const TABS=[['today','Today','timer'],['courses','Courses','book'],['cards','Cards','cards'],['timetable','Week','cal'],['insights','Insights','chart'],['more','More','more']];
+const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='cards'&&view==='study')||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -314,7 +315,7 @@ function vTimetable(){
   const lab=dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
   const dls=S.deadlines.filter(x=>String(x.when).slice(0,10)===d).map(x=>`<div class="cell"><span class="sq" style="--c:var(--red)">${ic('flag')}</span><span class="t"><b>${esc(x.title)}</b><span>${esc(C(x.course).short)} · ${new Date(x.when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></span></div>`).join('');
   return `<div class="sh">${lab}${d===today()?' · today':''}</div><div class="grp">${dls}${it.length?it.map(planRow).join(''):(dls?'':`<div class="cell"><span class="t mute">${dt.getDay()===2?'Rest day':'Free'}</span></div>`)}</div>`}).join('');
- return `<div class="view">${title('Week',dn+' of '+all.length+' blocks done')}
+ return `<div class="view">${navbar('Hub')}${title('Week',dn+' of '+all.length+' blocks done')}
  <div class="row sp" style="margin:8px 0 6px"><div class="segc" style="flex:1"><button data-act="tprev">←</button><button class="${off===0?'on':''}" data-act="tnow">This week</button><button data-act="tnext">→</button></div></div>
  <div class="bar" style="margin:12px 4px 0"><i style="width:${all.length?dn/all.length*100:0}%"></i></div>${rows}
  <div class="row c" style="margin-top:14px"><button class="link" data-act="lessonopen">Add a lesson</button></div></div>`;
@@ -420,11 +421,19 @@ function vInsights(){
 }
 
 /* ----- more + sub views ----- */
+function vHub(){
+ const q=cardQueue(),n=q.all.length,days=weekDays(S.tw||0),all=days.flatMap(itemsOn),dn=all.filter(p=>S.planDone[p.id]).length;
+ const tile=(tag,attrs,col,i,t,sub,badge)=>`<${tag} class="tile" ${attrs} style="--c:${col}"><span class="tq">${ic(i)}</span>${badge?`<span class="badge red tb">${badge}</span>`:''}<b>${t}</b><span>${sub}</span></${tag}>`;
+ return `<div class="view">${title('Hub')}<div class="tiles">
+ ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
+ ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
+ ${tile('a','href="https://ankiweb.net/decks/" target="_blank" rel="noopener"','#2f6fed','grid','Anki','Open your AnkiWeb decks')}
+ </div><div class="sf">Your shortcuts live here. New ones will be added over time.</div></div>`;
+}
 function vMore(){
  const due=S.redo.filter(r=>r.due<=today()).length;
  const it=(v,t,s,i,col,badge)=>`<button class="cell has-ico" data-act="open" data-v="${v}"><span class="sq" style="--c:${col}">${ic(i)}</span><span class="t"><b>${t}</b><span>${s}</span></span>${badge||''}${ic('chev','chev')}</button>`;
- const anki=`<a class="cell has-ico" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="sq" style="--c:#2f6fed">${ic('cards')}</span><span class="t"><b>Anki</b><span>Open your AnkiWeb decks</span></span>${ic('chev','chev')}</a>`;
- return `<div class="view">${title('More')}<div class="grp">${anki}${it('redo','Exercises to redo','Spaced repetition','redo','var(--orange)',due?`<span class="badge red">${due}</span>`:'')}${it('plan','Deadlines','Exams and assignments','flag','var(--red)')}${it('sessions','Sessions','History, add or edit','clock','var(--accent)')}${it('targets','Targets','Grade goals per course','cap','var(--green)')}${it('data','Settings','Goals, theme, backup','gear','#8e8e93')}</div></div>`;
+  return `<div class="view">${title('More')}<div class="grp">${it('redo','Exercises to redo','Spaced repetition','redo','var(--orange)',due?`<span class="badge red">${due}</span>`:'')}${it('plan','Deadlines','Exams and assignments','flag','var(--red)')}${it('sessions','Sessions','History, add or edit','clock','var(--accent)')}${it('targets','Targets','Grade goals per course','cap','var(--green)')}${it('data','Settings','Goals, theme, backup','gear','#8e8e93')}</div></div>`;
 }
 function vRedo(){
  const day=today(),all=[...S.redo].sort((a,b)=>a.due.localeCompare(b.due));
@@ -465,7 +474,7 @@ function vData(){
  <div class="sf">Backups remain available below.</div>
  <div style="margin-top:22px"><button class="btn red" data-act="reset">Erase everything</button></div></div>`;
 }
-const VMAP={cards:vCards,study:vStudy,today:vToday,courses:vCourses,course:vCourse,lesson:vLesson,timetable:vTimetable,insights:vInsights,more:vMore,redo:vRedo,plan:vPlan,sessions:vSessions,targets:vTargets,data:vData};
+const VMAP={hub:vHub,cards:vCards,study:vStudy,today:vToday,courses:vCourses,course:vCourse,lesson:vLesson,timetable:vTimetable,insights:vInsights,more:vMore,redo:vRedo,plan:vPlan,sessions:vSessions,targets:vTargets,data:vData};
 function render(){
  const f=document.activeElement,id=f&&f.id,val=f&&f.value;
  tabbar();$('main').innerHTML=(VMAP[view]||vToday)();
@@ -904,7 +913,7 @@ function vCards(){
  const rows=COURSES.map(c=>{const k=cardQueue(c.id);const tot=allCards().filter(x=>x.c===c.id).length,seen=allCards().filter(x=>x.c===c.id&&S.cards[x.id]).length;
   return `<button class="cell has-ico" data-act="cstart" data-course="${c.id}" ${k.all.length?'':'disabled'} style="--c:${c.color}"><span class="sq big" style="--c:${c.color}">${ic(c.ic)}</span><span class="t"><b>${esc(c.short)}</b><span>${k.due.length} due · ${k.fresh.length} new · ${seen}/${tot} learned</span></span>${ic('chev','chev')}</button>`}).join('');
  const xc=(S.xcards||[]).length;
- return `<div class="view">${title('Flashcards')}
+ return `<div class="view">${navbar('Hub')}${title('Flashcards')}
  <div class="grp"><div class="cell"><span class="t"><b>${q.due.length} due · ${q.fresh.length} new</b><span>About ${Math.max(1,Math.round(q.all.length/4))} min · ${doneToday} reviewed today · counts as extra review time</span></span></div></div>
  <div style="margin:14px 0"><button class="btn" data-act="cstart" ${q.all.length?'':'disabled'}>${ic('play')} Study all</button></div>
  <div class="sh">By course</div><div class="grp">${rows}</div>
