@@ -446,3 +446,5 @@ html.noscroll,html.noscroll body{overflow:hidden}
 .tile>span:last-child{font-size:12.5px;opacity:.85;line-height:1.3}
 .tile .tb{position:absolute;top:14px;right:14px}
 @media(min-width:700px){.tiles{grid-template-columns:repeat(3,1fr)}}
+
+.tile.off{opacity:.4;filter:grayscale(.6)}

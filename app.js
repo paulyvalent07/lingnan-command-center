@@ -422,19 +422,23 @@ function vInsights(){
 }
 
 /* ----- more + sub views ----- */
+const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function vHub(){
+ const app=(t,i,col,siteTxt,web,sc)=>IOS?`<a class="tile" href="shortcuts://run-shortcut?name=${sc}" style="--c:${col}"><span class="tq">${ic(i)}</span><b>${t}</b><span>Opens the app</span></a>`
+  :web?`<a class="tile" href="${web}" target="_blank" rel="noopener" style="--c:${col}"><span class="tq">${ic(i)}</span><b>${t}</b><span>Opens ${siteTxt}</span></a>`
+  :`<div class="tile off" style="--c:${col}"><span class="tq">${ic(i)}</span><b>${t}</b><span>iPhone app only</span></div>`;
  const q=cardQueue(),n=q.all.length,days=weekDays(S.tw||0),all=days.flatMap(itemsOn),dn=all.filter(p=>S.planDone[p.id]).length;
  const tile=(tag,attrs,col,i,t,sub,badge)=>`<${tag} class="tile" ${attrs} style="--c:${col}"><span class="tq">${ic(i)}</span>${badge?`<span class="badge red tb">${badge}</span>`:''}<b>${t}</b><span>${sub}</span></${tag}>`;
  return `<div class="view">${title('Hub')}<div class="tiles">
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  ${tile('a','href="https://ankiweb.net/decks/" target="_blank" rel="noopener"','#2f6fed','grid','Anki','Open your AnkiWeb decks')}
- ${tile('a','href="https://www.chess.com/home" target="_blank" rel="noopener"','#5a8f29','pawn','Chess','Play on chess.com')}
- ${tile('a','href="https://www.linkedin.com/learning/" target="_blank" rel="noopener"','#0a66c2','play','LinkedIn Learning','Continue your courses')}
- ${tile('a','href="https://elpais.com/" target="_blank" rel="noopener"','#6b6b70','doc','El País','Read the news in Spanish')}
- ${tile('a','href="shortcuts://run-shortcut?name=GuessTheCountry"','#0f9d8a','globe','Guess The Country','Opens the iPhone app')}
- ${tile('a','href="shortcuts://run-shortcut?name=Mentalarithmetic"','#ff7a1a','calc','Mental Arithmetic','Opens the iPhone app')}
- </div><div class="sf">The two iPhone-app tiles run a Shortcut with the same name (Shortcuts app > New shortcut > Open App).</div></div>`;
+ ${app('Chess','pawn','#5a8f29','chess.com','https://www.chess.com/home','Chess')}
+ ${app('LinkedIn Learning','play','#0a66c2','linkedin.com/learning','https://www.linkedin.com/learning/','LinkedInLearning')}
+ ${app('El País','doc','#6b6b70','elpais.com','https://elpais.com/','ElPais')}
+ ${app('Guess The Country','globe','#0f9d8a','','','GuessTheCountry')}
+ ${app('Mental Arithmetic','calc','#ff7a1a','','','Mentalarithmetic')}
+ </div><div class="sf">On iPhone the app tiles run a Shortcut with the app's name without spaces (Shortcuts > New shortcut > Open App). On a computer they open the website.</div></div>`;
 }
 function vMore(){
  const due=S.redo.filter(r=>r.due<=today()).length;
