@@ -422,6 +422,7 @@ function vInsights(){
 }
 
 /* ----- more + sub views ----- */
+window.__gridIc=ic('grid');
 const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function vHub(){
  const app=(t,i,col,siteTxt,web,sc,img)=>{const ig=img?`<span class="tq im"><img src="icons/${img}.png" alt=""></span>`:`<span class="tq">${ic(i)}</span>`;return IOS?`<a class="tile" href="shortcuts://run-shortcut?name=${sc}" style="--c:${col}">${ig}<b>${t}</b><span>Opens the app</span></a>`
@@ -432,7 +433,7 @@ function vHub(){
  return `<div class="view">${title('Hub')}<div class="tiles">
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
- ${tile('a','href="https://ankiweb.net/decks/" target="_blank" rel="noopener"','#2f6fed','grid','Anki','Open your AnkiWeb decks')}
+ <a class="tile" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="--c:#2f6fed"><span class="tq im" id="ankiq"><img src="https://www.google.com/s2/favicons?domain=ankiweb.net&sz=128" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.className='tq';this.parentNode.innerHTML=window.__gridIc"></span><b>Anki</b><span>Open your AnkiWeb decks</span></a>
  ${app('Chess','pawn','#5a8f29','chess.com','https://www.chess.com/home','Chess','chess')}
  ${app('Learning','play','#0a66c2','linkedin.com/learning','https://www.linkedin.com/learning/','Learning','learning')}
  ${app('El País','doc','#6b6b70','elpais.com','https://elpais.com/','ElPais','elpais')}
