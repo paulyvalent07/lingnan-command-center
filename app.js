@@ -42,6 +42,7 @@ const IC={
  plus:'<path d="M12 5v14M5 12h14"/>',
  doc:'<path d="M7 3h7l4.5 4.5V20a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v4.5h4.5M9 12.5h6M9 16h6"/>',
  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
+ pawn:'<circle cx="12" cy="7.5" r="3"/><path d="M9.5 12.5h5M10.3 12.5c0 3-1.8 4-1.8 6.5h7c0-2.5-1.8-3.5-1.8-6.5M7.5 21h9"/>',
  cards:'<rect x="3.5" y="7" width="13" height="13" rx="2.5"/><path d="M7.5 4h11a2 2 0 012 2v11"/>',
  clip:'<rect x="5" y="4.5" width="14" height="16.5" rx="3"/><path d="M9 3.5h6v3H9zM9 12h6M9 16h3.5"/>',
  flag:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/>',
@@ -428,7 +429,12 @@ function vHub(){
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  ${tile('a','href="https://ankiweb.net/decks/" target="_blank" rel="noopener"','#2f6fed','grid','Anki','Open your AnkiWeb decks')}
- </div><div class="sf">Your shortcuts live here. New ones will be added over time.</div></div>`;
+ ${tile('a','href="https://www.chess.com/home" target="_blank" rel="noopener"','#5a8f29','pawn','Chess','Play on chess.com')}
+ ${tile('a','href="https://www.linkedin.com/learning/" target="_blank" rel="noopener"','#0a66c2','play','LinkedIn Learning','Continue your courses')}
+ ${tile('a','href="https://elpais.com/" target="_blank" rel="noopener"','#6b6b70','doc','El País','Read the news in Spanish')}
+ ${tile('a','href="shortcuts://run-shortcut?name=GuessTheCountry"','#0f9d8a','globe','Guess The Country','Opens the iPhone app')}
+ ${tile('a','href="shortcuts://run-shortcut?name=Mentalarithmetic"','#ff7a1a','calc','Mental Arithmetic','Opens the iPhone app')}
+ </div><div class="sf">The two iPhone-app tiles run a Shortcut with the same name (Shortcuts app > New shortcut > Open App).</div></div>`;
 }
 function vMore(){
  const due=S.redo.filter(r=>r.due<=today()).length;

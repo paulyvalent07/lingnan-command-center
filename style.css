@@ -442,7 +442,7 @@ html.noscroll,html.noscroll body{overflow:hidden}
 .tile:active{transform:scale(.96)}
 .tile .tq{position:absolute;top:16px;left:16px;width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.2);display:grid;place-items:center}
 .tile .tq .ic{font-size:26px;stroke:#fff;stroke-width:1.8}
-.tile b{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.tile b{font-size:18px;font-weight:700;letter-spacing:-.3px;overflow-wrap:normal;line-height:1.15;font-size:clamp(14px,4.2vw,18px)}
 .tile>span:last-child{font-size:12.5px;opacity:.85;line-height:1.3}
 .tile .tb{position:absolute;top:14px;right:14px}
 @media(min-width:700px){.tiles{grid-template-columns:repeat(3,1fr)}}
