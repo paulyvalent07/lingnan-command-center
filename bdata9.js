@@ -590,4 +590,20 @@
    {l:'The item that makes the BoP balance',opts:['Net errors and omissions','Reserve assets','Secondary income'],key:'Net errors and omissions',x:'It covers measurement errors and unrecorded transactions.'},
    {l:'Direct investment means voting power of at least (%)',n:10,x:'10 percent or more of voting power.'}],'Review the structure of the BoP.',3)
  );
+ BUILD['BUS1103:7'].push(
+  K('b7-e713','E7-13: Sanchez lower of cost or NRV','A: 30 units, cost $20, NRV $15. B: 55 units, cost $40, NRV $44. C: 35 units, cost $52, NRV $55. D: 15 units, cost $27, NRV $32.',[
+   {l:'Item A: lower of cost or NRV, total ($)',n:450,x:'30 × 15 (NRV is lower).'},
+   {l:'Item B: lower of cost or NRV, total ($)',n:2200,x:'55 × 40 (cost is lower).'},
+   {l:'Item C: lower of cost or NRV, total ($)',n:1820,x:'35 × 52.'},
+   {l:'Item D: lower of cost or NRV, total ($)',n:405,x:'15 × 27.'},
+   {l:'Ending inventory valuation ($)',n:4875,x:'450 + 2,200 + 1,820 + 405.'},
+   {l:'Increase in cost of goods sold from the write-down ($)',n:150,x:'Total cost 5,025 − 4,875.'}],'Apply the rule item by item, then add.',6),
+  K('b7-e722','E7-22: cash discounts, gross method','Scott’s Cycles: sale of $1,500 (cost $975), terms 2/15, n/30, on Feb. 1. Purchase of $9,000 on Mar. 4, terms 3/10, n/30.',[
+   {l:'Cash received if paid Feb. 9 ($)',n:1470,x:'1,500 − 2% × 1,500.'},
+   {l:'Sales discounts recorded Feb. 9 ($)',n:30,x:'0.02 × 1,500.'},
+   {l:'Cash received if paid Mar. 2 ($)',n:1500,x:'After the discount period: full amount.'},
+   {l:'Cash paid on Mar. 12 ($)',n:8730,x:'9,000 − 3% × 9,000.'},
+   {l:'Credit to Inventory on Mar. 12 ($)',n:270,x:'The purchase discount reduces inventory cost.'},
+   {l:'Cash paid on Mar. 28 ($)',n:9000,x:'After the discount period.'}],'Gross method: record the full invoice, then record the discount only if taken.',6)
+ );
 }
