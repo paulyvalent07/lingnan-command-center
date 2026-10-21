@@ -48,7 +48,7 @@ function bJe(ex,id,st,chk){
   if(chk)h+=gt.ok?`<div class="bgood">✓ ${tx.note?md(tx.note):'Correct'}</div>`:`<div class="bwant"><b>Correct entry</b>${bJeKey(tx)}</div>`;
   return h+'</div>'}).join('');
 }
-function bJeCards(ex,st,id){const out=[];ex.txs.forEach((tx,ti)=>{if(!st.g[ti].ok)out.push({id:id+':t'+ti,q:`${ex.title} — ${tx.k||''} ${CD.strip(tx.text)} Journal entry?`,a:tx.lines.map(l=>(l.s==='D'?'Dr ':'   Cr ')+bShow(l.a)+' '+bn(l.n)).join('\n')+(tx.note?'\n'+CD.strip(tx.note):'')})});return out}
+function bJeCards(ex,st,id){const out=[];ex.txs.forEach((tx,ti)=>{if(!st.g[ti].ok)out.push({id:id+':t'+ti,q:`${ex.title}\n${bStemTxt(ex)}\n— ${tx.k||''} ${CD.strip(tx.text)} Journal entry?`,a:tx.lines.map(l=>(l.s==='D'?'Dr ':'   Cr ')+bShow(l.a)+' '+bn(l.n)).join('\n')+(tx.note?'\n'+CD.strip(tx.note):'')})});return out}
 
 /* ----- statements / trial balance / SE statement ----- */
 const bCols=ex=>ex.cols||['Amount'];
@@ -152,14 +152,16 @@ const BR={je:bJe,fs:bFs,eff:bEff,cls:bCls,calc:bCalc,grid:bGrid};
 function bCards(ex,st,id){
  const g=st.g,out=[];
  if(ex.t==='je')return bJeCards(ex,st,id);
- if(ex.t==='cls')ex.items.forEach((it,ii)=>{if(!g.rows[ii].ok)out.push({id:id+':i'+ii,q:`${ex.title} — ${CD.strip(it.t)}`,a:ex.cols.map((c,ci)=>`${c.h}: ${c.num?bn(it.a[ci]||0):bShow(it.a[ci])}`).join(' · ')+(it.why?'\n'+CD.strip(it.why):'')})});
- else if(ex.t==='eff')ex.txs.forEach((tx,ti)=>{if(!g.rows[ti].ok)out.push({id:id+':e'+ti,q:`${ex.title} — ${CD.strip(tx.text)} Effect on ${ex.cols.join(' / ')}?`,a:tx.e.map((e,ci)=>`${ex.cols[ci]}: ${(bEO(ex).find(o=>o[0]===e)||[])[1]}`).join(' · ')+(tx.note?'\n'+CD.strip(tx.note):'')})});
- else if(ex.t==='calc')ex.parts.forEach((p,pi)=>{if(!g.rows[pi])out.push({id:id+':c'+pi,q:`${ex.title} — ${CD.strip(p.l)}\n${CD.strip((ex.stem||[]).filter(s=>typeof s==='string').join(' ')).slice(0,260)}`,a:(p.opts?p.key:(p.pre||'')+bn(p.n)+(p.u||''))+(p.x?'\n'+CD.strip(p.x):'')+(ex.expl&&pi===0?'\n'+CD.strip(ex.expl):'')})});
- else if(ex.t==='grid')out.push({id:id+':g',q:`${ex.title} — complete the table (${ex.cols.filter(c=>!c.g).map(c=>c.h).join(', ')})`,a:ex.rows.map(r=>r.map((v,ci)=>v==null?'—':bn(v)).join(' | ')).join('\n')+(ex.expl?'\n'+CD.strip(ex.expl):'')});
- else if(ex.t==='fs')out.push({id:id+':f',q:`${ex.title} — build it: ${CD.strip(ex.cap||'statement')}`,a:ex.rows.map(r=>{const v=bRowVals(r);return `${r.disp||bShow(r.l)}: ${v.map(x=>x==null?'—':bn(x)).join(' | ')}`}).join('\n')});
+ if(ex.t==='cls')ex.items.forEach((it,ii)=>{if(!g.rows[ii].ok)out.push({id:id+':i'+ii,q:`${ex.title}\n${bStemTxt(ex)}\n— ${CD.strip(it.t)}`,a:ex.cols.map((c,ci)=>`${c.h}: ${c.num?bn(it.a[ci]||0):bShow(it.a[ci])}`).join(' · ')+(it.why?'\n'+CD.strip(it.why):'')})});
+ else if(ex.t==='eff')ex.txs.forEach((tx,ti)=>{if(!g.rows[ti].ok)out.push({id:id+':e'+ti,q:`${ex.title}\n${bStemTxt(ex)}\n— ${CD.strip(tx.text)} Effect on ${ex.cols.join(' / ')}?`,a:tx.e.map((e,ci)=>`${ex.cols[ci]}: ${(bEO(ex).find(o=>o[0]===e)||[])[1]}`).join(' · ')+(tx.note?'\n'+CD.strip(tx.note):'')})});
+ else if(ex.t==='calc')ex.parts.forEach((p,pi)=>{if(!g.rows[pi])out.push({id:id+':c'+pi,q:`${ex.title} — ${CD.strip(p.l)}\n${bStemTxt(ex)}`,a:(p.opts?p.key:(p.pre||'')+bn(p.n)+(p.u||''))+(p.x?'\n'+CD.strip(p.x):'')+(ex.expl&&pi===0?'\n'+CD.strip(ex.expl):'')})});
+ else if(ex.t==='grid')out.push({id:id+':g',q:`${ex.title}\n${bStemTxt(ex)}\n— complete the table (${ex.cols.filter(c=>!c.g).map(c=>c.h).join(', ')})`,a:ex.rows.map(r=>r.map((v,ci)=>v==null?'—':bn(v)).join(' | ')).join('\n')+(ex.expl?'\n'+CD.strip(ex.expl):'')});
+ else if(ex.t==='fs')out.push({id:id+':f',q:`${ex.title}\n${bStemTxt(ex)}\n— build it: ${CD.strip(ex.cap||'statement')}`,a:ex.rows.map(r=>{const v=bRowVals(r);return `${r.disp||bShow(r.l)}: ${v.map(x=>x==null?'—':bn(x)).join(' | ')}`}).join('\n')});
  return out;
 }
 const bStem=(ex)=>(ex.stem||[]).map(s=>typeof s==='string'?`<p class="xs">${/^[a-z]\.\s|^\(?\d+[.)]\s|^•/.test(s)?'':''}${md(s)}</p>`:`<div class="tw xtw"><table>${s.rows.map((r,ri)=>`<tr>${r.map((c,ci)=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('');
+const bStemTxt=ex=>{const t=(ex.stem||[]).map(s=>typeof s==='string'?CD.strip(s):s.rows.map(r=>r.map(c=>CD.strip(String(c))).join(' | ')).join('\n')).join('\n');return t.length>700?t.slice(0,700)+'…':t};
+const bStemBox=(ex,id,st)=>{if(!(ex.stem||[]).length)return '';const hid=!!st.sh;return `<div class="bstem ${hid?'hid':''}"><button class="link bsh" data-act="bstem" data-q="${id}">${hid?'▸ Show the data':'▾ Hide the data'}</button>${hid?'':bStem(ex)}</div>`};
 function bCard(ex,ctx){
  const id='b:'+ex.id;QREG[id]={b:true,ex,ctx};
  if(ex.t==='mcq'){const q={kind:'mcq',stem:ex.stem,opts:ex.opts.map((x,i)=>({k:'ABCDE'[i],x})),key:ex.key,expl:ex.expl,t:[]};QREG[id]={q,ctx};return qCard(q,ctx)}
@@ -169,7 +171,7 @@ function bCard(ex,ctx){
  const g=st.g,sc=chk&&g?(ex.t==='je'?`${g.filter(x=>x.ok).length}/${g.length} entries correct`:(g.total!=null?`${g.score}/${g.total} correct`:'')):'';
  const badge=!chk&&prev?`<span class="xprev ${prev.ok?'ok':'bad'}">${prev.ok?'✓ last time':'✗ last time'}</span>`:'';
  const res=chk?`<div class="xr ${st.ok?'ok':'bad'}"><b>${esc(sc||(st.ok?'Correct':'Not quite'))}</b></div>`:'';
- return `<div class="xq bq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}<h5 class="bh">${esc(ex.title)}${ex.min?` <small>~${ex.min} min</small>`:''}</h5>${bStem(ex)}${ex.ctx?`<details class="xctx"><summary>${esc(ex.ctx.title)}</summary>${ex.ctx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:''}<div class="bbody">${body}</div>${!chk?`<div class="xbar"><button class="btn tint sm" data-act="bcheck" data-q="${id}">Check</button><button class="link" data-act="bgive" data-q="${id}">Show the solution</button></div>`:`${res}${st.ok||typeof tutorHtml!=='function'?'':tutorHtml(id)}<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`}</div>`;
+ return `<div class="xq bq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}<h5 class="bh">${esc(ex.title)}${ex.min?` <small>~${ex.min} min</small>`:''}</h5>${bStemBox(ex,id,st)}${ex.ctx?`<details class="xctx"><summary>${esc(ex.ctx.title)}</summary>${ex.ctx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:''}<div class="bbody">${body}</div>${!chk?`<div class="xbar"><button class="btn tint sm" data-act="bcheck" data-q="${id}">Check</button><button class="link" data-act="bgive" data-q="${id}">Show the solution</button></div>`:`${res}${st.ok||typeof tutorHtml!=='function'?'':tutorHtml(id)}<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`}</div>`;
 }
 function bGrade(id,give){
  const r=QREG[id],ex=r.ex,st=bst(id);
@@ -186,6 +188,7 @@ Object.assign(A,{
  bcheck(el){bGrade(el.dataset.q,false)},
  bgive(el){bGrade(el.dataset.q,true)},
  badd(el){const st=bst(el.dataset.q),i=+el.dataset.i,ex=QREG[el.dataset.q].ex;st.n[i]=Math.min(8,bJeLines(ex,st,i)+1);xrefresh(el.dataset.q)},
+ bstem(el){const st=bst(el.dataset.q);st.sh=!st.sh;xrefresh(el.dataset.q)},
  bdel(el){const st=bst(el.dataset.q),ti=+el.dataset.i,li=+el.dataset.l,ex=QREG[el.dataset.q].ex,nl=bJeLines(ex,st,ti);for(let k=li;k<nl;k++)['a','s','m'].forEach(f=>{const nk=`${ti}.${k+1}.${f}`;if(k+1<nl&&st.v[nk]!=null)st.v[`${ti}.${k}.${f}`]=st.v[nk];else delete st.v[`${ti}.${k}.${f}`]});st.n[ti]=Math.max(2,nl-1);xrefresh(el.dataset.q)},
  bfdel(el){const st=bst(el.dataset.q),li=+el.dataset.l,ex=QREG[el.dataset.q].ex,cols=bCols(ex),nr=Math.max(st.n.r||0,ex.rows.length);const fl=['l',...cols.map((_,i)=>'c'+i)];for(let k=li;k<nr;k++)fl.forEach(f=>{const key=f==='l'?`${k}.l`:`${k}.${f}`,nk=f==='l'?`${k+1}.l`:`${k+1}.${f}`;if(k+1<nr&&st.v[nk]!=null)st.v[key]=st.v[nk];else delete st.v[key]});st.n.r=Math.max(ex.rows.length,nr-1);xrefresh(el.dataset.q)},
  brow(el){const st=bst(el.dataset.q),ex=QREG[el.dataset.q].ex;st.n.r=Math.max(st.n.r||0,ex.rows.length)+1;xrefresh(el.dataset.q)},
