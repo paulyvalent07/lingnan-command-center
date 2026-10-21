@@ -403,16 +403,16 @@ function weekdayChart(){
 function reviewCard(){
  const days=weekDays(0),names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],m=days.map(d=>readMin(d)),tot=m.reduce((a,b)=>a+b,0),max=Math.max(30,...m),H=90;
  const per=COURSES.map(c=>({c,v:days.reduce((a,d)=>a+readMin(d,c.id),0)})).filter(x=>x.v);
- return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>Review & reading</h3><span class="mute small">${fmt(tot)} this week · not counted in your focus goal</span></div>
+ return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>Review & reading</h3><span class="mute small">${fmt(tot)} this week · included in your week total</span></div>
  <div class="chart" style="height:${H}px"><div class="cols">${m.map((v,i)=>`<div class="bcol wide" title="${names[i]} ${fmt(v)}"><div class="stk">${v?`<div class="seg" style="height:${Math.max(2,v/max*H)}px;background:var(--s3)"></div>`:''}</div></div>`).join('')}</div></div>
  <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>
  ${per.length?`<div class="tipline mute small">${per.map(x=>x.c.short+' '+fmt(x.v)).join(' · ')}</div>`:'<div class="tipline mute small">Open a lesson and read: the time is counted automatically while the page is open.</div>'}</div>`;
 }
 function vInsights(){
  const seg=(opts,cur,act)=>`<div class="segc" style="flex:1">${opts.map(([k,l])=>`<button class="${cur===k?'on':''}" data-act="${act}" data-k="${k}">${l}</button>`).join('')}</div>`;
- const st=streak(),week=weekDays(0).reduce((a,d)=>a+minsOn(d),0);
+ const st=streak(),week=weekDays(0).reduce((a,d)=>a+minsOn(d)+readMin(d),0);
  return `<div class="view">${title('Insights','Your work')}
- <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${fmt(minsOn(today()))}</b><span>today</span></div><div class="stat"><b>${fmt(week)}</b><span>this week</span></div><div class="stat"><b>${st}</b><span>day streak</span></div></div>
+ <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${fmt(minsOn(today())+readMin(today()))}</b><span>today</span></div><div class="stat"><b>${fmt(week)}</b><span>this week</span></div><div class="stat"><b>${st}</b><span>day streak</span></div></div>
  <div class="card"><div class="card-h"><h3>Time worked</h3></div>
  <div class="stack" style="margin-bottom:14px">${seg([['d','30 days'],['w','12 weeks'],['m','6 months']],insR,'insr')}${seg([['course','By course'],['kind','By type']],insBy,'insby')}</div>${stackChart()}</div>
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>Progress curve</h3><span class="mute small">your work over time</span></div>${trendChart()}</div>
@@ -958,9 +958,10 @@ function cgrade(g){
 let drag=null;
 document.addEventListener('pointerdown',e=>{const f=e.target.closest&&e.target.closest('#fc');if(!f||view!=='study'||e.target.closest('.fc-flag'))return;drag={x:e.clientX,dx:0,el:f};try{f.setPointerCapture(e.pointerId)}catch(_){}});
 let dragRaf=0;
-document.addEventListener('pointermove',e=>{if(!drag)return;drag.dx=e.clientX-drag.x;if(!STUDY||!STUDY.flipped)return;drag.el.classList.add('dr');if(dragRaf)return;dragRaf=requestAnimationFrame(()=>{dragRaf=0;if(!drag)return;const d=drag.dx;drag.el.style.transform=`translate3d(${d}px,0,0) rotate(${d/25}deg)`;drag.el.classList.toggle('sw-r',d>60);drag.el.classList.toggle('sw-l',d<-60)})});
-const dragEnd=()=>{if(!drag)return;const d=drag.dx,el=drag.el;drag=null;if(dragRaf){cancelAnimationFrame(dragRaf);dragRaf=0}
- if(Math.abs(d)<8){el.classList.remove('dr');if(STUDY&&!STUDY.flipped){STUDY.flipped=true;render()}return}
+document.addEventListener('pointermove',e=>{if(!drag)return;drag.dx=e.clientX-drag.x;if(!STUDY||!STUDY.flipped)return;if(Math.abs(drag.dx)>8)noscr2(true);drag.el.classList.add('dr');if(dragRaf)return;dragRaf=requestAnimationFrame(()=>{dragRaf=0;if(!drag)return;const d=drag.dx;drag.el.style.transform=`translate3d(${d}px,0,0) rotate(${d/25}deg)`;drag.el.classList.toggle('sw-r',d>60);drag.el.classList.toggle('sw-l',d<-60)})});
+function noscr2(on){try{document.documentElement.classList.toggle('noscroll',on)}catch(e){}}
+const dragEnd=()=>{if(!drag)return;noscr2(false);const d=drag.dx,el=drag.el;drag=null;if(dragRaf){cancelAnimationFrame(dragRaf);dragRaf=0}
+ if(Math.abs(d)<8){el.classList.remove('dr');noscr2(false);if(STUDY){STUDY.flipped=!STUDY.flipped;render()}return}
  const go=STUDY&&STUDY.flipped&&Math.abs(d)>100;
  if(go){const g=d>0?2:0;el.classList.remove('dr');el.style.transition='transform .16s ease-out,opacity .16s';el.style.transform=`translate3d(${d>0?'110vw':'-110vw'},0,0) rotate(${d>0?18:-18}deg)`;el.style.opacity='0';setTimeout(()=>cgrade(g),150)}
  else{el.classList.remove('dr','sw-r','sw-l');el.style.transform=''}};
@@ -986,7 +987,7 @@ function tpBody(done){
    return `<td>${md(c)}</td>`}).join('')}</tr>`}).join('');
  t.cap=cap;
  const stem=t.stem&&t.stem.length?`<details class="tstem" ${done?'':'open'}><summary>Question</summary>${t.stem.map(s=>typeof s==='string'?`<p>${md(s)}</p>`:`<div class="tw xtw"><table>${s.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('')}</details>`:'';
- return `${stem}${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''} · ${t.qid?'added to Exercises to redo':'added to your flashcards'}`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
+ return `${stem}${cap?`<p class="mute" style="margin:0 0 8px"><b>${esc(cap)}</b></p>`:''}${t.h?`<p class="mute" style="margin:0 0 8px;font-size:13px">${esc(t.h)}</p>`:''}<div class="tw"><table>${trs}</table></div>${done?`<p style="margin-top:12px"><b>${t.score}/${t.n} correct</b> · ${t.mins} min taken (planned ~${t.est})${t.wrong?` · ${t.wrong} mistake${t.wrong>1?'s':''}`:''}</p>`:'<p class="mute" style="font-size:13px;margin-top:10px">Type each amount from memory (no $ or commas needed). Brackets or minus signs count for negatives.</p>'}`;
 }
 Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
@@ -1059,7 +1060,7 @@ function qCard(q,ctx){
    return `<div class="xmr ${chk?(good?'ok':'bad'):''}"><span class="mn">${i+1}</span><span class="mt">${md(r.t)}</span>${chk?`<span class="mv">${good?'✓ '+u:`<s>${esc(u||'—')}</s> <b>${L(pos[i])}</b>`}</span>`:`<select data-xm="${id}" data-i="${i}"><option value="">—</option>${ord.map((_,k)=>`<option value="${L(k)}" ${u===L(k)?'selected':''}>${L(k)}</option>`).join('')}</select>`}</div>`}).join('')}</div>
   <div class="xlist">${ord.map((ri,k)=>`<p><b>${L(k)}.</b> ${md(q.rows[ri].d)}</p>`).join('')}</div>`;
   if(!chk)body+=`<div class="xbar"><button class="btn tint sm" data-act="xcheck" data-q="${id}">Check</button></div>`;
-  else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.score}/${q.rows.length} correct</b>${st.ok?'':'<p class="xnote">Wrong pairs were added to your flashcards.</p>'}</div>`;
+  else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.score}/${q.rows.length} correct</b></div>`;
  }else if(q.parts&&q.parts.every(p=>p.n!=null)){
   body=q.parts.map((p,i)=>{
    const u=(st.v||[])[i]||'',good=chk&&(st.pr||[])[i];

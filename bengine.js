@@ -12,6 +12,7 @@ function bAcctOpts(val,labels){
 }
 const bSel=(id,k,optsHtml,ph,dis,cls)=>`<select class="bs ${cls||''}" ${battr(id,k)} ${dis?'disabled':''}><option value="">${esc(ph)}</option>${optsHtml}</select>`;
 const bIn=(id,k,val,dis,ph)=>`<input class="tin bin" ${battr(id,k)} inputmode="decimal" autocomplete="off" value="${esc(val||'')}" ${dis?'disabled':''} placeholder="${esc(ph||'0')}">`;
+const bShuf=(arr,seed)=>{if(!arr||arr.length<3)return arr;let h=2166136261;for(const ch of String(seed)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}const r=()=>{h+=0x6D2B79F5;let t=Math.imul(h^h>>>15,1|h);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296};const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const bAlt=a=>Array.isArray(a)?a:[a];
 const bShow=a=>bAlt(a)[0];
 const bStmtList=['Income statement','Balance sheet','Statement of stockholders’ equity','Statement of cash flows','Trial balance','T-account'];
@@ -42,7 +43,7 @@ function bJe(ex,id,st,chk){
   h+=`<div class="bhead"><span>Account</span><span>Dr / Cr</span><span>Amount</span></div>`;
   for(let li=0;li<nl;li++){
    const k=`${ti}.${li}`,a=st.v[k+'.a']||'',s=st.v[k+'.s']||'',m=st.v[k+'.m']||'',r=chk&&gt.res[li];
-   h+=`<div class="bln ${r?(r.ok?'ok':'bad'):''}">${bSel(id,k+'.a',bAcctOpts(a),'Account…',chk,'acc')}${bSel(id,k+'.s',bOpt(['Debit','Credit'],s),'Dr / Cr',chk,'dc')}${bIn(id,k+'.m',m,chk)}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
+   h+=`<div class="bln ${r?(r.ok?'ok':'bad'):''}">${bSel(id,k+'.a',bAcctOpts(a),'Account…',chk,'acc')}${bSel(id,k+'.s',bOpt(['Debit','Credit'],s),'Dr / Cr',chk,'dc')}${bIn(id,k+'.m',m,chk)}${!chk&&nl>2?`<button class="bx" data-act="bdel" data-q="${id}" data-i="${ti}" data-l="${li}" title="Remove this line">×</button>`:''}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
   if(!chk&&nl<7)h+=`<button class="link" data-act="badd" data-q="${id}" data-i="${ti}">+ Add a line</button>`;
   if(chk)h+=gt.ok?`<div class="bgood">✓ ${tx.note?md(tx.note):'Correct'}</div>`:`<div class="bwant"><b>Correct entry</b>${bJeKey(tx)}</div>`;
   return h+'</div>'}).join('');
@@ -77,7 +78,7 @@ function bFs(ex,id,st,chk){
  if(ex.cols)h+=`<div class="bfh"><span></span>${cols.map(c=>`<b>${esc(c)}</b>`).join('')}</div>`;
  for(let ri=0;ri<nr;ri++){
   const l=st.v[ri+'.l']||'',r=chk&&g.res[ri];
-  h+=`<div class="bfr ${r?(r.ok?'ok':'bad'):''}">${bSel(id,ri+'.l',lopts(l),'Line…',chk,'lab')}${cols.map((_,ci)=>bIn(id,`${ri}.c${ci}`,st.v[`${ri}.c${ci}`],chk,cols.length>1?'':'amount')).join('')}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
+  h+=`<div class="bfr ${r?(r.ok?'ok':'bad'):''}">${bSel(id,ri+'.l',lopts(l),'Line…',chk,'lab')}${cols.map((_,ci)=>bIn(id,`${ri}.c${ci}`,st.v[`${ri}.c${ci}`],chk,cols.length>1?'':'amount')).join('')}${!chk&&nr>ex.rows.length?`<button class="bx" data-act="bfdel" data-q="${id}" data-l="${ri}" title="Remove this line">×</button>`:''}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
  h+='</div>';
  if(!chk&&nr<ex.rows.length+6)h+=`<button class="link" data-act="brow" data-q="${id}">+ Add a line</button>`;
  if(chk){
@@ -111,7 +112,7 @@ function bCls(ex,id,st,chk){
  let h=`<div class="bhead cls"><span></span>${ex.cols.map(c=>`<span>${esc(c.h)}</span>`).join('')}</div>`;
  ex.items.forEach((it,ii)=>{const r=chk&&g.rows[ii];
   h+=`<div class="bit ${bcls(chk,r&&r.ok)}"><div class="btt">${it.k?`<b>${esc(it.k)}</b> `:''}${md(it.t)}</div><div class="bcols">${ex.cols.map((col,ci)=>{const v=st.v[`${ii}.${ci}`]||'',good=chk&&r.c[ci];
-   const f=col.num?bIn(id,`${ii}.${ci}`,v,chk,'amount'):bSel(id,`${ii}.${ci}`,bOpt(col.opts,v),'Choose…',chk);
+   const f=col.num?bIn(id,`${ii}.${ci}`,v,chk,'amount'):bSel(id,`${ii}.${ci}`,bOpt(bShuf(col.opts,id+ci),v),'Choose…',chk);
    return `<label class="${chk?(good?'ok':'bad'):''}"><i>${esc(col.h)}</i>${f}${chk&&!good?`<em>${col.num?bn(it.a[ci]||0):esc(bShow(it.a[ci]))}</em>`:''}</label>`}).join('')}</div>${chk&&it.why&&!r.ok?`<p class="bnote">${md(it.why)}</p>`:''}</div>`});
  return h;
 }
@@ -124,7 +125,7 @@ function bCalcGrade(ex,st){
 function bCalc(ex,id,st,chk){
  const g=chk?st.g:null;
  let h=ex.parts.map((p,pi)=>{const v=st.v[String(pi)]||'',good=chk&&g.rows[pi];
-  return `<div class="xpr ${chk?(good?'ok':'bad'):''}"><span class="pl">${esc(p.l)}</span>${p.opts?bSel(id,String(pi),bOpt(p.opts,v),'Choose…',chk):`${p.pre?`<span class="bu">${esc(p.pre)}</span>`:''}${bIn(id,String(pi),v,chk,p.ph||'your number')}${p.u?`<span class="bu">${esc(p.u)}</span>`:''}`}${chk&&!good?`<span class="pv"><b>${p.opts?esc(p.key):esc((p.pre||'')+bn(p.n)+(p.u||''))}</b></span>`:''}${chk&&p.x?`<p class="pw">${md(p.x)}</p>`:''}</div>`}).join('');
+  return `<div class="xpr ${chk?(good?'ok':'bad'):''}"><span class="pl">${esc(p.l)}</span>${p.opts?bSel(id,String(pi),bOpt(bShuf(p.opts,id+pi),v),'Choose…',chk):`${p.pre?`<span class="bu">${esc(p.pre)}</span>`:''}${bIn(id,String(pi),v,chk,p.ph||'your number')}${p.u?`<span class="bu">${esc(p.u)}</span>`:''}`}${chk&&!good?`<span class="pv"><b>${p.opts?esc(p.key):esc((p.pre||'')+bn(p.n)+(p.u||''))}</b></span>`:''}${chk&&p.x?`<p class="pw">${md(p.x)}</p>`:''}</div>`}).join('');
  if(chk&&ex.expl)h+=`<div class="bgood" style="margin-top:8px">${md(ex.expl)}</div>`;
  return h;
 }
@@ -167,7 +168,7 @@ function bCard(ex,ctx){
  const body=BR[ex.t](ex,id,st,chk);
  const g=st.g,sc=chk&&g?(ex.t==='je'?`${g.filter(x=>x.ok).length}/${g.length} entries correct`:(g.total!=null?`${g.score}/${g.total} correct`:'')):'';
  const badge=!chk&&prev?`<span class="xprev ${prev.ok?'ok':'bad'}">${prev.ok?'✓ last time':'✗ last time'}</span>`:'';
- const res=chk?`<div class="xr ${st.ok?'ok':'bad'}"><b>${esc(sc||(st.ok?'Correct':'Not quite'))}</b>${st.ok?'':'<p class="xnote">Your mistakes were added to your flashcards.</p>'}</div>`:'';
+ const res=chk?`<div class="xr ${st.ok?'ok':'bad'}"><b>${esc(sc||(st.ok?'Correct':'Not quite'))}</b></div>`:'';
  return `<div class="xq bq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}<h5 class="bh">${esc(ex.title)}${ex.min?` <small>~${ex.min} min</small>`:''}</h5>${bStem(ex)}${ex.ctx?`<details class="xctx"><summary>${esc(ex.ctx.title)}</summary>${ex.ctx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:''}<div class="bbody">${body}</div>${!chk?`<div class="xbar"><button class="btn tint sm" data-act="bcheck" data-q="${id}">Check</button><button class="link" data-act="bgive" data-q="${id}">Show the solution</button></div>`:`${res}${st.ok||typeof tutorHtml!=='function'?'':tutorHtml(id)}<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`}</div>`;
 }
 function bGrade(id,give){
@@ -185,5 +186,7 @@ Object.assign(A,{
  bcheck(el){bGrade(el.dataset.q,false)},
  bgive(el){bGrade(el.dataset.q,true)},
  badd(el){const st=bst(el.dataset.q),i=+el.dataset.i,ex=QREG[el.dataset.q].ex;st.n[i]=Math.min(8,bJeLines(ex,st,i)+1);xrefresh(el.dataset.q)},
+ bdel(el){const st=bst(el.dataset.q),ti=+el.dataset.i,li=+el.dataset.l,ex=QREG[el.dataset.q].ex,nl=bJeLines(ex,st,ti);for(let k=li;k<nl;k++)['a','s','m'].forEach(f=>{const nk=`${ti}.${k+1}.${f}`;if(k+1<nl&&st.v[nk]!=null)st.v[`${ti}.${k}.${f}`]=st.v[nk];else delete st.v[`${ti}.${k}.${f}`]});st.n[ti]=Math.max(2,nl-1);xrefresh(el.dataset.q)},
+ bfdel(el){const st=bst(el.dataset.q),li=+el.dataset.l,ex=QREG[el.dataset.q].ex,cols=bCols(ex),nr=Math.max(st.n.r||0,ex.rows.length);const fl=['l',...cols.map((_,i)=>'c'+i)];for(let k=li;k<nr;k++)fl.forEach(f=>{const key=f==='l'?`${k}.l`:`${k}.${f}`,nk=f==='l'?`${k+1}.l`:`${k+1}.${f}`;if(k+1<nr&&st.v[nk]!=null)st.v[key]=st.v[nk];else delete st.v[key]});st.n.r=Math.max(ex.rows.length,nr-1);xrefresh(el.dataset.q)},
  brow(el){const st=bst(el.dataset.q),ex=QREG[el.dataset.q].ex;st.n.r=Math.max(st.n.r||0,ex.rows.length)+1;xrefresh(el.dataset.q)},
 });
