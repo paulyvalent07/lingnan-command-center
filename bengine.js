@@ -161,7 +161,8 @@ function bCards(ex,st,id){
 }
 const bStem=(ex)=>(ex.stem||[]).map(s=>typeof s==='string'?`<p class="xs">${/^[a-z]\.\s|^\(?\d+[.)]\s|^•/.test(s)?'':''}${md(s)}</p>`:`<div class="tw xtw"><table>${s.rows.map((r,ri)=>`<tr>${r.map((c,ci)=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`).join('');
 const bStemTxt=ex=>{const t=(ex.stem||[]).map(s=>typeof s==='string'?CD.strip(s):s.rows.map(r=>r.map(c=>CD.strip(String(c))).join(' | ')).join('\n')).join('\n');return t.length>700?t.slice(0,700)+'…':t};
-const bStemBox=(ex,id,st)=>{if(!(ex.stem||[]).length)return '';const hid=!!st.sh;return `<div class="bstem ${hid?'hid':''}"><button class="link bsh" data-act="bstem" data-q="${id}">${hid?'▸ Show the data':'▾ Hide the data'}</button>${hid?'':bStem(ex)}</div>`};
+const bHasData=ex=>(ex.stem||[]).some(s=>typeof s!=='string')||(ex.stem||[]).filter(s=>typeof s==='string').join(' ').length>380;
+const bStemBox=(ex,id,st)=>{if(!(ex.stem||[]).length)return '';if(!bHasData(ex))return `<div class="bstem flat">${bStem(ex)}</div>`;const hid=!!st.sh;return `<div class="bstem ${hid?'hid':''}"><button class="link bsh" data-act="bstem" data-q="${id}">${hid?'▸ Show the data':'▾ Hide the data'}</button>${hid?'':bStem(ex)}</div>`};
 function bCard(ex,ctx){
  const id='b:'+ex.id;QREG[id]={b:true,ex,ctx};
  if(ex.t==='mcq'){const q={kind:'mcq',stem:ex.stem,opts:ex.opts.map((x,i)=>({k:'ABCDE'[i],x})),key:ex.key,expl:ex.expl,t:[]};QREG[id]={q,ctx};return qCard(q,ctx)}
@@ -171,7 +172,7 @@ function bCard(ex,ctx){
  const g=st.g,sc=chk&&g?(ex.t==='je'?`${g.filter(x=>x.ok).length}/${g.length} entries correct`:(g.total!=null?`${g.score}/${g.total} correct`:'')):'';
  const badge=!chk&&prev?`<span class="xprev ${prev.ok?'ok':'bad'}">${prev.ok?'✓ last time':'✗ last time'}</span>`:'';
  const res=chk?`<div class="xr ${st.ok?'ok':'bad'}"><b>${esc(sc||(st.ok?'Correct':'Not quite'))}</b></div>`:'';
- return `<div class="xq bq ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}<h5 class="bh">${esc(ex.title)}${ex.min?` <small>~${ex.min} min</small>`:''}</h5><div class="bsplit">${bStemBox(ex,id,st)}<div class="bright">${ex.ctx?`<details class="xctx"><summary>${esc(ex.ctx.title)}</summary>${ex.ctx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:''}<div class="bbody">${body}</div>${!chk?`<div class="xbar"><button class="btn tint sm" data-act="bcheck" data-q="${id}">Check</button><button class="link" data-act="bgive" data-q="${id}">Show the solution</button></div>`:`${res}${st.ok||typeof tutorHtml!=='function'?'':tutorHtml(id)}<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`}</div></div></div>`;
+ return `<div class="xq bq ${bHasData(ex)?'wide':''} ${chk?(st.ok?'ok':'bad'):''}" data-qid="${id}">${badge}<h5 class="bh">${esc(ex.title)}${ex.min?` <small>~${ex.min} min</small>`:''}</h5><div class="bsplit ${bHasData(ex)?'two':''}">${bStemBox(ex,id,st)}<div class="bright">${ex.ctx?`<details class="xctx"><summary>${esc(ex.ctx.title)}</summary>${ex.ctx.lines.map(s=>`<p>${md(s)}</p>`).join('')}</details>`:''}<div class="bbody">${body}</div>${!chk?`<div class="xbar"><button class="btn tint sm" data-act="bcheck" data-q="${id}">Check</button><button class="link" data-act="bgive" data-q="${id}">Show the solution</button></div>`:`${res}${st.ok||typeof tutorHtml!=='function'?'':tutorHtml(id)}<div class="xbar"><button class="link" data-act="xretry" data-q="${id}">Try again</button></div>`}</div></div></div>`;
 }
 function bGrade(id,give){
  const r=QREG[id],ex=r.ex,st=bst(id);
