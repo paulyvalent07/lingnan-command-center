@@ -43,7 +43,7 @@ function bJe(ex,id,st,chk){
   h+=`<div class="bhead"><span>Account</span><span>Dr / Cr</span><span>Amount</span></div>`;
   for(let li=0;li<nl;li++){
    const k=`${ti}.${li}`,a=st.v[k+'.a']||'',s=st.v[k+'.s']||'',m=st.v[k+'.m']||'',r=chk&&gt.res[li];
-   h+=`<div class="bln ${r?(r.ok?'ok':'bad'):''}">${bSel(id,k+'.a',bAcctOpts(a),'Account…',chk,'acc')}${bSel(id,k+'.s',bOpt(['Debit','Credit'],s),'Dr / Cr',chk,'dc')}${bIn(id,k+'.m',m,chk)}${!chk&&nl>2?`<button class="bx" data-act="bdel" data-q="${id}" data-i="${ti}" data-l="${li}" title="Remove this line">×</button>`:''}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
+   h+=`<div class="bln ${r?(r.ok?'ok':'bad'):''}">${bSel(id,k+'.a',bAcctOpts(a),'Account…',chk,'acc')}${bSel(id,k+'.s',bOpt(['Debit','Credit'],s),'Dr / Cr',chk,'dc')}${bIn(id,k+'.m',m,chk)}${!chk&&nl>1?`<span class="bgrip" data-mv="je" data-q="${id}" data-i="${ti}" title="Drag to reorder">≡</span>`:''}${!chk&&nl>2?`<button class="bx" data-act="bdel" data-q="${id}" data-i="${ti}" data-l="${li}" title="Remove this line">×</button>`:''}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
   if(!chk&&nl<7)h+=`<button class="link" data-act="badd" data-q="${id}" data-i="${ti}">+ Add a line</button>`;
   if(chk)h+=gt.ok?`<div class="bgood">✓ ${tx.note?md(tx.note):'Correct'}</div>`:`<div class="bwant"><b>Correct entry</b>${bJeKey(tx)}</div>`;
   return h+'</div>'}).join('');
@@ -78,7 +78,7 @@ function bFs(ex,id,st,chk){
  if(ex.cols)h+=`<div class="bfh"><span></span>${cols.map(c=>`<b>${esc(c)}</b>`).join('')}</div>`;
  for(let ri=0;ri<nr;ri++){
   const l=st.v[ri+'.l']||'',r=chk&&g.res[ri];
-  h+=`<div class="bfr ${r?(r.ok?'ok':'bad'):''}">${bSel(id,ri+'.l',lopts(l),'Line…',chk,'lab')}${cols.map((_,ci)=>bIn(id,`${ri}.c${ci}`,st.v[`${ri}.c${ci}`],chk,cols.length>1?'':'amount')).join('')}${!chk&&nr>ex.rows.length?`<button class="bx" data-act="bfdel" data-q="${id}" data-l="${ri}" title="Remove this line">×</button>`:''}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
+  h+=`<div class="bfr ${r?(r.ok?'ok':'bad'):''}">${bSel(id,ri+'.l',lopts(l),'Line…',chk,'lab')}${cols.map((_,ci)=>bIn(id,`${ri}.c${ci}`,st.v[`${ri}.c${ci}`],chk,cols.length>1?'':'amount')).join('')}${!chk&&nr>1?`<span class="bgrip" data-mv="fs" data-q="${id}" title="Drag to reorder">≡</span>`:''}${!chk&&nr>ex.rows.length?`<button class="bx" data-act="bfdel" data-q="${id}" data-l="${ri}" title="Remove this line">×</button>`:''}${r&&!r.ok?`<small>${esc(r.msg)}</small>`:''}</div>`}
  h+='</div>';
  if(!chk&&nr<ex.rows.length+6)h+=`<button class="link" data-act="brow" data-q="${id}">+ Add a line</button>`;
  if(chk){
@@ -194,3 +194,19 @@ Object.assign(A,{
  bfdel(el){const st=bst(el.dataset.q),li=+el.dataset.l,ex=QREG[el.dataset.q].ex,cols=bCols(ex),nr=Math.max(st.n.r||0,ex.rows.length);const fl=['l',...cols.map((_,i)=>'c'+i)];for(let k=li;k<nr;k++)fl.forEach(f=>{const key=f==='l'?`${k}.l`:`${k}.${f}`,nk=f==='l'?`${k+1}.l`:`${k+1}.${f}`;if(k+1<nr&&st.v[nk]!=null)st.v[key]=st.v[nk];else delete st.v[key]});st.n.r=Math.max(ex.rows.length,nr-1);xrefresh(el.dataset.q)},
  brow(el){const st=bst(el.dataset.q),ex=QREG[el.dataset.q].ex;st.n.r=Math.max(st.n.r||0,ex.rows.length)+1;xrefresh(el.dataset.q)},
 });
+
+/* ----- drag a row up or down with the grip ----- */
+let bmv=null;
+document.addEventListener('pointerdown',e=>{const g=e.target.closest&&e.target.closest('.bgrip');if(!g)return;
+ const row=g.parentElement,cls=row.classList.contains('bfr')?'bfr':'bln',par=row.parentElement,sib=[...par.children].filter(c=>c.classList&&c.classList.contains(cls));
+ bmv={g,row,sib,rects:sib.map(s=>s.getBoundingClientRect()),from:sib.indexOf(row),to:sib.indexOf(row),y:e.clientY,q:g.dataset.q,kind:g.dataset.mv,ti:g.dataset.i};
+ try{g.setPointerCapture(e.pointerId)}catch(_){}row.classList.add('mv');e.preventDefault()});
+document.addEventListener('pointermove',e=>{if(!bmv)return;const dy=e.clientY-bmv.y,m=bmv;m.row.style.transform=`translateY(${dy}px)`;
+ const c=m.rects[m.from].top+m.rects[m.from].height/2+dy;let to=m.from;m.rects.forEach((r,i)=>{if(i<m.from&&c<r.top+r.height/2)to=Math.min(to,i);if(i>m.from&&c>r.top+r.height/2)to=Math.max(to===m.from?m.from:to,i)});
+ m.to=to;const h=m.rects[m.from].height+6;m.sib.forEach((s,i)=>{if(s===m.row)return;s.style.transform=(to<m.from&&i>=to&&i<m.from)?`translateY(${h}px)`:(to>m.from&&i<=to&&i>m.from)?`translateY(${-h}px)`:''})});
+const bmvEnd=()=>{if(!bmv)return;const m=bmv;bmv=null;m.sib.forEach(s=>{s.style.transform=''});m.row.classList.remove('mv');
+ if(m.to===m.from)return;const st=bst(m.q),n=m.sib.length,ord=[...Array(n).keys()];ord.splice(m.from,1);ord.splice(m.to,0,m.from);const old=Object.assign({},st.v);
+ if(m.kind==='fs'){const ex=QREG[m.q].ex,fl=['l',...bCols(ex).map((_,i)=>'c'+i)];ord.forEach((o,k)=>fl.forEach(f=>{const ok=`${o}.${f}`,nk=`${k}.${f}`;if(old[ok]!=null)st.v[nk]=old[ok];else delete st.v[nk]}))}
+ else{const ti=m.ti;ord.forEach((o,k)=>['a','s','m'].forEach(f=>{const ok=`${ti}.${o}.${f}`,nk=`${ti}.${k}.${f}`;if(old[ok]!=null)st.v[nk]=old[ok];else delete st.v[nk]}))}
+ xrefresh(m.q)};
+document.addEventListener('pointerup',bmvEnd);document.addEventListener('pointercancel',bmvEnd);
