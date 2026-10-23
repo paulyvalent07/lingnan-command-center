@@ -141,7 +141,7 @@ function lessonsOf(course){
  const doc=courseDoc(course);
  if(doc&&doc.lessons)Object.keys(doc.lessons).forEach(num=>{const id=course+':'+num;if(!m.has(id))m.set(id,{id,course,num,title:doc.lessons[num].title,L:[],E:[],unplanned:true})});
  const rank=l=>/^\d+$/.test(l.num)?+l.num:/^x/.test(l.num)?900:500;
- return [...m.values()].map(l=>{if(!l.title)l.title=(/^\d+$/.test(l.num)?'Chapter '+l.num:'Lesson');return l}).sort((a,b)=>rank(a)-rank(b));
+ return [...m.values()].map(l=>{if(!l.title)l.title=(window.MOCK&&MOCK[l.id]&&MOCK[l.id].title)||(/^\d+$/.test(l.num)?'Chapter '+l.num:'Lesson');return l}).sort((a,b)=>rank(a)-rank(b));
 }
 const lessonName=l=>(/^\d+$/.test(l.num)?'Ch.'+l.num+' · ':'')+l.title;
 function lessonProg(l){const n=(a)=>a.filter(p=>S.planDone[p.id]).length;return {Lt:l.L.length,Ld:n(l.L),Et:l.E.length,Ed:n(l.E)}}
@@ -196,6 +196,7 @@ function lessonBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('');
  const hasEx=l.E.length||(doc&&doc.ex&&doc.ex.length),nxt=hasEx&&l.L.some(p=>S.planDone[p.id])?`<div class="nxtrow"><button class="nxt" data-act="goex">Exercises ${ic('chev','')}</button></div>`:'';
+ if(!(doc&&doc.notes&&doc.notes.length)&&window.MOCK&&MOCK[l.id])return `<div class="doc">${blocksHtml(MOCK[l.id].notes,{lid:l.id,k:'notes'})}</div>`;
  if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes'})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>${nxt}`;
  return `<div class="empty">${ic('doc')}<b>Lesson text not synced yet</b>The synthesis for this lesson will appear here from ${esc(d&&d.file||'your Word file')} after the next sync.</div>
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
