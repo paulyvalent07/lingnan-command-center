@@ -165,7 +165,7 @@ const bHasData=ex=>(ex.stem||[]).some(s=>typeof s!=='string')||(ex.stem||[]).fil
 const bStemBox=(ex,id,st)=>{if(!(ex.stem||[]).length)return '';if(!bHasData(ex))return `<div class="bstem flat">${bStem(ex)}</div>`;const hid=!!st.sh;return `<div class="bstem ${hid?'hid':''}"><button class="link bsh" data-act="bstem" data-q="${id}">${hid?'▸ Show the data':'▾ Hide the data'}</button>${hid?'':bStem(ex)}</div>`};
 function bCard(ex,ctx){
  const id='b:'+ex.id;QREG[id]={b:true,ex,ctx};
- if(ex.t==='mcq'){const q={kind:'mcq',n:ex.num,stem:ex.stem,opts:ex.opts.map((x,i)=>({k:'ABCDE'[i],x})),key:ex.key,expl:ex.expl,t:[]};QREG[id]={q,ctx};return qCard(q,ctx)}
+ if(ex.t==='mcq'){const q={kind:'mcq',n:ex.num,stem:ex.stem,opts:ex.opts.map((x,i)=>({k:'ABCDE'[i],x})),key:ex.key,expl:ex.expl,t:[{t:'p',x:[].concat(ex.stem).join(' ')}]};return qCard(q,ctx)}
  const st=bst(id),chk=!!st.chk,prev=(S.exr||{})[id];
  if(!BR[ex.t])return '';
  const body=BR[ex.t](ex,id,st,chk);
