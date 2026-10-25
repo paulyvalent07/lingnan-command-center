@@ -141,7 +141,7 @@ function lessonsOf(course){
  const doc=courseDoc(course);
  if(doc&&doc.lessons)Object.keys(doc.lessons).forEach(num=>{const id=course+':'+num;if(!m.has(id))m.set(id,{id,course,num,title:doc.lessons[num].title,L:[],E:[],unplanned:true})});
  const rank=l=>/^\d+$/.test(l.num)?+l.num:/^x/.test(l.num)?900:500;
- return [...m.values()].map(l=>{if(!l.title)l.title=(window.MOCK&&MOCK[l.id]&&MOCK[l.id].title)||(/^\d+$/.test(l.num)?'Chapter '+l.num:'Lesson');return l}).sort((a,b)=>rank(a)-rank(b));
+ return [...m.values()].map(l=>{if(!l.title)l.title=(/^\d+$/.test(l.num)?'Chapter '+l.num:'Lesson');return l}).sort((a,b)=>rank(a)-rank(b));
 }
 const lessonName=l=>(/^\d+$/.test(l.num)?'Ch.'+l.num+' · ':'')+l.title;
 function lessonProg(l){const n=(a)=>a.filter(p=>S.planDone[p.id]).length;return {Lt:l.L.length,Ld:n(l.L),Et:l.E.length,Ed:n(l.E)}}
@@ -196,7 +196,6 @@ function lessonBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('');
  const hasEx=l.E.length||(doc&&doc.ex&&doc.ex.length),nxt=hasEx&&l.L.some(p=>S.planDone[p.id])?`<div class="nxtrow"><button class="nxt" data-act="goex">Exercises ${ic('chev','')}</button></div>`:'';
- if(!(doc&&doc.notes&&doc.notes.length)&&window.MOCK&&MOCK[l.id])return `<div class="doc">${blocksHtml(MOCK[l.id].notes,{lid:l.id,k:'notes'})}</div>`;
  if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes'})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>${nxt}`;
  return `<div class="empty">${ic('doc')}<b>Lesson text not synced yet</b>The synthesis for this lesson will appear here from ${esc(d&&d.file||'your Word file')} after the next sync.</div>
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
@@ -943,16 +942,27 @@ function vStudy(){
   <div class="fc-q">${nl(c.q)}</div>
   ${st.flipped?`<div class="fc-sep"></div><div class="fc-a">${nl(c.a)}</div>`:`<div class="fc-hint">Tap to show the answer</div>`}</div>
  ${st.flipped?`<div class="cgs">${btn(0,'Again','r')}${btn(1,'Hard','o')}${btn(2,'Good','g')}${btn(3,'Easy','b')}</div>`:''}
- <div class="fc-tip"><button class="fc-rw" data-act="cflag">To rework</button><button class="fc-rw" data-act="cedit">Edit</button><button class="fc-rw" data-act="cdel">Delete</button></div></div>`;
+ <div class="fc-tip">${st.hist&&st.hist.length?'<button class="fc-rw" data-act="cprev">← Previous</button>':''}<button class="fc-rw" data-act="cflag">To rework</button><button class="fc-rw" data-act="cedit">Edit</button><button class="fc-rw" data-act="cdel">Delete</button></div></div>`;
 }
 function startStudy(course){
  const q=cardQueue(course).all;if(!q.length)return;
  STUDY={course:course||null,queue:q.map(c=>c.id),flipped:false,done:0,again:0};
  hist.push([view,param]);view='study';param=null;render();window.scrollTo(0,0);
 }
+function sHist(id,kind){STUDY.hist=STUDY.hist||[];STUDY.hist.push({id,kind,card:S.cards[id]?JSON.parse(JSON.stringify(S.cards[id])):null,gone:S.gone&&S.gone[id]||null,flag:S.flags[id]?JSON.parse(JSON.stringify(S.flags[id])):null,done:STUDY.done,again:STUDY.again});if(STUDY.hist.length>60)STUDY.hist.shift()}
+function cprev(){
+ if(!STUDY||!STUDY.hist||!STUDY.hist.length)return;
+ const h=STUDY.hist.pop(),i=STUDY.queue.indexOf(h.id);
+ if(i>=0)STUDY.queue.splice(i,1);
+ STUDY.queue.unshift(h.id);
+ if(h.card)S.cards[h.id]=h.card;
+ S.gone=S.gone||{};if(h.gone)S.gone[h.id]=h.gone;else delete S.gone[h.id];
+ if(h.flag)S.flags[h.id]=h.flag;else delete S.flags[h.id];
+ STUDY.done=h.done;STUDY.again=h.again;STUDY.flipped=true;save();render();window.scrollTo(0,0);
+}
 function cgrade(g){
  if(!STUDY||!STUDY.queue.length)return;
- const id=STUDY.queue.shift();S.cards[id]=CD.grade(S.cards[id],g);
+ const id=STUDY.queue.shift();sHist(id,'g');S.cards[id]=CD.grade(S.cards[id],g);
  STUDY.done++;if(g===0){STUDY.again++;STUDY.queue.splice(Math.min(3,STUDY.queue.length),0,id)}
  STUDY.flipped=false;save();render();window.scrollTo(0,0);
 }
@@ -969,6 +979,7 @@ const dragEnd=()=>{if(!drag)return;noscr2(false);const d=drag.dx,el=drag.el;drag
 document.addEventListener('pointerup',dragEnd);document.addEventListener('pointercancel',dragEnd);
 document.addEventListener('keydown',e=>{if(view!=='study'||!STUDY||/INPUT|TEXTAREA/.test((e.target||{}).tagName||''))return;
  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!STUDY.flipped){STUDY.flipped=true;render()}}
+ else if(e.key==='ArrowLeft'||e.key==='Backspace'){e.preventDefault();cprev()}
  else if(STUDY.flipped&&'1234'.includes(e.key))cgrade(+e.key-1)});
 
 /* ---------- fill-in tables ---------- */
@@ -992,12 +1003,13 @@ function tpBody(done){
 }
 Object.assign(A,{
  cstart(el){startStudy(el&&el.dataset&&el.dataset.course||null)},
+ cprev(){cprev()},
  cflip(){if(STUDY){STUDY.flipped=true;render()}},
  cgrade(el){cgrade(+el.dataset.g)},
  addfc(el){const p=PENDFC[el.dataset.q];if(!p||p.done)return;missed(el.dataset.q,p.q,p.ctx,p.cards);p.done=true;save();el.textContent='Added to flashcards ✓';el.disabled=true},
  addtfc(el){const t=TP;if(!t||!t.pend)return;t.pend.forEach(c=>{if(!(S.xcards||[]).some(x=>x.id===c.id))S.xcards.push(c);delete S.cards[c.id]});const n=t.pend.length;t.pend=[];save();el.textContent=n+' added ✓';el.disabled=true},
- cdel(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.gone=S.gone||{};S.gone[id]=Date.now();delete S.cards[id];STUDY.flipped=false;save();render()},
- cflag(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();S.flags[id]={on:true,ts:Date.now()};STUDY.flipped=false;save();render()},
+ cdel(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();sHist(id,'d');S.gone=S.gone||{};S.gone[id]=Date.now();delete S.cards[id];STUDY.flipped=false;save();render()},
+ cflag(){if(!STUDY||!STUDY.queue.length)return;const id=STUDY.queue.shift();sHist(id,'f');S.flags[id]={on:true,ts:Date.now()};STUDY.flipped=false;save();render()},
  cunflag(el){S.flags[el.dataset.id]={on:false,ts:Date.now()};save();A.cflagged()},
  cflagged(){const l=allCards().filter(c=>flagged(c.id));openSheet('To rework',l.length?`<div class="grp">${l.map(c=>`<div class="cell"><span class="t"><b style="font-size:14px">${esc(c.q.slice(0,120))}</b><span>${esc(C(c.c).short)} · ${esc((c.sec||'').slice(0,50))}</span></span><button class="btn tint sm" data-act="cunflag" data-id="${c.id}">Restore</button></div>`).join('')}</div>`:'<p class="mute">Nothing flagged.</p>',l.length?'<button class="btn" data-act="ccopy2">Copy the list</button>':'')},
  ccopy2(){const t=allCards().filter(c=>flagged(c.id)).map(c=>`[${c.c} ${c.l}] ${c.q.replace(/\n/g,' / ')} => ${c.a.replace(/\n/g,' / ')}`).join('\n');try{navigator.clipboard.writeText(t)}catch(e){}const b=$('sf');if(b)b.innerHTML='<button class="btn" data-act="sclose">Copied. Close</button>'},
