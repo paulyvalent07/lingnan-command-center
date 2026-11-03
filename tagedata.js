@@ -104,7 +104,7 @@ QC('7',"Quelle est la valeur de x ?\n(1) x² = 16\n(2) x > -5",4,"(1) : x = 4 ou
 QC('8',"Quelle est la valeur de y ?\n(1) 2y + 3 = 11\n(2) y est un entier pair.",0,"(1) donne y = 4. (2) seule : y peut être 2, 4, 6... Seule (1) suffit.");
 
 /* ---- Logique: puzzles and documents ---- */
-const QL=(id,q,ok,bad,e)=>TQ('logi',id,q,ok,bad,e);
+const QL=(id,q,ok,bad,e)=>TQ(['3','4','5','6','7','8','10','11','12'].includes(id)?'calc':'logx','L'+id,q,ok,bad,e);
 QL('1',"Dans une course, Anaïs arrive avant Bruno, Bruno arrive avant Chloé, et David arrive juste après Anaïs. Qui arrive troisième ?","Bruno",["Anaïs","Chloé","David","On ne peut pas le savoir."],"Anaïs est première (devant Bruno et Chloé, et David vient juste après elle), David est deuxième, puis Bruno troisième, Chloé quatrième.");
 QL('2',"Parmi trois personnes, une seule dit la vérité. Paul : « Marie ment. » Marie : « Luc ment. » Luc : « Paul et Marie mentent. » Qui dit la vérité ?","Marie",["Paul","Luc","Personne","On ne peut pas le savoir."],"Si Paul disait vrai, Marie mentirait donc Luc dirait vrai : deux véridiques, impossible. Si Luc disait vrai, Paul mentirait, donc Marie dirait vrai : impossible. Si Marie dit vrai, Luc ment, Paul ment : cohérent.");
 QL('3',"Le 3 mars est un mardi. Quel jour de la semaine sera le 28 mars de la même année ?","Samedi",["Vendredi","Dimanche","Lundi","Jeudi"],"Du 3 au 28 : 25 jours, soit 3 semaines et 4 jours. Mardi + 4 jours = samedi.");

@@ -116,7 +116,6 @@ function tmGen(sec,r,seed,i){
  let q=null;
  if(sec==='calc'){q=TM_CALC[(r.int(0,99)+i)%TM_CALC.length](r);q.id='g:calc:'+seed+':'+i}
  if(sec==='cond'){q=genCond(r,[0,1,2,3,4][(i+r.int(0,4))%5])||genCond(r,2);q.id='g:cond:'+seed+':'+i}
- if(sec==='logi'){q=genSeq(r);q.id='g:logi:'+seed+':'+i}
  q.s=sec;return q;
 }
 function tmPick(sec,n,seed){
@@ -130,8 +129,13 @@ function tmPick(sec,n,seed){
   order.slice(0,Math.ceil(n/3)).forEach(t=>out.push(...stat.filter(q=>q.t===t)));
   out=out.slice(0,n);
  }else if(sec==='calc'){
-  for(let i=0;i<n;i++)out.push(tmGen(sec,r,seed,i));
- }else if(sec==='cond'||sec==='logi'){
+  out=byAge(stat).slice(0,Math.min(stat.length,Math.round(n*0.25)));
+  for(let i=0;out.length<n;i++)out.push(tmGen(sec,r,seed,i));
+  out=r.shuf(out);
+ }else if(sec==='logi'){
+  const ni=Math.round(n*0.6);
+  for(let i=0;i<n;i++){const q=i<ni?genInter(r):genSpat(r);q.id='g:logi:'+seed+':'+i;q.s='logi';out.push(q)}
+ }else if(sec==='cond'){
   const hand=Math.min(stat.length,Math.round(n*0.4));
   out=byAge(stat).slice(0,hand);
   for(let i=0;out.length<n;i++)out.push(tmGen(sec,r,seed,i));
@@ -167,7 +171,7 @@ function tmComplete(){
   s.qs.forEach((q,i)=>{const a=s.ans[i],r=res[q.s]||(res[q.s]={ok:0,n:0,t:0});r.n++;n++;
    if(!q.gen&&!String(q.id).startsWith('g:'))T.seen[q.id]=now;
    if(a===q.a){r.ok++;ok++;const m=T.mist[q.id];if(m){m.streak=(m.streak||0)+1;if(m.streak>=2){delete T.mist[q.id];T.cleared[q.id]=now;T.fixed=(T.fixed||0)+1}}}
-   else if(a!=null){const m=T.mist[q.id]||{};T.mist[q.id]={s:q.s,q:q.q,o:q.o,a:q.a,e:q.e,x:q.x||'',fixed:!!q.fixed,ts:now,n:(m.n||0)+1,streak:0}}
+   else if(a!=null){const m=T.mist[q.id]||{};T.mist[q.id]={s:q.s,q:q.q,o:q.o,a:q.a,e:q.e,x:q.x||'',fixed:!!q.fixed,grid:q.grid||null,fig:q.fig||null,osvg:!!q.osvg,ts:now,n:(m.n||0)+1,streak:0}}
   })});
  const rec={id:TMR.id,ts:now,kind:TMR.kind,relax:TMR.relax,secs:res,ok,n};
  if(TMR.review)rec.review=1;
@@ -225,7 +229,7 @@ function tmMist(){
  const grp=TM_SECS.map(s=>{const l=ids.filter(i=>M[i].s===s.k);if(!l.length)return '';
   return `<div class="eyebrow" style="margin:16px 0 6px">${s.n} · ${l.length}</div><div class="grp">${l.map(i=>{const m=M[i],open=TMOPEN===i;
    return `<div class="tmm"><button class="cell" data-act="tmopen" data-id="${esc(i)}"><span class="t"><b style="font-size:15px;white-space:pre-line">${esc(m.q.split('\n')[0].slice(0,140))}</b><span>missed ${m.n} time${m.n===1?'':'s'}${m.streak?' · '+m.streak+' right since':''}</span></span>${ic(open?'chevd':'chev','chev')}</button>
-   ${open?`<div class="tmx">${m.x?`<p class="tmp">${esc(m.x)}</p>`:''}<p style="white-space:pre-line">${esc(m.q)}</p><p class="tmok"><b>Answer:</b> ${esc(m.o[m.a])}</p><p class="mute small">${esc(m.e||'')}</p></div>`:''}</div>`}).join('')}</div>`}).join('');
+   ${open?`<div class="tmx">${m.x?`<p class="tmp">${esc(m.x)}</p>`:''}<p style="white-space:pre-line">${esc(m.q)}</p>${tmExtra(m)}<p class="tmok"><b>Answer:</b> ${tmOptH(m,m.a)}</p><p class="mute small">${esc(m.e||'')}</p></div>`:''}</div>`}).join('')}</div>`}).join('');
  return `<button class="btn" data-act="tmredo" style="margin-bottom:6px">${ic('redo')} Redo my mistakes (${Math.min(15,ids.length)} questions)</button>${grp}`;
 }
 function tmHist(){
@@ -242,6 +246,16 @@ function vTage(){
  return `<div class="view">${navbar('Hub')}${title('Tage Mage','Test prep')}
  <div class="segc" style="margin:6px 0 14px">${tabs.map(([k,l])=>`<button class="${TMTAB===k?'on':''}" data-act="tmtab" data-k="${k}">${l}</button>`).join('')}</div>${body}</div>`;
 }
+const tmOptH=(q,i)=>q.osvg?q.o[i]:esc(q.o[i]);
+function tmExtra(q){
+ let h='';
+ if(q.grid){const g=q.grid;let c='';for(let i=0;i<5;i++)for(let j=0;j<5;j++){
+   let v='',k='tmgc';if(i===g.q)v=g.h[j];else if(j===g.p)v=g.v[i];else k='tmgc e';
+   if(v==='?')k+=' qm';c+=`<div class="${k}">${v==null?'':esc(v)}</div>`}
+  h+=`<div class="tmgrid">${c}</div>`}
+ if(q.fig){h+=`<div class="tmseq">${q.fig.map(s=>`<div>${s}</div>`).join('')}<div class="tmqf"><span>?</span></div></div>`}
+ return h;
+}
 const tmL=i=>String.fromCharCode(65+i);
 function vTmRun(){
  if(!TMR)return vTage();
@@ -257,12 +271,12 @@ function vTmRun(){
  const rem=tmRemain();
  const dots=s.qs.map((_,k)=>`<button class="tmd2 ${k===i?'cur':''} ${s.ans[k]!=null?'got':''}" data-act="tmgo" data-i="${k}">${k+1}</button>`).join('');
  const opts=q.o.map((t,k)=>{let c='';if(lock){c=k===q.a?'ok':k===a?'bad':''}else if(a===k)c='on';
-  return `<button class="tmo ${c}" data-act="tmpick" data-i="${k}"><b>${tmL(k)}</b><span>${esc(t)}</span></button>`}).join('');
+  return `<button class="tmo ${c}" data-act="tmpick" data-i="${k}"><b>${tmL(k)}</b><span>${q.osvg?t:esc(t)}</span></button>`}).join('');
  const last=i===s.qs.length-1;
  return `<div class="view tmv"><div class="tmtop"><span>${sec.n} · ${i+1}/${s.qs.length}</span><span class="tmt" id="tmtimer">${fmtMS(rem)}</span></div>
  <div class="tmdots">${dots}</div>
  ${q.x?`<div class="card tmpass"><p>${esc(q.x)}</p></div>`:''}
- <p class="tmq">${esc(q.q)}</p><div class="tmos">${opts}</div>
+ <p class="tmq">${esc(q.q)}</p>${tmExtra(q)}<div class="${q.osvg?'tmos tmosv':'tmos'}">${opts}</div>
  ${lock?`<div class="card tmexp"><b>${a===q.a?'Correct.':'Not quite.'}</b> ${esc(q.e||'')}</div>`:''}
  <div class="tmnav"><button class="btn gray" data-act="tmprev" ${i?'':'disabled'}>Previous</button>${last?`<button class="btn" data-act="tmend">${TMR.kind==='mock'?'Finish subtest':'Finish'}</button>`:`<button class="btn" data-act="tmnext">Next</button>`}</div>
  <div style="margin-top:12px"><button class="btn red" data-act="tmquit">Abandon</button></div></div>`;
@@ -271,7 +285,7 @@ function tmResults(){
  const r=TMR.rec,T=tmT();
  const rows=Object.keys(r.secs).map(k=>{const x=r.secs[k],sec=TMK[k];return `<div class="cell has-ico"><span class="sq" style="--c:${sec.c}">${ic(sec.i)}</span><span class="t"><b>${sec.n}</b><span>${x.ok}/${x.n} right · ${Math.floor(x.t/60)} min ${x.t%60} s</span>${tmBar(x.ok/x.n,sec.c)}</span><span class="badge ${x.ok/x.n>=.7?'green':x.ok/x.n>=.5?'blue':'red'}">${Math.round(x.ok/x.n*100)} %</span></div>`}).join('');
  const wrong=[],shownX=new Set();TMR.secs.forEach(s=>s.qs.forEach((q,i)=>{if(s.ans[i]!==q.a)wrong.push([q,s.ans[i]])}));
- const rev=wrong.map(([q,a])=>{const px=q.x&&!shownX.has(q.x);if(q.x)shownX.add(q.x);return `<div class="tmm"><div class="tmx">${px?`<p class="tmp">${esc(q.x)}</p>`:q.x?`<p class="tmp">${esc(q.x.slice(0,70))}…</p>`:''}<p style="white-space:pre-line"><b>${esc(q.q)}</b></p><p class="tmbad">${a==null?'No answer':'Your answer: '+esc(q.o[a])}</p><p class="tmok"><b>Answer:</b> ${esc(q.o[q.a])}</p><p class="mute small">${esc(q.e||'')}</p></div></div>`}).join('');
+ const rev=wrong.map(([q,a])=>{const px=q.x&&!shownX.has(q.x);if(q.x)shownX.add(q.x);return `<div class="tmm"><div class="tmx">${px?`<p class="tmp">${esc(q.x)}</p>`:q.x?`<p class="tmp">${esc(q.x.slice(0,70))}…</p>`:''}<p style="white-space:pre-line"><b>${esc(q.q)}</b></p>${tmExtra(q)}<p class="tmbad">${a==null?'No answer':'Your answer: '+tmOptH(q,a)}</p><p class="tmok"><b>Answer:</b> ${tmOptH(q,q.a)}</p><p class="mute small">${esc(q.e||'')}</p></div></div>`}).join('');
  return `<div class="view">${navbar('')}${title(TMR.kind==='mock'?'Mock result':'Drill result',r.ok+' of '+r.n+' right')}
  <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${Math.round(r.ok/r.n*100)} %</b><span>accuracy</span></div>${r.score!=null?`<div class="stat"><b>${r.score}</b><span>/600 indicative</span></div>`:''}<div class="stat"><b>${wrong.length}</b><span>to review</span></div></div>
  <div class="grp">${rows}</div>
@@ -308,7 +322,7 @@ Object.assign(A,{
  tmopen(el){TMOPEN=TMOPEN===el.dataset.id?null:el.dataset.id;render()},
  tmredo(){
   const M=tmT().mist,ids=Object.keys(M).sort((a,b)=>(M[b].n-M[a].n)||(M[a].ts-M[b].ts)).slice(0,15);if(!ids.length)return;
-  const qs=ids.map(i=>{const m=M[i],r=tmRng(tmHash(Date.now()+i));let o=m.o.slice(),a=m.a;if(!m.fixed){const ix=r.shuf([0,1,2,3,4]);o=ix.map(k=>m.o[k]);a=ix.indexOf(m.a)}return {id:i,s:m.s,q:m.q,o,a,e:m.e,x:m.x,fixed:m.fixed,gen:true}});
+  const qs=ids.map(i=>{const m=M[i],r=tmRng(tmHash(Date.now()+i));let o=m.o.slice(),a=m.a;if(!m.fixed){const ix=r.shuf([0,1,2,3,4]);o=ix.map(k=>m.o[k]);a=ix.indexOf(m.a)}return {id:i,s:m.s,q:m.q,o,a,e:m.e,x:m.x,fixed:m.fixed,grid:m.grid,fig:m.fig,osvg:m.osvg,gen:true}});
   tmStart('drill',['mix'],qs.length,true,qs);TMR.review=true;TMR.secs[0].k=qs[0].s;tmSaveRun();hist.push([view,param]);view='tmrun';render();window.scrollTo(0,0)
  }
 });

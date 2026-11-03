@@ -531,3 +531,17 @@ html{overscroll-behavior:none}
 .pcta:focus{border-color:var(--accent)}
 .rs{font:inherit;font-size:16px;color:var(--accent);background:transparent;border:0;text-align:right}
 .pct .tmt{font-size:28px;margin:0}
+
+/* ---- Tage Mage logic layout ---- */
+.tmgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:4px 0 16px}
+.tmgc{aspect-ratio:1.25/1;display:grid;place-items:center;border-radius:10px;background:var(--card);font-weight:700;font-size:15px;letter-spacing:.5px;font-variant-numeric:tabular-nums;min-width:0}
+.tmgc.e{background:transparent}
+.tmgc.qm{background:var(--accent);color:#fff;font-size:22px}
+.tmseq{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 16px}
+.tmseq>div{aspect-ratio:1/1}.tmfig{width:100%;height:100%;display:block}
+.tmqf{display:grid;place-items:center;border-radius:12px;background:var(--accent);color:#fff;font-size:28px;font-weight:700}
+.tmosv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tmosv .tmo{flex-direction:column;align-items:center;padding:10px}.tmosv .tmo span{width:100%}
+.tmosv .tmo .tmfig{max-width:84px;margin:0 auto}
+.tmosv .tmo b{flex:none;width:26px;height:26px;align-self:center}
+.tmx .tmgc:not(.e):not(.qm){background:var(--fill)}
