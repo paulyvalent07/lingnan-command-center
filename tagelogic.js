@@ -37,15 +37,28 @@ function lProps(r){const ls=r.int(28,48),g1=r.pick([1,2,3,4,5,-1,-2,-3]),g2=r.pi
   {id:'sum3',d:'le rang de la 3e lettre est la somme des rangs des deux premières',sig:s=>{const l=lets(s);return l[0]+l[1]-l[2]},c:0},
   {id:'fl',d:'la 1re et la 3e lettre sont identiques',sig:s=>{const l=lets(s);return l[0]-l[2]},c:0}
  ].map(p=>Object.assign(p,{k:'l'}))}
+const isPr=n=>{if(n<2)return false;for(let d=2;d*d<=n;d++)if(n%d===0)return false;return true};
+const HARD_N=[
+ {id:'pr',d:'tous les nombres sont premiers',sig:s=>isPr(+s)?1:0,c:1},
+ {id:'pal',d:'chaque nombre se lit de la même façon de gauche à droite et de droite à gauche',sig:s=>s[0]===s[2]?1:0,c:1},
+ {id:'dsq',d:'la somme des chiffres de chaque nombre est un carré parfait (1, 4, 9, 16 ou 25)',sig:s=>[1,4,9,16,25].includes(digs(s).reduce((a,b)=>a+b,0))?1:0,c:1}
+].map(p=>Object.assign(p,{k:'n'}));
+const HARD_L=[
+ {id:'pv',d:'chaque groupe commence par une voyelle et se termine par une consonne',sig:s=>LVOW.has(s[0])&&!LVOW.has(s[2])?1:0,c:1},
+ {id:'dbl',d:'chaque groupe contient exactement deux lettres identiques',sig:s=>new Set(s).size===2?1:0,c:1},
+ {id:'mid',d:'la lettre du milieu est la moyenne (arrondie à l\'entier inférieur) des rangs des deux autres',sig:s=>{const l=lets(s);return l[1]-Math.floor((l[0]+l[2])/2)},c:0}
+].map(p=>Object.assign(p,{k:'l'}));
+const EASYIDS=new Set(['ev','od','inc','alpha','fl','vc0','vc1','vc2','g1','g2']);
 const LCACHE=new Map();
 function pItems(p){const key=p.k+p.id;if(!LCACHE.has(key))LCACHE.set(key,(p.k==='n'?NDOM:LDOM).filter(s=>p.sig(s)===p.c));return LCACHE.get(key)}
 const pOk=(p,s)=>p.sig(s)===p.c;
 
-function genInter(r){
- for(let tries=0;tries<400;tries++){
-  const kind=r.pick(['n','l']),props=(kind==='n'?nProps:lProps)(r),dom=kind==='n'?NDOM:LDOM;
+function genInter(r,hard){
+ for(let tries=0;tries<800;tries++){
+  const kind=r.pick(['n','l']);let props=(kind==='n'?nProps:lProps)(r);const dom=kind==='n'?NDOM:LDOM;
+  if(hard)props=props.filter(p=>!EASYIDS.has(p.id)&&!/^(g1|g2|vc)/.test(p.id)).concat(kind==='n'?HARD_N:HARD_L);
   const PV=r.pick(props);let PH,prog=null;
-  if(r.int(0,3)===0)prog=kind;else PH=r.pick(props.filter(p=>p.id!==PV.id));
+  if(r.int(0,hard?2:3)===0)prog=kind;else PH=r.pick(props.filter(p=>p.id!==PV.id));
   const vItems=pItems(PV);if(vItems.length<10)continue;
   let x,H,hdesc,hpass;
   if(!prog){
@@ -96,10 +109,10 @@ function figSvg(f){
  return `<svg class="tmfig" viewBox="0 0 60 60" aria-hidden="true"><rect x="1" y="1" width="58" height="58" rx="6" fill="${bg}" stroke="${dk}" stroke-opacity=".35"/>${g}</svg>`;
 }
 const BORDER=[0,1,2,5,8,7,6,3];
-const fkey=f=>JSON.stringify(f);
+const fkey=f=>{if(f.sh==='poly'){const per=360/f.n,m=Math.round((((f.rot%per)+per)%per)*10)/10;return 'p'+f.n+'|'+m+'|'+f.fill}return JSON.stringify(f)};
 function uniqFigs(correct,cands,r){const seen=new Set([fkey(correct)]),out=[];for(const c of cands){const k=fkey(c);if(seen.has(k))continue;seen.add(k);out.push(c);if(out.length===4)break}return out}
-function genSpat(r){
- const fam=r.int(0,5);let seq,ok,cand,rule;
+function genSpat(r,hard){
+ const fam=hard?r.pick([4,4,6,7]):r.int(0,5);let seq,ok,cand,rule;
  if(fam===0){const s=r.pick([45,90,135]),d=r.pick([1,-1]),r0=r.int(0,7)*45,R=i=>((r0+d*s*i)%360+360)%360,F=rot=>({sh:'arrow',rot:((rot%360)+360)%360,fill:1});
   seq=[F(R(0)),F(R(1)),F(R(2))];ok=F(R(3));cand=[F(R(2)),F(R(4)),F(R(3)+45),F(R(3)-45),F(R(3)+90),F(R(3)+180),F(R(1))];
   rule=`La flèche tourne de ${s}° ${d>0?'dans le sens des aiguilles d\'une montre':'dans le sens inverse'} à chaque case.`}
@@ -112,7 +125,14 @@ function genSpat(r){
  else if(fam===3){const n0=r.pick([3,4]),f0=r.int(0,1),F=(n,fl)=>({sh:'poly',n,rot:0,fill:fl});
   seq=[F(n0,f0),F(n0+1,1-f0),F(n0+2,f0)];ok=F(n0+3,1-f0);cand=[F(n0+3,f0),F(n0+4,1-f0),F(n0+2,1-f0),F(n0+4,f0),F(n0+1,f0)];
   rule=`Le polygone gagne un côté à chaque figure, et le remplissage alterne (plein, vide, plein...).`}
- else if(fam===4){const s=r.pick([45,90]),d=r.pick([1,-1]),r0=r.int(0,3)*45,f0=r.int(0,1),F=(i,fl)=>({sh:'arrow',rot:(((r0+d*s*i)%360)+360)%360,fill:fl});
+ else if(fam===6){const n0=r.pick([3,4]),th=n0===4?r.pick([15,45]):r.pick([15,30,45]),f0=r.int(0,1),F=(i,fl)=>({sh:'poly',n:n0+i,rot:(th*i)%360,fill:fl});
+  seq=[F(0,f0),F(1,1-f0),F(2,f0)];ok=F(3,1-f0);cand=[F(3,f0),F(4,1-f0),Object.assign(F(3,1-f0),{rot:0}),Object.assign(F(3,1-f0),{rot:(th*4)%360}),F(2,1-f0),Object.assign(F(4,f0),{rot:(th*3)%360})];
+  rule=`Trois règles à la fois : le polygone gagne un côté, tourne de ${th}° et son remplissage alterne à chaque figure.`}
+ else if(fam===7){const s0=r.pick([1,2]),i0=r.int(0,7),P=k=>BORDER[((i0+k)%8+8)%8],F=pos=>({sh:'dot',pos});
+  const a0=0,a1=s0,a2=2*s0+1,a3=3*s0+3;
+  seq=[F(P(a0)),F(P(a1)),F(P(a2))];ok=F(P(a3));cand=[F(P(a2+s0+1)),F(P(a3+1)),F(P(a3-1)),F(P(a2+s0)),F(P(a2+s0+3))];
+  rule=`Le point avance sur le bord, dans le sens des aiguilles d'une montre, d'un pas de plus à chaque figure : ${s0}, puis ${s0+1}, puis ${s0+2}.`}
+ else if(fam===4){const s=r.pick(hard?[45,90,135]:[45,90]),d=r.pick([1,-1]),r0=r.int(0,3)*45,f0=r.int(0,1),F=(i,fl)=>({sh:'arrow',rot:(((r0+d*s*i)%360)+360)%360,fill:fl});
   seq=[F(0,f0),F(1,1-f0),F(2,f0)];ok=F(3,1-f0);cand=[F(3,f0),F(4,1-f0),F(2,1-f0),{sh:'arrow',rot:(((r0+d*s*3+45)%360)+360)%360,fill:1-f0},{sh:'arrow',rot:(((r0+d*s*3-45)%360)+360)%360,fill:1-f0},F(1,f0)];
   rule=`Deux règles à la fois : la flèche tourne de ${s}° ${d>0?'dans le sens des aiguilles d\'une montre':'dans le sens inverse'}, et son remplissage alterne.`}
  else{const c0=r.int(1,3),order=[4,0,8,2,6,1,7,3,5],F=n=>({sh:'circles',cells:order.slice(0,n)}),G=n=>({sh:'circles',cells:[0,1,2,3,4,5,6,7,8].slice(0,n)});

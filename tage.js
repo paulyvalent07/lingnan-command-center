@@ -120,39 +120,42 @@ function tmGen(sec,r,seed,i){
 }
 function tmPick(sec,n,seed){
  const T=tmT(),r=tmRng(tmHash(seed+sec)),seen=T.seen||{};
- const stat=TM_STATIC.filter(q=>q.s===sec);
+ const stat=TM_STATIC.filter(q=>q.s===sec&&(!TMHARD||q.d===3));
  const byAge=a=>r.shuf(a).sort((p,q)=>(seen[p.id]||0)-(seen[q.id]||0));
  let out=[];
  if(sec==='comp'){
-  const ids=Object.keys(TM_TEXTS),age=t=>Math.max(...stat.filter(q=>q.t===t).map(q=>seen[q.id]||0));
+  const ids=Object.keys(TM_TEXTS).filter(t=>stat.some(q=>q.t===t)),age=t=>Math.max(...stat.filter(q=>q.t===t).map(q=>seen[q.id]||0));
   const order=r.shuf(ids).sort((a,b)=>age(a)-age(b));
-  order.slice(0,Math.ceil(n/3)).forEach(t=>out.push(...stat.filter(q=>q.t===t)));
+  for(const t of order){if(out.length>=n)break;out.push(...stat.filter(q=>q.t===t))}
   out=out.slice(0,n);
  }else if(sec==='calc'){
-  out=byAge(stat).slice(0,Math.min(stat.length,Math.round(n*0.25)));
+  out=byAge(stat).slice(0,Math.min(stat.length,Math.round(n*(TMHARD?1:0.25))));
   for(let i=0;out.length<n;i++)out.push(tmGen(sec,r,seed,i));
   out=r.shuf(out);
  }else if(sec==='logi'){
   const ni=Math.round(n*0.6);
-  for(let i=0;i<n;i++){const q=i<ni?genInter(r):genSpat(r);q.id='g:logi:'+seed+':'+i;q.s='logi';out.push(q)}
+  for(let i=0;i<n;i++){const q=i<ni?genInter(r,TMHARD):genSpat(r,TMHARD);q.id='g:logi:'+seed+':'+i;q.s='logi';out.push(q)}
  }else if(sec==='cond'){
-  const hand=Math.min(stat.length,Math.round(n*0.4));
+  const hand=Math.min(stat.length,Math.round(n*(TMHARD?1:0.4)));
   out=byAge(stat).slice(0,hand);
   for(let i=0;out.length<n;i++)out.push(tmGen(sec,r,seed,i));
   out=r.shuf(out);
  }else out=byAge(stat).slice(0,n);
+ /* ladder: easy first, hard last (stable), like the real subtests; text groups and logic grids keep their order */
+ if(sec!=='comp'&&sec!=='logi')out=out.map((q,i)=>[q,i]).sort((a,b)=>((a[0].d||2)-(b[0].d||2))||a[1]-b[1]).map(x=>x[0]);
  return out.map(q=>prepQ(q,seed));
 }
 
 /* ---- run engine ---- */
-let TMR=null,TMTAB='train',TMLEN=15,TMRELAX=false,TMOPEN=null;
+let TMR=null,TMTAB='train',TMLEN=15,TMRELAX=false,TMOPEN=null,TMHARD=false;
+try{TMHARD=localStorage.getItem('lu-tm-hard')==='1'}catch(e){}
 const TMRK='lu-tm-run';
 function tmSaveRun(){try{if(TMR&&!TMR.saved)localStorage.setItem(TMRK,JSON.stringify(TMR));else localStorage.removeItem(TMRK)}catch(e){}}
 function tmLoadRun(){try{const r=JSON.parse(localStorage.getItem(TMRK)||'null');if(r&&!r.done)TMR=r}catch(e){}}
 function tmStart(kind,secs,n,relax,custom){
  const id='r'+Date.now(),seed=id;
  const S_=secs.map(k=>({k,qs:custom?custom:tmPick(k,n,seed),ans:[],t0:null,end:null,limit:kind==='mock'?1200:(relax?0:n*80)}));
- TMR={v:1,kind,id,relax:!!relax,secs:S_,si:0,qi:0,started:Date.now(),done:false};
+ TMR={v:1,kind,id,relax:!!relax,hard:!!TMHARD&&!custom,secs:S_,si:0,qi:0,started:Date.now(),done:false};
  if(kind==='drill'){TMR.secs[0].t0=Date.now()}
  tmSaveRun();
 }
@@ -174,6 +177,7 @@ function tmComplete(){
    else if(a!=null){const m=T.mist[q.id]||{};T.mist[q.id]={s:q.s,q:q.q,o:q.o,a:q.a,e:q.e,x:q.x||'',fixed:!!q.fixed,grid:q.grid||null,fig:q.fig||null,osvg:!!q.osvg,ts:now,n:(m.n||0)+1,streak:0}}
   })});
  const rec={id:TMR.id,ts:now,kind:TMR.kind,relax:TMR.relax,secs:res,ok,n};
+ if(TMR.hard)rec.hard=1;
  if(TMR.review)rec.review=1;
  if(TMR.kind==='mock')rec.score=Math.round(ok/n*600);
  T.att.push(rec);TMR.rec=rec;save();
@@ -216,11 +220,12 @@ function tmTrain(){
  return `${run}<div class="stats tm2">${cd('j')}${cd('n')}</div>
  <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${last?last.score:'—'}</b><span>last mock /600</span></div><div class="stat"><b>${m.length?best:'—'}</b><span>best mock</span></div><div class="stat"><b>${tmT().att.filter(a=>a.kind==='drill').length}</b><span>drills done</span></div></div>
  <div class="card"><div class="card-h"><h3>Section drills</h3></div>
+ <div class="segc" style="margin-bottom:8px">${[[0,'Standard'],[1,'Hard · maximum']].map(([k,l])=>`<button class="${(TMHARD?1:0)===k?'on':''}" data-act="tmhard" data-k="${k}">${l}</button>`).join('')}</div>
  <div class="stack" style="margin-bottom:8px"><div class="segc" style="flex:1">${[10,15].map(n=>`<button class="${TMLEN===n?'on':''}" data-act="tmlen" data-k="${n}">${n} questions</button>`).join('')}</div>
  <div class="segc" style="flex:1">${[[0,'Timed'],[1,'Instant feedback']].map(([k,l])=>`<button class="${(TMRELAX?1:0)===k?'on':''}" data-act="tmrelax" data-k="${k}">${l}</button>`).join('')}</div></div>
  <div class="grp" style="margin-top:10px">${TM_SECS.map(s=>{const a=tmAcc(s.k);return `<button class="cell has-ico" data-act="tmdrill" data-k="${s.k}"><span class="sq" style="--c:${s.c}">${ic(s.i)}</span><span class="t"><b>${s.n}</b><span>${a.n?Math.round(a.p*100)+' % right · '+a.n+' answered':'No data yet'}</span>${tmBar(a.p,s.c)}</span>${ic('chev','chev')}</button>`}).join('')}</div>
- <div class="sf">Timed drills allow 80 seconds per question, like the real test (15 questions in 20 minutes).</div></div>
- <div style="margin-top:14px"><button class="btn" data-act="tmmock">${ic('timer')} Full mock test · 90 questions · 2 h</button></div>
+ <div class="sf">Timed drills allow 80 seconds per question, like the real test (15 questions in 20 minutes). Standard orders questions from easy to hard. Hard keeps only the toughest tier: long academic texts, multi-step calculation with trap answers, two-case data-sufficiency items, quantifier and conditional logic, and combined-rule grids.</div></div>
+ <div style="margin-top:14px"><button class="btn" data-act="tmmock">${ic('timer')} ${TMHARD?'Hard full mock':'Full mock test'} · 90 questions · 2 h</button></div>
  <div class="sf">Six subtests of 15 questions and 20 minutes each, in order, without going back. The score is an indicative estimate out of 600; the real scale is not linear.</div>`;
 }
 function tmMist(){
@@ -237,7 +242,7 @@ function tmHist(){
  if(!A.length)return `<div class="empty">Your drills and mocks will be listed here.</div>`;
  const m=tmMocks(),H=70,max=600;
  const chart=m.length>1?`<div class="card" style="margin-bottom:14px"><div class="card-h"><h3>Mock scores</h3><span class="mute small">/600, indicative</span></div><div class="tmh">${m.slice(-12).map(a=>`<div style="height:${Math.max(4,a.score/max*H)}px" title="${a.score}"><b>${a.score}</b></div>`).join('')}</div></div>`:'';
- return chart+`<div class="grp">${A.slice(0,40).map(a=>{const d=new Date(a.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'}),s=a.kind==='mock'?'Full mock':(TMK[Object.keys(a.secs)[0]]||{n:'Drill'}).n+(a.review?' · mistakes':'');
+ return chart+`<div class="grp">${A.slice(0,40).map(a=>{const d=new Date(a.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'}),s=(a.kind==='mock'?'Full mock':(TMK[Object.keys(a.secs)[0]]||{n:'Drill'}).n+(a.review?' · mistakes':''))+(a.hard?' · hard':'');
   return `<div class="cell"><span class="t"><b>${s}</b><span>${d} · ${a.ok}/${a.n} right${a.kind==='mock'?' · '+a.score+'/600':''}</span></span><span class="badge ${a.ok/a.n>=.7?'green':a.ok/a.n>=.5?'blue':'red'}">${Math.round(a.ok/a.n*100)} %</span></div>`}).join('')}</div>`;
 }
 function vTage(){
@@ -307,9 +312,10 @@ document.addEventListener('change',e=>{const el=e.target;if(el.dataset&&el.datas
 Object.assign(A,{
  tmtab(el){TMTAB=el.dataset.k;render()},
  tmlen(el){TMLEN=+el.dataset.k;render()},
+ tmhard(el){TMHARD=el.dataset.k==='1';try{localStorage.setItem('lu-tm-hard',TMHARD?'1':'0')}catch(e){}render()},
  tmrelax(el){TMRELAX=el.dataset.k==='1';render()},
  tmdrill(el){tmStart('drill',[el.dataset.k],TMLEN,TMRELAX);hist.push([view,param]);view='tmrun';render();window.scrollTo(0,0)},
- tmmock(){if(!confirm('Start a full mock test? It takes about 2 hours and cannot be paused.'))return;tmStart('mock',TM_SECS.map(s=>s.k),15,false);hist.push([view,param]);view='tmrun';render();window.scrollTo(0,0)},
+ tmmock(){if(!confirm('Start a full '+(TMHARD?'HARD ':'')+'mock test? It takes about 2 hours and cannot be paused.'))return;tmStart('mock',TM_SECS.map(s=>s.k),15,false);hist.push([view,param]);view='tmrun';render();window.scrollTo(0,0)},
  tmresume(){view='tmrun';render();window.scrollTo(0,0)},
  tmbegin(){const s=tmCur();s.t0=Date.now();tmSaveRun();render();window.scrollTo(0,0)},
  tmpick(el){tmAnswer(+el.dataset.i)},
