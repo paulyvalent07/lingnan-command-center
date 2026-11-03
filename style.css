@@ -495,3 +495,33 @@ html.noscroll,html.noscroll body{overflow:hidden}
 html{overscroll-behavior:none}
 .tabbar,.mini,.sess-f{-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);will-change:transform}
 .mini{transform:translate3d(-50%,0,0)}
+
+/* ---- Tage Mage ---- */
+.tm2{grid-template-columns:repeat(2,1fr)}
+.tm2 .stat{min-width:0}
+.tmd{display:block;box-sizing:border-box;min-width:0;max-width:100%;margin-top:8px;width:100%;font:inherit;font-size:14px;color:var(--label);background:var(--fill);border:0;border-radius:8px;padding:6px 8px}
+.tmb{height:5px;border-radius:3px;background:var(--fill);margin-top:6px;overflow:hidden}.tmb i{display:block;height:100%;border-radius:3px}
+.tmtop{display:flex;justify-content:space-between;align-items:center;font-weight:600;margin:6px 0 10px}
+.tmt{font-variant-numeric:tabular-nums;font-size:20px}
+.tmdots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tmd2{width:32px;height:32px;border-radius:50%;background:var(--fill);font-size:13px;font-weight:600;color:var(--label)}
+.tmd2.got{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+.tmd2.cur{outline:2px solid var(--accent)}
+.tmpass{margin-bottom:12px;font-size:15px;line-height:1.5}
+.tmq{font-size:17px;line-height:1.45;font-weight:600;margin:6px 0 14px;white-space:pre-line}
+.tmos{display:flex;flex-direction:column;gap:8px}
+.tmo{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:13px 14px;border-radius:14px;background:var(--card);border:1.5px solid transparent;font-size:15px;line-height:1.4;width:100%}
+.tmo b{flex:0 0 26px;height:26px;border-radius:50%;background:var(--fill);display:grid;place-items:center;font-size:13px}
+.tmo span{flex:1;min-width:0;overflow-wrap:anywhere}
+.tmo.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card))}
+.tmo.ok{border-color:var(--green);background:color-mix(in srgb,var(--green) 12%,var(--card))}
+.tmo.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--card))}
+.tmexp{margin-top:12px;font-size:15px;line-height:1.45}
+.tmnav{display:flex;gap:10px;margin-top:16px}.tmnav .btn{flex:1}
+.tmm+.tmm{border-top:.5px solid var(--sep)}
+.tmx{padding:4px 16px 14px;font-size:15px;line-height:1.45}.tmx p{margin-top:8px}
+.tmp{font-size:14px;color:var(--l2);border-left:3px solid var(--fill);padding-left:10px}
+.tmok{color:var(--green)}.tmbad{color:var(--red)}
+.tmh{display:flex;align-items:flex-end;gap:8px;height:90px}
+.tmh div{flex:1;background:var(--accent);border-radius:6px 6px 0 0;position:relative;min-width:14px}
+.tmh b{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:11px;font-weight:600;color:var(--l2)}
