@@ -500,7 +500,7 @@ function vData(){
  <div class="sh">Data</div><div class="grp"><button class="cell has-ico" data-act="notif"><span class="sq" style="--c:var(--red)">${ic('flag')}</span><span class="t"><b>Enable alerts</b></span></button><button class="cell has-ico" data-act="export"><span class="sq" style="--c:var(--accent)">${ic('down')}</span><span class="t"><b>Export backup</b></span></button><label class="cell has-ico"><span class="sq" style="--c:var(--green)">${ic('sync')}</span><span class="t"><b>Import backup</b></span><input type="file" accept=".json" id="imp" hidden></label></div>
  <div class="sh">Cloud sync (phone + laptop)</div>${CL.token&&CL.gid
  ?`<div class="grp"><div class="cell"><span class="t"><b>Connected</b><span>${esc(CL.status||'')}</span></span></div><button class="cell has-ico" data-act="csync"><span class="sq" style="--c:var(--green)">${ic('sync')}</span><span class="t"><b>Sync now</b></span></button><button class="cell has-ico" data-act="ccopy"><span class="sq" style="--c:var(--accent)">${ic('down')}</span><span class="t"><b>Copy token for another device</b></span></button><button class="cell has-ico" data-act="cdisc"><span class="sq" style="--c:var(--red)">${ic('flag')}</span><span class="t"><b>Disconnect this device</b></span></button></div>`
- :`<div class="grp fgrp"><div class="cell"><input id="cl-token" type="password" placeholder="GitHub token (gist permission only)" autocomplete="off" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="cconnect"><span class="sq" style="--c:var(--accent)">${ic('sync')}</span><span class="t"><b>Connect</b><span>${esc(CL.status||'Same token on every device')}</span></span></button></div><div class="sf">Stored only on this device. Your progress is saved in a private GitHub gist, never in the public repo.</div>`}
+ :`<div class="grp fgrp"><div class="cell"><input id="cl-token" type="password" placeholder="Sync code (copied from your other device)" autocomplete="off" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="cconnect"><span class="sq" style="--c:var(--accent)">${ic('sync')}</span><span class="t"><b>Connect</b><span>${esc(CL.status||'Same token on every device')}</span></span></button></div><div class="sf">Stored only on this device. Your progress is saved in a private GitHub gist, never in the public repo.</div>`}
  <div class="sf">Backups remain available below.</div>
  <div style="margin-top:22px"><button class="btn red" data-act="reset">Erase everything</button></div></div>`;
 }
@@ -671,11 +671,14 @@ async function cloudPush(now){
  catch(e){setCS('Not synced yet ('+e.message+')',false)}
 }
 function schedulePush(){if(!CL.token||!CL.gid)return;clearTimeout(pushT);pushT=setTimeout(()=>cloudPush(),2500)}
-async function cloudConnect(token){
+async function cloudConnect(token,gid){
  CL={token:token.trim()};
  try{
-  const list=await gh('/gists?per_page=100');let g=list.find(x=>x.description===GDESC);
+  let g=null;
+  if(gid){g=await gh('/gists/'+gid)}
+  else{for(let p=1;p<=10&&!g;p++){const list=await gh('/gists?per_page=100&page='+p);g=list.find(x=>x.description===GDESC);if(list.length<100)break}}
   if(!g)g=await gh('/gists',{method:'POST',body:JSON.stringify({description:GDESC,public:false,files:{'state.json':{content:JSON.stringify(snap())}}})});
+  else if(!(S.sessions&&S.sessions.length)&&!Object.keys(S.planDone||{}).length)S.mod=0;
   CL.gid=g.id;saveCL();await cloudPull();
   return true;
  }catch(e){CL={};saveCL();return false}
@@ -856,10 +859,10 @@ const A={
   S.deadlines.push({id:uid(),course:$('m-course').value,title:t,when:w});save();closeSheet();render()},
  dldel(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(d&&d.off)S.dlHide[d.id]=1;S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
  notif(){askNotif()},
- async cconnect(){const v=($('cl-token')||{}).value;if(!v||v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const ok=await cloudConnect(v);if(!ok)alert('Could not connect. The token needs the "gist" permission only.');render()},
+ async cconnect(){const v=($('cl-token')||{}).value;if(!v||v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const pr=v.trim().split('~'),ok=await cloudConnect(pr[0],pr[1]);if(!ok)alert('Could not connect. The token needs the "gist" permission only.');render()},
  csync(){cloudPull().then(()=>render())},
  cdisc(){if(confirm('Disconnect this device from the cloud? Your data stays here.')){CL={};saveCL();render()}},
- async ccopy(){try{await navigator.clipboard.writeText(CL.token||'');alert('Token copied. Paste it on your other device in Settings > Cloud sync.')}catch(e){alert('Copy failed.')}},
+ async ccopy(){try{await navigator.clipboard.writeText((CL.token||'')+'~'+(CL.gid||''));alert('Sync code copied. Paste it on your other device in More > Cloud sync.')}catch(e){alert('Copy failed.')}},
  export(){const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='lingnan-cc-backup-'+today()+'.json';a.click()},
  reset(){if(confirm('Erase ALL data on this device?')){localStorage.removeItem(KEY);S=load();sessOpen=false;syncUI()}}
 };
