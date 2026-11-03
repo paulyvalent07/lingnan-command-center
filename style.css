@@ -479,3 +479,19 @@ html.noscroll,html.noscroll body{overflow:hidden}
 .fc-rw{opacity:.8}
 #sess .tabs-s{position:sticky;top:0;z-index:8;background-color:var(--bg);background-image:linear-gradient(var(--fill),var(--fill));box-shadow:0 0 0 6px var(--bg)}
 #sess .tabs-s button.on{background:var(--elev)}
+
+/* calendar */
+.calc{background:var(--card,var(--fill));border-radius:20px;padding:12px 10px 10px;margin-top:6px}
+.calh{display:flex;align-items:center;justify-content:space-between;padding:0 4px 8px}.calh b{font-size:17px}
+.calh .flip{transform:scaleX(-1)}
+.calw,.calg{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.calw i{font-style:normal;font-size:11px;color:var(--l2);padding-bottom:4px}
+.cd{position:relative;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:12px;font-size:15px;color:var(--label)}
+.cd.e{pointer-events:none}.cd span{line-height:1}
+.cd em{display:flex;gap:3px;height:6px}.cd u{width:6px;height:6px;border-radius:50%;display:block}
+.cd.tdy span{color:var(--accent);font-weight:700}
+.cd.sel{background:var(--accent)}.cd.sel span{color:#fff;font-weight:700}
+.cd.has:not(.sel){background:color-mix(in srgb,var(--accent) 10%,transparent)}
+html{overscroll-behavior:none}
+.tabbar,.mini,.sess-f{-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);will-change:transform}
+.mini{transform:translate3d(-50%,0,0)}

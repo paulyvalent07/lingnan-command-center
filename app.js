@@ -424,13 +424,32 @@ function vInsights(){
 /* ----- more + sub views ----- */
 window.__gridIc=ic('grid');
 const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let calM=0,calSel=null;
+function calendarCard(){
+ const now=new Date(),base=new Date(now.getFullYear(),now.getMonth()+calM,1),y=base.getFullYear(),m=base.getMonth();
+ const first=(base.getDay()+6)%7,dim=new Date(y,m+1,0).getDate(),tk=today();
+ const by={};S.deadlines.forEach(d=>{const k=dkey(d.when);(by[k]=by[k]||[]).push(d)});
+ const cells=[];for(let i=0;i<first;i++)cells.push('<i class="cd e"></i>');
+ for(let d=1;d<=dim;d++){const k=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,L=by[k]||[];
+  const dots=L.slice(0,3).map(x=>`<u style="background:${C(x.course).color}"></u>`).join('');
+  cells.push(`<button class="cd ${k===tk?'tdy':''} ${k===calSel?'sel':''} ${L.length?'has':''}" data-act="calday" data-d="${k}"><span>${d}</span><em>${dots}</em></button>`)}
+ const mname=base.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+ const fmtD=x=>new Date(x.when).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+ let list,head;
+ if(calSel){list=(by[calSel]||[]);head=new Date(calSel+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}
+ else{list=S.deadlines.filter(d=>new Date(d.when)>now).sort((a,b)=>new Date(a.when)-new Date(b.when)).slice(0,4);head='Coming up'}
+ const rows=list.sort((a,b)=>new Date(a.when)-new Date(b.when)).map(d=>{const x=C(d.course);return `<div class="cell has-ico"><span class="sq" style="--c:${x.color}">${ic(x.ic)}</span><span class="t"><b>${esc(d.title)}</b><span>${x.id==='ALL'?'All courses':x.short} · ${fmtD(d)}</span></span><span class="badge ${urgent(d.when)?'red':''}">${countdown(d.when)}</span></div>`}).join('')||'<div class="cell"><span class="t mute">Nothing on this day.</span></div>';
+ return `<div class="calc"><div class="calh"><button class="xbtn" data-act="calprev" aria-label="Previous month">${ic('chev','flip')}</button><b>${mname}</b><button class="xbtn" data-act="calnext" aria-label="Next month">${ic('chev')}</button></div>
+ <div class="calw"><i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i></div><div class="calg">${cells.join('')}</div></div>
+ <div class="sh">${head}</div><div class="grp">${rows}</div>`;
+}
 function vHub(){
  const app=(t,i,col,siteTxt,web,sc,img)=>{const ig=img?`<span class="tq im"><img src="icons/${img}.png" alt=""></span>`:`<span class="tq">${ic(i)}</span>`;return IOS?`<a class="tile" href="shortcuts://run-shortcut?name=${sc}" style="--c:${col}">${ig}<b>${t}</b><span>Opens the app</span></a>`
   :web?`<a class="tile" href="${web}" target="_blank" rel="noopener" style="--c:${col}">${ig}<b>${t}</b><span>Opens ${siteTxt}</span></a>`
   :`<div class="tile off" style="--c:${col}">${ig}<b>${t}</b><span>iPhone app only</span></div>`}
  const q=cardQueue(),n=q.all.length,days=weekDays(S.tw||0),all=days.flatMap(itemsOn),dn=all.filter(p=>S.planDone[p.id]).length;
  const tile=(tag,attrs,col,i,t,sub,badge)=>`<${tag} class="tile" ${attrs} style="--c:${col}"><span class="tq">${ic(i)}</span>${badge?`<span class="badge red tb">${badge}</span>`:''}<b>${t}</b><span>${sub}</span></${tag}>`;
- return `<div class="view">${title('Hub')}<div class="tiles">
+ return `<div class="view">${title('Hub')}${calendarCard()}<div class="tiles" style="margin-top:18px">
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  <a class="tile" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="--c:#2f6fed"><span class="tq im" id="ankiq"><img src="https://www.google.com/s2/favicons?domain=ankiweb.net&sz=128" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.className='tq';this.parentNode.innerHTML=window.__gridIc"></span><b>Anki</b><span>Open your AnkiWeb decks</span></a>
@@ -487,8 +506,9 @@ function vData(){
 }
 const VMAP={hub:vHub,cards:vCards,study:vStudy,today:vToday,courses:vCourses,course:vCourse,lesson:vLesson,timetable:vTimetable,insights:vInsights,more:vMore,redo:vRedo,plan:vPlan,sessions:vSessions,targets:vTargets,data:vData};
 function render(){
- const f=document.activeElement,id=f&&f.id,val=f&&f.value;
+ const f=document.activeElement,id=f&&f.id,val=f&&f.value,sy=window.scrollY;
  tabbar();$('main').innerHTML=(VMAP[view]||vToday)();
+ if(sy)window.scrollTo(0,sy);
  if(id){const n=$(id);if(n&&n.tagName==='INPUT'){n.value=val;n.focus()}}
  renderMini();
 }
@@ -754,6 +774,9 @@ function finishSession(minutes,focus,doneIds){
  S.active=null;sessOpen=false;keepAwake(false);
 }
 const A={
+ calprev(){calM--;calSel=null;render()},
+ calnext(){calM++;calSel=null;render()},
+ calday(el){calSel=calSel===el.dataset.d?null:el.dataset.d;render()},
  pstart(el){
   if(S.active){sessOpen=true;syncUI();return}
   askNotif();
