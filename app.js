@@ -91,7 +91,7 @@ function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -452,6 +452,8 @@ function vHub(){
  return `<div class="view">${title('Hub')}${calendarCard()}<div class="tiles" style="margin-top:18px">
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="tage"','#e11d48','target','Tage Mage',typeof tmNextSub==='function'?tmNextSub():'Test prep')}
+ ${tile('button','data-act="open" data-v="deb"','#0f766e','people','Daily debate',typeof debStreak==='function'?(debStreak()?debStreak()+' day streak':'Think harder'):'Think harder')}
+ ${tile('button','data-act="open" data-v="wri"','#b45309','pen','Writing',typeof vocDue==='function'?vocDue().length+' words due':'EN · IT · ES')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  <a class="tile" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="--c:#2f6fed"><span class="tq im" id="ankiq"><img src="https://www.google.com/s2/favicons?domain=ankiweb.net&sz=128" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.className='tq';this.parentNode.innerHTML=window.__gridIc"></span><b>Anki</b><span>Open your AnkiWeb decks</span></a>
  ${app('Chess','pawn','#5a8f29','chess.com','https://www.chess.com/home','Chess','chess')}
@@ -643,6 +645,7 @@ function mergeState(r){
  o.exr=Object.assign({},older.exr);Object.entries(newer.exr||{}).forEach(([k,v])=>{const y=o.exr[k];if(!y||(v.ts||0)>=(y.ts||0))o.exr[k]=v});
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.tage=typeof tmMerge==='function'?tmMerge(older.tage,newer.tage):(newer.tage||older.tage);
+ if(typeof pcMerge==='function'){o.deb=pcMerge(older.deb,newer.deb);o.wri=pcMerge(older.wri,newer.wri)}
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
  o.deadlines=mergeDl(o.deadlines,o.dlHide);

@@ -525,3 +525,9 @@ html{overscroll-behavior:none}
 .tmh{display:flex;align-items:flex-end;gap:8px;height:90px}
 .tmh div{flex:1;background:var(--accent);border-radius:6px 6px 0 0;position:relative;min-width:14px}
 .tmh b{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:11px;font-weight:600;color:var(--l2)}
+
+/* ---- debate and writing ---- */
+.pcta{width:100%;box-sizing:border-box;font:inherit;font-size:16px;line-height:1.45;color:var(--label);background:var(--card);border:1.5px solid transparent;border-radius:14px;padding:12px 14px;resize:vertical;outline:0}
+.pcta:focus{border-color:var(--accent)}
+.rs{font:inherit;font-size:16px;color:var(--accent);background:transparent;border:0;text-align:right}
+.pct .tmt{font-size:28px;margin:0}
