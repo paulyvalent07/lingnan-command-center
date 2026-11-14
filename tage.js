@@ -260,7 +260,7 @@ function tmExtra(q){
    let v='',k='tmgc';if(i===g.q)v=g.h[j];else if(j===g.p)v=g.v[i];else k='tmgc e';
    if(v==='?')k+=' qm';c+=`<div class="${k}">${v==null?'':esc(v)}</div>`}
   h+=`<div class="tmgrid">${c}</div>`}
- if(q.fig){h+=`<div class="tmseq">${q.fig.map(s=>`<div>${s}</div>`).join('')}<div class="tmqf"><span>?</span></div></div>`}
+ if(q.fig){h+=`<div class="tmseq tmn${q.fig.length}">${q.fig.map(s=>`<div>${s}</div>`).join('')}<div class="tmqf"><span>?</span></div></div>`}
  return h;
 }
 const tmL=i=>String.fromCharCode(65+i);

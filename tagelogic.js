@@ -106,13 +106,20 @@ function figSvg(f){
  else if(f.sh==='dot'){for(let i=0;i<9;i++){const c=cell(i);g+=`<circle cx="${c.x}" cy="${c.y}" r="1.6" fill="${dk}" opacity=".25"/>`}const c=cell(f.pos);g+=`<circle cx="${c.x}" cy="${c.y}" r="5.5" fill="${dk}"/>`}
  else if(f.sh==='fillgrid'){for(let i=0;i<9;i++){const c=cell(i),on=f.cells.includes(i);g+=`<rect x="${c.x-7}" y="${c.y-7}" width="14" height="14" rx="2" fill="${on?dk:'none'}" stroke="${dk}" stroke-width="1.2" opacity="${on?1:.55}"/>`}}
  else if(f.sh==='circles'){for(let i=0;i<9;i++){const c=cell(i);if(f.cells.includes(i))g+=`<circle cx="${c.x}" cy="${c.y}" r="6" fill="${dk}"/>`}}
+ else if(f.sh==='g'){const c=cell(f.pos),R={1:4,2:6.5,3:9}[f.sz],x=c.x,y=c.y,at=`fill="${f.fill?dk:'none'}" fill-opacity="${f.fill===2?.28:1}" stroke="${dk}" stroke-width="2" stroke-linejoin="round" transform="rotate(${f.rot||0} ${x} ${y})"`,P=a=>a.map(q=>q.join(',')).join(' ');
+  if(f.g==='circle')g=`<circle cx="${x}" cy="${y}" r="${R}" ${at}/>`;
+  else if(f.g==='square')g=`<rect x="${x-R*.9}" y="${y-R*.9}" width="${R*1.8}" height="${R*1.8}" ${at}/>`;
+  else if(f.g==='tri')g=`<polygon points="${P([[x,y-R*1.1],[x+R*1.1,y+R*.85],[x-R*1.1,y+R*.85]])}" ${at}/>`;
+  else if(f.g==='diamond')g=`<polygon points="${P([[x,y-R*1.15],[x+R*1.15,y],[x,y+R*1.15],[x-R*1.15,y]])}" ${at}/>`;
+  else if(f.g==='cross'){const a=R*1.1,w=R*.38;g=`<polygon points="${P([[x-w,y-a],[x+w,y-a],[x+w,y-w],[x+a,y-w],[x+a,y+w],[x+w,y+w],[x+w,y+a],[x-w,y+a],[x-w,y+w],[x-a,y+w],[x-a,y-w],[x-w,y-w]])}" ${at}/>`}
+  else g=`<path d="M${x-R} ${y+R*.5} A${R} ${R} 0 0 1 ${x+R} ${y+R*.5} Z" ${at}/>`}
  return `<svg class="tmfig" viewBox="0 0 60 60" aria-hidden="true"><rect x="1" y="1" width="58" height="58" rx="6" fill="${bg}" stroke="${dk}" stroke-opacity=".35"/>${g}</svg>`;
 }
 const BORDER=[0,1,2,5,8,7,6,3];
 const fkey=f=>{if(f.sh==='poly'){const per=360/f.n,m=Math.round((((f.rot%per)+per)%per)*10)/10;return 'p'+f.n+'|'+m+'|'+f.fill}return JSON.stringify(f)};
 function uniqFigs(correct,cands,r){const seen=new Set([fkey(correct)]),out=[];for(const c of cands){const k=fkey(c);if(seen.has(k))continue;seen.add(k);out.push(c);if(out.length===4)break}return out}
-function genSpat(r,hard){
- const fam=hard?r.pick([4,4,6,7]):r.int(0,5);let seq,ok,cand,rule;
+function genSpatOld(r,hard,only){
+ const fam=only!=null?only:hard?r.pick([4,6,7]):r.pick([1,2,3,5]);let seq,ok,cand,rule;
  if(fam===0){const s=r.pick([45,90,135]),d=r.pick([1,-1]),r0=r.int(0,7)*45,R=i=>((r0+d*s*i)%360+360)%360,F=rot=>({sh:'arrow',rot:((rot%360)+360)%360,fill:1});
   seq=[F(R(0)),F(R(1)),F(R(2))];ok=F(R(3));cand=[F(R(2)),F(R(4)),F(R(3)+45),F(R(3)-45),F(R(3)+90),F(R(3)+180),F(R(1))];
   rule=`La flèche tourne de ${s}° ${d>0?'dans le sens des aiguilles d\'une montre':'dans le sens inverse'} à chaque case.`}
@@ -143,3 +150,63 @@ function genSpat(r,hard){
  return {q:'Trois figures se suivent selon une règle. Quelle figure doit remplacer le point d\'interrogation ?',fig:seq.map(figSvg),o:[ok,...dis].map(figSvg),a:0,osvg:true,
   e:rule+' La réponse est la seule figure qui respecte la règle.'};
 }
+
+/* ---- multi-rule series and 3x3 matrices: each attribute (form, position, fill, size, rotation) follows its own rule ---- */
+const GN={circle:'cercle',square:'carré',tri:'triangle',diamond:'losange',cross:'croix',semi:'demi-disque'};
+const PN=['en haut à gauche','en haut au centre','en haut à droite','au milieu à gauche','au centre','au milieu à droite','en bas à gauche','en bas au centre','en bas à droite'];
+const FN=['vide','plein','grisé'];
+const FG=o=>({sh:'g',g:o.g||'circle',pos:o.pos==null?4:o.pos,fill:o.fill==null?1:o.fill,sz:o.sz||2,rot:o.rot||0});
+const GALL=['circle','square','tri','diamond','cross'];
+function chForm(r){const pl=r.shuf(GALL),p=r.pick([2,3]),v=pl.slice(0,p);
+ return {k:'g',p,val:i=>v[i%p],alt:i=>pl.filter(x=>x!==v[i%p]),
+  txt:p===2?`La forme alterne entre ${GN[v[0]]} et ${GN[v[1]]}.`:`La forme suit le cycle ${v.map(x=>GN[x]).join(' → ')}, puis recommence.`}}
+function chPos(r){
+ if(r.int(0,2)===0){const pr=r.pick([[0,8],[2,6],[1,7],[3,5],[0,2],[6,8]]);
+  return {k:'pos',p:2,val:i=>pr[i%2],alt:i=>{const v=pr[i%2];return [4,pr[(i+1)%2],BORDER[(BORDER.indexOf(v)+1)%8],BORDER[(BORDER.indexOf(v)+7)%8]].filter(x=>x!==v)},
+   txt:`La position alterne entre ${PN[pr[0]]} et ${PN[pr[1]]}.`}}
+ const k=r.pick([1,2,3]),i0=r.int(0,7),P=i=>BORDER[(((i0+k*i)%8)+8)%8];
+ return {k:'pos',p:0,val:P,alt:i=>[BORDER[((i0+k*i+1)%8+8)%8],BORDER[((i0+k*i-1)%8+8)%8],P(i-1),4].filter(x=>x!==P(i)),
+  txt:`La figure avance de ${k} case${k>1?'s':''} sur le bord, dans le sens des aiguilles d'une montre, à chaque étape.`}}
+function chFill(r){
+ if(r.int(0,1)){const a=r.int(0,1),v=[a?1:0,a?0:1];return {k:'fill',p:2,val:i=>v[i%2],alt:i=>[2,v[(i+1)%2]].filter(x=>x!==v[i%2]),txt:`Le remplissage alterne : ${FN[v[0]]}, ${FN[v[1]]}, ${FN[v[0]]}...`}}
+ const base=r.pick([[0,2,1],[2,1,0],[1,0,2]]);return {k:'fill',p:3,val:i=>base[i%3],alt:i=>[0,1,2].filter(x=>x!==base[i%3]),txt:`Le remplissage suit le cycle ${base.map(x=>FN[x]).join(' → ')}, puis recommence.`}}
+function chSize(r){
+ if(r.int(0,1)){const v=r.pick([[1,3],[3,1],[1,2],[2,3]]);return {k:'sz',p:2,val:i=>v[i%2],alt:i=>[1,2,3].filter(x=>x!==v[i%2]),txt:`La taille alterne entre ${['','petite','moyenne','grande'][v[0]]} et ${['','petite','moyenne','grande'][v[1]]}.`}}
+ const v=r.pick([[1,2,3],[3,2,1],[2,3,1],[2,1,3]]);return {k:'sz',p:3,val:i=>v[i%3],alt:i=>[1,2,3].filter(x=>x!==v[i%3]),txt:`La taille suit le cycle ${v.map(x=>['','petite','moyenne','grande'][x]).join(' → ')}, puis recommence.`}}
+function chRot(r){const g=r.pick(['tri','semi']),st=r.pick([90,-90,45,-45]),r0=r.int(0,3)*90,R=i=>(((r0+st*i)%360)+360)%360;
+ return {k:'rot',p:0,g,val:R,alt:i=>[R(i)+90,R(i)-90,R(i)+180,R(i-1),R(i)+45,R(i)-45].map(x=>((x%360)+360)%360).filter(x=>x!==R(i)),
+  txt:`La figure (${GN[g]}) tourne de ${Math.abs(st)}° ${st>0?'dans le sens des aiguilles d\'une montre':'dans le sens inverse'} à chaque étape.`}}
+function chFig(chs,i){const o={};chs.forEach(c=>{o[c.k]=c.val(i);if(c.g)o.g=c.g});return FG(o)}
+function genMulti(r,hard){
+ const pool=r.shuf(['g','pos','fill','size','rot']).filter((x,i,a)=>true);let ks=[];
+ const want=hard?3:2;for(const k of pool){if(k==='rot'&&ks.includes('g'))continue;if(k==='g'&&ks.includes('rot'))continue;ks.push(k);if(ks.length===want)break}
+ const mk={g:chForm,pos:chPos,fill:chFill,size:chSize,rot:chRot},chs=ks.map(k=>mk[k](r));
+ const n=hard||chs.some(c=>c.p===3)?4:3,seq=[];for(let i=0;i<n;i++)seq.push(chFig(chs,i));
+ const ok=chFig(chs,n),cand=[];
+ for(let t=0;t<3;t++)chs.forEach(c=>{const al=c.alt(n);const a=al[t%al.length];if(a==null)return;const o={};chs.forEach(d=>{o[d.k]=d===c?a:d.val(n);if(d.g)o.g=d.g});cand.push(FG(o))});
+ if(chs.length>1)chs.forEach(c=>{const d=chs[(chs.indexOf(c)+1)%chs.length];const a=c.alt(n)[0],b=d.alt(n)[0];if(a==null||b==null)return;const o={};chs.forEach(e=>{o[e.k]=e===c?a:e===d?b:e.val(n);if(e.g)o.g=e.g});cand.push(FG(o))});
+ const dis=uniqFigs(ok,cand,r);if(dis.length<4)return null;
+ return {q:`Des figures se suivent selon plusieurs règles à la fois. Quelle figure doit remplacer le point d'interrogation ?`,fig:seq.map(figSvg),o:[ok,...dis.slice(0,4)].map(figSvg),a:0,osvg:true,
+  e:`Il y a ${chs.length} règles indépendantes. ${chs.map((c,i)=>(i+1)+') '+c.txt).join(' ')} Une seule figure les respecte toutes ; chaque autre proposition en viole au moins une.`}}
+function genMat(r,hard){
+ const sh=r.shuf(GALL).slice(0,3),fl=r.pick([[0,2,1],[1,0,2],[2,1,0]]),sz=r.pick([[1,2,3],[3,1,2]]),a=r.pick([[1,1],[1,2]]),b=hard?(a[1]===1?[1,2]:[1,1]):null;
+ const cell=(i,j)=>FG({g:sh[(a[0]*i+a[1]*j)%3],fill:hard?fl[(b[0]*i+b[1]*j)%3]:fl[i],sz:hard?sz[j]:2});
+ const all=[];for(let i=0;i<3;i++)for(let j=0;j<3;j++)all.push(cell(i,j));
+ const ok=all[8],seq=all.slice(0,8),cand=[];
+ const ofs=(arr,v)=>arr.filter(x=>x!==v);
+ const m=(o)=>FG(Object.assign({},ok,o));
+ ofs(sh,ok.g).forEach(g=>cand.push(m({g})));ofs([0,1,2],ok.fill).forEach(f=>cand.push(m({fill:f})));
+ if(hard)ofs([1,2,3],ok.sz).forEach(z=>cand.push(m({sz:z})));
+ ofs(sh,ok.g).forEach(g=>cand.push(m({g,fill:ofs([0,1,2],ok.fill)[0]})));
+ const dis=uniqFigs(ok,cand,r);if(dis.length<4)return null;
+ const sName=['','petite','moyenne','grande'];
+ const e=hard?`Chaque ligne et chaque colonne contient les trois formes (${sh.map(x=>GN[x]).join(', ')}) une seule fois, et aussi les trois remplissages (${FN.join(', ')}) une seule fois ; la taille dépend de la colonne (${[0,1,2].map(j=>sName[sz[j]]).join(', ')}). La case manquante est donc : ${GN[ok.g]} ${FN[ok.fill]}, de taille ${sName[ok.sz]}.`
+  :`Chaque ligne et chaque colonne contient les trois formes (${sh.map(x=>GN[x]).join(', ')}) une seule fois, et le remplissage est identique dans toute une ligne (${[0,1,2].map(i=>FN[fl[i]]).join(', ')}). La case manquante est donc : ${GN[ok.g]} ${FN[ok.fill]}.`;
+ return {q:`Dans ce tableau 3×3, quelle figure doit remplacer le point d'interrogation (dernière case) ?`,fig:seq.map(figSvg),o:[ok,...dis.slice(0,4)].map(figSvg),a:0,osvg:true,e,mx:true}}
+function genSpat(r,hard){
+ for(let t=0;t<8;t++){
+  const x=r.int(0,99);let q=null;
+  if(hard){if(x<45)q=genMulti(r,true);else if(x<80)q=genMat(r,true);else q=genSpatOld(r,true)}
+  else{if(x<50)q=genMulti(r,false);else if(x<82)q=genMat(r,false);else q=genSpatOld(r,false)}
+  if(q)return q}
+ return genSpatOld(r,hard)}
