@@ -150,8 +150,8 @@ function tmPick(sec,n,seed){
 let TMR=null,TMTAB='train',TMLEN=15,TMRELAX=false,TMOPEN=null,TMHARD=false;
 try{TMHARD=localStorage.getItem('lu-tm-hard')==='1'}catch(e){}
 const TMRK='lu-tm-run';
-function tmSaveRun(){try{if(TMR&&!TMR.saved)localStorage.setItem(TMRK,JSON.stringify(TMR));else localStorage.removeItem(TMRK)}catch(e){}}
-function tmLoadRun(){try{const r=JSON.parse(localStorage.getItem(TMRK)||'null');if(r&&!r.done)TMR=r}catch(e){}}
+function tmSaveRun(){try{const c=TMR&&!TMR.done&&tmCur();if(c&&c.t0&&!c.paused)c.hb=Date.now();if(TMR&&!TMR.saved)localStorage.setItem(TMRK,JSON.stringify(TMR));else localStorage.removeItem(TMRK)}catch(e){}}
+function tmLoadRun(){try{const r=JSON.parse(localStorage.getItem(TMRK)||'null');if(r&&!r.done){TMR=r;const c=r.secs[r.si];if(c&&c.t0&&!c.paused)c.paused=c.hb||Date.now()}}catch(e){}}
 function tmStart(kind,secs,n,relax,custom){
  const id='r'+Date.now(),seed=id;
  const S_=secs.map(k=>({k,qs:custom?custom:tmPick(k,n,seed),ans:[],t0:null,end:null,limit:kind==='mock'?1200:(relax?0:n*80)}));
@@ -160,26 +160,28 @@ function tmStart(kind,secs,n,relax,custom){
  tmSaveRun();
 }
 const tmCur=()=>TMR&&TMR.secs[TMR.si];
-function tmRemain(){const s=tmCur();if(!s||!s.t0)return null;return s.limit?s.limit-(Date.now()-s.t0)/1000:(Date.now()-s.t0)/1000}
+function tmRemain(){const s=tmCur();if(!s||!s.t0)return null;const el=((s.paused||Date.now())-s.t0-(s.pms||0))/1000;return s.limit?s.limit-el:el}
 function tmFinishSection(auto){
  const s=tmCur();s.end=Date.now();
  if(TMR.si<TMR.secs.length-1){TMR.si++;TMR.qi=0}else tmComplete();
  tmSaveRun();render();window.scrollTo(0,0);
 }
-function tmComplete(){
+function tmComplete(partial){
  TMR.done=true;if(TMR.saved)return;TMR.saved=true;
  const T=tmT(),now=Date.now(),res={};let ok=0,n=0;
  TMR.secs.forEach(s=>{
-  const g=res[s.k]||(res[s.k]={ok:0,n:0,t:0});g.t+=Math.round(((s.end||now)-(s.t0||now))/1000);
-  s.qs.forEach((q,i)=>{const a=s.ans[i],r=res[q.s]||(res[q.s]={ok:0,n:0,t:0});r.n++;n++;
+  const g=res[s.k]||(res[s.k]={ok:0,n:0,t:0});g.t+=Math.max(0,Math.round(((s.end||s.paused||now)-(s.t0||now)-(s.pms||0))/1000));
+  s.qs.forEach((q,i)=>{const a=s.ans[i];if(partial&&a==null)return;const r=res[q.s]||(res[q.s]={ok:0,n:0,t:0});r.n++;n++;
    if(!q.gen&&!String(q.id).startsWith('g:'))T.seen[q.id]=now;
    if(a===q.a){r.ok++;ok++;const m=T.mist[q.id];if(m){m.streak=(m.streak||0)+1;if(m.streak>=2){delete T.mist[q.id];T.cleared[q.id]=now;T.fixed=(T.fixed||0)+1}}}
    else if(a!=null){const m=T.mist[q.id]||{};T.mist[q.id]={s:q.s,q:q.q,o:q.o,a:q.a,e:q.e,x:q.x||'',fixed:!!q.fixed,grid:q.grid||null,fig:q.fig||null,osvg:!!q.osvg,ts:now,n:(m.n||0)+1,streak:0}}
   })});
+ Object.keys(res).forEach(k=>{if(!res[k].n)delete res[k]});
  const rec={id:TMR.id,ts:now,kind:TMR.kind,relax:TMR.relax,secs:res,ok,n};
+ if(partial)rec.partial=1;
  if(TMR.hard)rec.hard=1;
  if(TMR.review)rec.review=1;
- if(TMR.kind==='mock')rec.score=Math.round(ok/n*600);
+ if(TMR.kind==='mock'&&!partial)rec.score=Math.round(ok/n*600);
  T.att.push(rec);TMR.rec=rec;save();
 }
 function tmAnswer(i){
@@ -190,13 +192,13 @@ function tmAnswer(i){
 
 /* ---- views ---- */
 const tmAcc=sec=>{let ok=0,n=0;tmT().att.forEach(a=>{const r=a.secs[sec];if(r){ok+=r.ok;n+=r.n}});return {ok,n,p:n?ok/n:null}};
-const tmMocks=()=>tmT().att.filter(a=>a.kind==='mock');
+const tmMocks=()=>tmT().att.filter(a=>a.kind==='mock'&&!a.partial);
 const tmWeekStart=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()};
 function tmNextSub(){const d=tmDays('j')>=0?tmDays('j'):tmDays('n');return d>=0?'J-'+d+' to the next sitting':'Set your test dates'}
 const tmBar=(p,c)=>`<div class="tmb"><i style="width:${Math.round((p||0)*100)}%;background:${c}"></i></div>`;
 function tmPlan(){
  const nextK=tmDays('j')>=0?'j':'n',days=tmDays(nextK),wk=Math.max(0,Math.ceil(days/7));
- const ws=tmWeekStart(),att=tmT().att.filter(a=>a.ts>=ws),dr=att.filter(a=>a.kind==='drill').length,mk=att.filter(a=>a.kind==='mock').length;
+ const ws=tmWeekStart(),att=tmT().att.filter(a=>a.ts>=ws),dr=att.filter(a=>a.kind==='drill').length,mk=att.filter(a=>a.kind==='mock'&&!a.partial).length;
  let ph,drT,mkT,rvT,txt;
  if(days<0){return `<div class="card"><h3>Study plan</h3><p class="mute" style="margin-top:8px">Both sittings are in the past. Update the dates on the Train tab.</p></div>`}
  if(wk>16){ph='Foundation';drT=3;mkT=0;rvT=1;txt='Learn the formats and fix basics. One drill per section type, slowly. No mock yet unless you want a baseline.'}
@@ -243,7 +245,7 @@ function tmHist(){
  const m=tmMocks(),H=70,max=600;
  const chart=m.length>1?`<div class="card" style="margin-bottom:14px"><div class="card-h"><h3>Mock scores</h3><span class="mute small">/600, indicative</span></div><div class="tmh">${m.slice(-12).map(a=>`<div style="height:${Math.max(4,a.score/max*H)}px" title="${a.score}"><b>${a.score}</b></div>`).join('')}</div></div>`:'';
  return chart+`<div class="grp">${A.slice(0,40).map(a=>{const d=new Date(a.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'}),s=(a.kind==='mock'?'Full mock':(TMK[Object.keys(a.secs)[0]]||{n:'Drill'}).n+(a.review?' · mistakes':''))+(a.hard?' · hard':'');
-  return `<div class="cell"><span class="t"><b>${s}</b><span>${d} · ${a.ok}/${a.n} right${a.kind==='mock'?' · '+a.score+'/600':''}</span></span><span class="badge ${a.ok/a.n>=.7?'green':a.ok/a.n>=.5?'blue':'red'}">${Math.round(a.ok/a.n*100)} %</span></div>`}).join('')}</div>`;
+  return `<div class="cell"><span class="t"><b>${s}</b><span>${d} · ${a.ok}/${a.n} right${a.score!=null?' · '+a.score+'/600':''}${a.partial?' · stopped early':''}</span></span><span class="badge ${a.ok/a.n>=.7?'green':a.ok/a.n>=.5?'blue':'red'}">${Math.round(a.ok/a.n*100)} %</span></div>`}).join('')}</div>`;
 }
 function vTage(){
  const tabs=[['train','Train'],['plan','Plan'],['mist','Mistakes'+(Object.keys(tmT().mist).length?' ('+Object.keys(tmT().mist).length+')':'')],['hist','History']];
@@ -272,6 +274,13 @@ function vTmRun(){
   <div style="margin-top:16px"><button class="btn" data-act="tmbegin">Start the subtest</button></div>
   <div style="margin-top:10px"><button class="btn red" data-act="tmquit">Abandon the mock</button></div></div>`;
  }
+ if(s.paused){const done=s.ans.filter(x=>x!=null).length;
+  return `<div class="view">${navbar('')}${title(sec.n,'Paused')}
+  <div class="card" style="margin-top:12px"><p>${done} of ${s.qs.length} answered in this subtest.${s.limit?' Time left: '+fmtMS(tmRemain())+'. The clock is stopped.':' The clock is stopped.'}</p></div>
+  <div style="margin-top:16px"><button class="btn" data-act="tmunpause">${ic('play')} Resume</button></div>
+  <div style="margin-top:10px"><button class="btn gray" data-act="tmstop">Stop and save my answers</button></div>
+  <div style="margin-top:10px"><button class="btn red" data-act="tmquit">Discard this run</button></div>
+  <div class="sf">Stopping early keeps the questions you answered in your progress and mistake notebook. Unanswered ones are not counted.</div></div>`}
  const i=TMR.qi,q=s.qs[i],a=s.ans[i],lock=TMR.relax&&a!=null;
  const rem=tmRemain();
  const dots=s.qs.map((_,k)=>`<button class="tmd2 ${k===i?'cur':''} ${s.ans[k]!=null?'got':''}" data-act="tmgo" data-i="${k}">${k+1}</button>`).join('');
@@ -284,14 +293,14 @@ function vTmRun(){
  <p class="tmq">${esc(q.q)}</p>${tmExtra(q)}<div class="${q.osvg?'tmos tmosv':'tmos'}">${opts}</div>
  ${lock?`<div class="card tmexp"><b>${a===q.a?'Correct.':'Not quite.'}</b> ${esc(q.e||'')}</div>`:''}
  <div class="tmnav"><button class="btn gray" data-act="tmprev" ${i?'':'disabled'}>Previous</button>${last?`<button class="btn" data-act="tmend">${TMR.kind==='mock'?'Finish subtest':'Finish'}</button>`:`<button class="btn" data-act="tmnext">Next</button>`}</div>
- <div style="margin-top:12px"><button class="btn red" data-act="tmquit">Abandon</button></div></div>`;
+ <div class="tmnav" style="margin-top:12px"><button class="btn gray" data-act="tmpause">Pause</button><button class="btn gray" data-act="tmstop">Stop and save</button></div></div>`;
 }
 function tmResults(){
  const r=TMR.rec,T=tmT();
  const rows=Object.keys(r.secs).map(k=>{const x=r.secs[k],sec=TMK[k];return `<div class="cell has-ico"><span class="sq" style="--c:${sec.c}">${ic(sec.i)}</span><span class="t"><b>${sec.n}</b><span>${x.ok}/${x.n} right · ${Math.floor(x.t/60)} min ${x.t%60} s</span>${tmBar(x.ok/x.n,sec.c)}</span><span class="badge ${x.ok/x.n>=.7?'green':x.ok/x.n>=.5?'blue':'red'}">${Math.round(x.ok/x.n*100)} %</span></div>`}).join('');
- const wrong=[],shownX=new Set();TMR.secs.forEach(s=>s.qs.forEach((q,i)=>{if(s.ans[i]!==q.a)wrong.push([q,s.ans[i]])}));
+ const wrong=[],shownX=new Set();TMR.secs.forEach(s=>s.qs.forEach((q,i)=>{if(s.ans[i]!==q.a&&!(TMR.rec.partial&&s.ans[i]==null))wrong.push([q,s.ans[i]])}));
  const rev=wrong.map(([q,a])=>{const px=q.x&&!shownX.has(q.x);if(q.x)shownX.add(q.x);return `<div class="tmm"><div class="tmx">${px?`<p class="tmp">${esc(q.x)}</p>`:q.x?`<p class="tmp">${esc(q.x.slice(0,70))}…</p>`:''}<p style="white-space:pre-line"><b>${esc(q.q)}</b></p>${tmExtra(q)}<p class="tmbad">${a==null?'No answer':'Your answer: '+tmOptH(q,a)}</p><p class="tmok"><b>Answer:</b> ${tmOptH(q,q.a)}</p><p class="mute small">${esc(q.e||'')}</p></div></div>`}).join('');
- return `<div class="view">${navbar('')}${title(TMR.kind==='mock'?'Mock result':'Drill result',r.ok+' of '+r.n+' right')}
+ return `<div class="view">${navbar('')}${title(r.partial?'Saved · stopped early':TMR.kind==='mock'?'Mock result':'Drill result',r.ok+' of '+r.n+(r.partial?' answered right':' right'))}
  <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${Math.round(r.ok/r.n*100)} %</b><span>accuracy</span></div>${r.score!=null?`<div class="stat"><b>${r.score}</b><span>/600 indicative</span></div>`:''}<div class="stat"><b>${wrong.length}</b><span>to review</span></div></div>
  <div class="grp">${rows}</div>
  <div style="margin-top:16px"><button class="btn" data-act="tmdone">Back to Tage Mage</button></div>
@@ -300,8 +309,9 @@ function tmResults(){
 
 /* ---- actions ---- */
 function tmTick(){
+ if(TMR&&!TMR.done&&view!=='tmrun'){const c=tmCur();if(c&&c.t0&&!c.paused){c.paused=Date.now();tmSaveRun()}return}
  if(!TMR||TMR.done||view!=='tmrun')return;
- const s=tmCur();if(!s||!s.t0)return;
+ const s=tmCur();if(!s||!s.t0||s.paused)return;
  const rem=tmRemain(),el=document.getElementById('tmtimer');
  if(el)el.textContent=fmtMS(rem);
  if(s.limit&&rem<=0)tmFinishSection(true);
@@ -323,6 +333,12 @@ Object.assign(A,{
  tmprev(){if(TMR.qi>0){TMR.qi--;tmSaveRun();render();window.scrollTo(0,0)}},
  tmgo(el){TMR.qi=+el.dataset.i;tmSaveRun();render();window.scrollTo(0,0)},
  tmend(){const s=tmCur(),un=s.qs.filter((_,i)=>s.ans[i]==null).length;if(un&&!confirm(un+' question'+(un===1?' is':'s are')+' unanswered. Finish anyway?'))return;tmFinishSection(false)},
+ tmpause(){const s=tmCur();if(s&&s.t0&&!s.paused){s.paused=Date.now();tmSaveRun();render();window.scrollTo(0,0)}},
+ tmunpause(){const s=tmCur();if(s&&s.paused){s.pms=(s.pms||0)+Date.now()-s.paused;s.paused=null;tmSaveRun();render();window.scrollTo(0,0)}},
+ tmstop(){const s=tmCur(),any=TMR.secs.some(x=>x.ans.some(a=>a!=null));
+  if(!any){if(!confirm('No question answered yet, so there is nothing to save. Discard this run?'))return;TMR=null;tmSaveRun();view='tage';hist=[['hub',null]];render();window.scrollTo(0,0);return}
+  if(!confirm('Stop now and save the questions you answered?'))return;
+  const c=tmCur();if(c&&!c.end)c.end=c.paused||Date.now();tmComplete(true);tmSaveRun();render();window.scrollTo(0,0)},
  tmquit(){if(!confirm('Abandon this run? Nothing will be saved.'))return;TMR=null;tmSaveRun();view='tage';hist=[['hub',null]];render();window.scrollTo(0,0)},
  tmdone(){TMR=null;tmSaveRun();view='tage';hist=[['hub',null]];render();window.scrollTo(0,0)},
  tmopen(el){TMOPEN=TMOPEN===el.dataset.id?null:el.dataset.id;render()},
