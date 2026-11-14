@@ -545,3 +545,14 @@ html{overscroll-behavior:none}
 .tmosv .tmo .tmfig{max-width:84px;margin:0 auto}
 .tmosv .tmo b{flex:none;width:26px;height:26px;align-self:center}
 .tmx .tmgc:not(.e):not(.qm){background:var(--fill)}
+
+.wtopic{flex:1;width:100%;box-sizing:border-box;font:inherit;font-size:17px;line-height:1.35;color:var(--label);background:transparent;border:0;outline:0;resize:none;padding:2px 0;white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden}
+.tmseq.tmn4{grid-template-columns:repeat(5,1fr);gap:4px}.tmseq.tmn8{grid-template-columns:repeat(3,1fr);max-width:260px;margin-left:auto;margin-right:auto}
+.mfig{margin:14px 0 6px;background:var(--card);border-radius:14px;padding:10px 8px 8px}
+.mfig .mfp{display:block}.mfig .mfp.g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mfig .mfp .mfs+.mfs{margin-top:6px}.mfig .mfp.g2 .mfs+.mfs{margin-top:0}
+.mfs{width:100%;height:auto;display:block;max-width:440px;margin:0 auto;color:var(--label)}
+.mfs{fill:var(--label)}
+.mfs text{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;font-size:11px;paint-order:stroke;stroke:var(--card);stroke-width:3.2px;stroke-linejoin:round}
+.mfs .ax{stroke:var(--l2);fill:none;stroke-width:1.4}.mfs .gd{stroke:var(--l3);stroke-width:1;stroke-dasharray:3 3}
+.mfig figcaption{font-size:13px;line-height:1.4;color:var(--l2);margin:8px 6px 2px}

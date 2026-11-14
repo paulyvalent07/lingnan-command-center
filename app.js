@@ -51,6 +51,7 @@ const IC={
  calc:'<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01" stroke-width="2.4"/>',
  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
  trend:'<path d="M3.5 17l5.5-6 4 4 7-8M15.5 7H20.5V12"/>',
+ bulb:'<path d="M9.5 18h5M10.5 21h3M12 3.2a6 6 0 0 0-3.7 10.7c.4.3.7.8.7 1.3V16h6v-.8c0-.5.3-1 .7-1.3A6 6 0 0 0 12 3.2z"/>',
  people:'<circle cx="9" cy="8.5" r="3"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 5.8a3 3 0 010 5.4M18.5 14c1.6.7 2.5 2.3 2.5 4.5"/>',
  flame:'<path d="M12 3c1 3.5 5.5 5.5 5.5 10.2a5.5 5.5 0 01-11 0c0-2.2 1-3.4 2.2-4.4.2 1.4.9 2.2 2 2.4-.6-3 0-5.2 1.3-8.2z"/>',
  redo:'<path d="M20 12a8 8 0 11-2.4-5.7M20 4v4.6h-4.6"/>',
@@ -91,7 +92,7 @@ function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','crit'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -175,16 +176,16 @@ function pickItems(cid){
 /* ---------- content from the Word files ---------- */
 function courseDoc(cid){return (typeof CONTENT!=='undefined'&&CONTENT.courses&&CONTENT.courses[cid])||null}
 function blocksHtml(arr,ctx){
- let out='',ul=false,ti=0;
+ let out='',ul=false,ti=0,pend='';
  for(const b of arr){
   if(b.t!=='li'&&ul){out+='</ul>';ul=false}
-  if(b.t==='h')out+=b.l<=2?`<h4>${md(b.x)}</h4>`:`<h5>${md(b.x)}</h5>`;
+  if(b.t==='h'){out+=pend;pend=ctx&&ctx.course&&typeof mfFor==='function'?mfFor(ctx.course,ctx.num,b.x):'';out+=b.l<=2?`<h4>${md(b.x)}</h4>`:`<h5>${md(b.x)}</h5>`}
   else if(b.t==='p')out+=`<p>${md(b.x)}</p>`;
   else if(b.t==='li'){if(!ul){out+='<ul>';ul=true}out+=`<li>${md(b.x)}</li>`}
   else if(b.t==='a')out+=`<details><summary>Show answer</summary>${String(b.x).split('\n').map(s=>`<p>${md(s)}</p>`).join('')}</details>`;
   else if(b.t==='table'){out+=`<div class="tw"><table>${b.rows.map(r=>`<tr>${r.map(c=>`<td>${md(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;ti++}
  }
- return out+(ul?'</ul>':'');
+ return out+(ul?'</ul>':'')+pend;
 }
 function syncLine(cid){
  const d=courseDoc(cid);
@@ -196,7 +197,7 @@ function lessonBody(l){
  const d=courseDoc(l.course),doc=d&&d.lessons&&d.lessons[l.num];
  const todo=l.L.map(p=>`<div class="cell"><button class="chk green ${S.planDone[p.id]?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Done">${ic('check')}</button><span class="t"><b>${esc(p.title)}</b><span>${whenLabel(p.date)}${mastTxt(p.id)}</span></span></div>`).join('');
  const hasEx=l.E.length||(doc&&doc.ex&&doc.ex.length),nxt=hasEx&&l.L.some(p=>S.planDone[p.id])?`<div class="nxtrow"><button class="nxt" data-act="goex">Exercises ${ic('chev','')}</button></div>`:'';
- if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes'})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>${nxt}`;
+ if(doc&&doc.notes&&doc.notes.length)return `<div class="doc">${blocksHtml(doc.notes,{lid:l.id,k:'notes',course:l.course,num:l.num})}</div><div class="sh">Study blocks</div><div class="grp">${todo}</div>${nxt}`;
  return `<div class="empty">${ic('doc')}<b>Lesson text not synced yet</b>The synthesis for this lesson will appear here from ${esc(d&&d.file||'your Word file')} after the next sync.</div>
  <div class="sh">Study blocks</div><div class="grp">${todo||'<div class="cell"><span class="t mute">No study block planned.</span></div>'}</div>`;
 }
@@ -453,6 +454,7 @@ function vHub(){
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="tage"','#e11d48','target','Tage Mage',typeof tmNextSub==='function'?tmNextSub():'Test prep')}
  ${tile('button','data-act="open" data-v="deb"','#0f766e','people','Daily debate',typeof debStreak==='function'?(debStreak()?debStreak()+' day streak':'Think harder'):'Think harder')}
+ ${tile('button','data-act="open" data-v="crit"','#7c3aed','bulb','Critical thinking',typeof ctMistakes==='function'?(ctMistakes()?ctMistakes()+' to redo':'Spot the flaw'):'Spot the flaw')}
  ${tile('button','data-act="open" data-v="wri"','#b45309','pen','Writing',typeof vocDue==='function'?vocDue().length+' words due':'EN · IT · ES')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  <a class="tile" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="--c:#2f6fed"><span class="tq im" id="ankiq"><img src="https://www.google.com/s2/favicons?domain=ankiweb.net&sz=128" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.className='tq';this.parentNode.innerHTML=window.__gridIc"></span><b>Anki</b><span>Open your AnkiWeb decks</span></a>
@@ -646,6 +648,7 @@ function mergeState(r){
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
  o.tage=typeof tmMerge==='function'?tmMerge(older.tage,newer.tage):(newer.tage||older.tage);
  if(typeof pcMerge==='function'){o.deb=pcMerge(older.deb,newer.deb);o.wri=pcMerge(older.wri,newer.wri)}
+ if(typeof ctMerge==='function')o.crit=ctMerge(older.crit,newer.crit);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
  o.deadlines=mergeDl(o.deadlines,o.dlHide);

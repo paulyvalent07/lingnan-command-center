@@ -31,7 +31,7 @@ const wDraft=()=>pcLS('lu-wri-draft')||{kind:'essay',lang:'en',lvl:'B2',course:'
 let dTO=null;
 document.addEventListener('input',e=>{const el=e.target;if(!el.dataset)return;
  if(el.dataset.df){const d=dDraft();d[el.dataset.df]=el.value;pcLS('lu-deb-draft',d)}
- if(el.dataset.wf){const d=wDraft();d[el.dataset.wf]=el.value;pcLS('lu-wri-draft',d);if(el.dataset.wf==='text'){const w=document.getElementById('wcount');if(w)w.textContent=pcWords(el.value)+' words'}}});
+ if(el.dataset.wf){const d=wDraft();d[el.dataset.wf]=el.value;pcLS('lu-wri-draft',d);if(el.dataset.wf==='text'){const w=document.getElementById('wcount');if(w)w.textContent=pcWords(el.value)+' words'}if(el.dataset.wf==='topic'){el.style.height='auto';el.style.height=el.scrollHeight+'px'}}});
 const pcWords=t=>(t.trim().match(/\S+/g)||[]).length;
 
 /* ====================  DEBATE  ==================== */
@@ -99,9 +99,9 @@ function vWri(){
   const isT=w.kind!=='essay';
   body=`<div class="stack" style="margin-bottom:8px">${seg(WRI_KINDS,w.kind,'wrikind')}</div>
   <div class="stack" style="margin-bottom:8px">${seg([['en','English'],['it','Italian'],['es','Spanish']],w.lang,'wrilang')}${seg([['B1','B1'],['B2','B2'],['C1','C1']],w.lvl,'wrilvl')}</div>
-  <div class="grp fgrp" style="margin-top:12px"><div class="cell"><input type="text" data-wf="topic" value="${esc(w.topic||'')}" placeholder="${w.kind==='essay'?'Essay question':'Theme (optional)'}" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div>
-  <button class="cell has-ico" data-act="writopic"><span class="sq" style="--c:var(--accent)">${ic('redo')}</span><span class="t"><b>Pick a topic from my courses</b><span>${esc((COURSES.find(c=>c.id===w.course)||COURSES[0]).short)} · tap again for another · long list in Courses</span></span></button></div>
-  <div class="chips" style="margin-top:8px">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}</div>
+  <div class="grp fgrp" style="margin-top:12px"><div class="cell"><textarea class="wtopic" data-wf="topic" rows="${Math.max(2,Math.min(8,Math.ceil((w.topic||'').length/32)))}" placeholder="${w.kind==='essay'?'Essay question (tap the button below for one)':'Theme (optional)'}">${esc(w.topic||'')}</textarea></div>
+  <button class="cell has-ico" data-act="writopic"><span class="sq" style="--c:var(--accent)">${ic('redo')}</span><span class="t"><b>${w.kind==='essay'?'Give me a new essay question':'Pick a theme from my courses'}</b><span>${w.kind==='essay'?(WRIMODE==='time'?'Timeless questions':WRIMODE==='news'?'Linked to the news':'Timeless and news mixed')+' · tap again for another':esc((COURSES.find(c=>c.id===w.course)||COURSES[0]).short)+' · tap again for another'}</span></span></button></div>
+  ${w.kind==='essay'?`<div class="segc" style="margin-top:8px">${[['mix','Mix'],['time','Timeless'],['news','In the news']].map(([k,l])=>`<button class="${WRIMODE===k?'on':''}" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>${w.cat?`<p class="mute small" style="margin:8px 4px 0">${esc(w.cat)}${w.ctx?' · '+esc(w.ctx):''}</p>`:''}`:`<div class="chips" style="margin-top:8px">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}</div>`}
   ${isT?`<div style="margin-top:6px"><button class="btn tint" data-act="wricopy0">${ic('doc')} Copy the prompt that creates the source text</button></div>
   <div class="eyebrow" style="margin:16px 0 6px">Source text (${w.kind==='theme'?'French':wLangName(w.lang)})</div><textarea class="pcta" data-wf="src" rows="6" placeholder="Paste the text Claude gave you here">${esc(w.src||'')}</textarea>`:''}
   <div style="margin-top:14px">${pcTimerHtml('wri')}</div>
@@ -119,13 +119,14 @@ function vWri(){
   `<div class="grp fgrp" style="margin-top:16px"><div class="cell"><input type="text" id="vnew" placeholder="Add a word: term | meaning" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="vocadd"><span class="sq" style="--c:var(--green)">${ic('plus')}</span><span class="t"><b>Add to ${wLangName(w.lang)}</b></span></button></div>`;
  }else{
   const L=[...T.list].reverse();
-  body=L.length?`<div class="grp">${L.map(x=>{const o=WRIOPEN===x.id;return `<div class="tmm"><button class="cell" data-act="wriopen" data-id="${x.id}"><span class="t"><b style="font-size:15px">${x.kind==='essay'?'Essay':x.kind==='theme'?'Thème':'Version'} · ${wLangName(x.lang)} ${x.lvl}</b><span>${new Date(x.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · ${x.words} words${x.score?' · '+esc(x.score)+'/20':''}${x.topic?' · '+esc(x.topic.slice(0,40)):''}</span></span>${ic(o?'chevd':'chev','chev')}</button>
+  body=L.length?`<div class="grp">${L.map(x=>{const o=WRIOPEN===x.id;return `<div class="tmm"><button class="cell" data-act="wriopen" data-id="${x.id}"><span class="t"><b style="font-size:15px;white-space:normal">${x.topic?esc(x.topic):(x.kind==='essay'?'Essay':x.kind==='theme'?'Thème':'Version')}</b><span>${x.kind==='essay'?'Essay':x.kind==='theme'?'Thème':'Version'} · ${wLangName(x.lang)} ${x.lvl}</span><span>${new Date(x.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · ${x.words} words${x.score?' · '+esc(x.score)+'/20':''}${x.topic?' · '+esc(x.topic.slice(0,40)):''}</span></span>${ic(o?'chevd':'chev','chev')}</button>
   ${o?`<div class="tmx">${x.src?`<p class="tmp">${esc(x.src)}</p>`:''}<p style="white-space:pre-line">${esc(x.text)}</p>${x.fb?`<p class="mute small" style="white-space:pre-line">${esc(x.fb)}</p>`:''}<button class="btn red sm" data-act="wridel" data-id="${x.id}">Delete</button></div>`:''}</div>`}).join('')}</div>`:`<div class="empty">Saved exercises will be listed here.</div>`;
  }
  return `<div class="view">${navbar('Hub')}${title('Writing','EN · IT · ES')}${tabs}${body}</div>`;
 }
 
 /* ---- actions ---- */
+let WRIMODE=(()=>{try{return localStorage.getItem('lu-wri-mode')||'mix'}catch(e){return 'mix'}})();
 let DEBTAB='today',DEBOPEN=null,WRITAB='write',WRIOPEN=null,VREV=false;
 const wSet=(k,v)=>{const d=wDraft();d[k]=v;pcLS('lu-wri-draft',d)};
 Object.assign(A,{
@@ -143,7 +144,9 @@ Object.assign(A,{
  wrilang(el){wSet('lang',el.dataset.k);render()},
  wrilvl(el){wSet('lvl',el.dataset.k);render()},
  wricourse(el){wSet('course',el.dataset.id);render()},
- writopic(){const w=wDraft(),t=wriTopic(w.course);if(!t)return;wSet('topic',w.kind==='essay'?'Explain and critically evaluate: '+t+'. Use at least two concepts from the chapter and one real example.':t);render()},
+ writopic(){const w=wDraft();if(w.kind==='essay'){const t=wriPickTopic(WRIMODE,w.topic);const d=wDraft();d.topic=t.q;d.cat=t.c;d.ctx=t.ctx||'';pcLS('lu-wri-draft',d);render();return}
+  const t=wriTopic(w.course);if(!t)return;wSet('topic',t);render()},
+ wrimode(el){WRIMODE=el.dataset.k;try{localStorage.setItem('lu-wri-mode',WRIMODE)}catch(e){}render()},
  wricopy0(el){pcCopy(wriPassagePrompt(wDraft()),el)},
  wricopy1(el){const w=wDraft();if(!(w.text||'').trim()){alert('Write something first.');return}pcCopy(wriFeedbackPrompt(w),el)},
  wrivocab(){const w=wDraft(),items=wriParseVocab(w.fb||'',w.lang),T=wriT();let n=0;
