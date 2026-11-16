@@ -278,9 +278,10 @@ function vTmRun(){
   return `<div class="view">${navbar('')}${title(sec.n,'Paused')}
   <div class="card" style="margin-top:12px"><p>${done} of ${s.qs.length} answered in this subtest.${s.limit?' Time left: '+fmtMS(tmRemain())+'. The clock is stopped.':' The clock is stopped.'}</p></div>
   <div style="margin-top:16px"><button class="btn" data-act="tmunpause">${ic('play')} Resume</button></div>
-  <div style="margin-top:10px"><button class="btn gray" data-act="tmstop">Stop and save my answers</button></div>
+  <div style="margin-top:10px"><button class="btn gray" data-act="tmlater">Save for later</button></div>
+  <div style="margin-top:10px"><button class="btn gray" data-act="tmstop">End now and save my answers</button></div>
   <div style="margin-top:10px"><button class="btn red" data-act="tmquit">Discard this run</button></div>
-  <div class="sf">Stopping early keeps the questions you answered in your progress and mistake notebook. Unanswered ones are not counted.</div></div>`}
+  <div class="sf">Save for later keeps this run exactly as it is: come back through the Resume button on the Train tab. End now closes the run for good: the questions you answered go to your progress and mistake notebook, and you can redo the unanswered ones from the result screen.</div></div>`}
  const i=TMR.qi,q=s.qs[i],a=s.ans[i],lock=TMR.relax&&a!=null;
  const rem=tmRemain();
  const dots=s.qs.map((_,k)=>`<button class="tmd2 ${k===i?'cur':''} ${s.ans[k]!=null?'got':''}" data-act="tmgo" data-i="${k}">${k+1}</button>`).join('');
@@ -293,7 +294,8 @@ function vTmRun(){
  <p class="tmq">${esc(q.q)}</p>${tmExtra(q)}<div class="${q.osvg?'tmos tmosv':'tmos'}">${opts}</div>
  ${lock?`<div class="card tmexp"><b>${a===q.a?'Correct.':'Not quite.'}</b> ${esc(q.e||'')}</div>`:''}
  <div class="tmnav"><button class="btn gray" data-act="tmprev" ${i?'':'disabled'}>Previous</button>${last?`<button class="btn" data-act="tmend">${TMR.kind==='mock'?'Finish subtest':'Finish'}</button>`:`<button class="btn" data-act="tmnext">Next</button>`}</div>
- <div class="tmnav" style="margin-top:12px"><button class="btn gray" data-act="tmpause">Pause</button><button class="btn gray" data-act="tmstop">Stop and save</button></div></div>`;
+ <div class="tmnav" style="margin-top:12px"><button class="btn gray" data-act="tmpause">Pause</button><button class="btn gray" data-act="tmlater">Save for later</button></div>
+ <div style="margin-top:10px"><button class="btn gray" data-act="tmstop">End now and see results</button></div></div>`;
 }
 function tmResults(){
  const r=TMR.rec,T=tmT();
@@ -303,7 +305,8 @@ function tmResults(){
  return `<div class="view">${navbar('')}${title(r.partial?'Saved · stopped early':TMR.kind==='mock'?'Mock result':'Drill result',r.ok+' of '+r.n+(r.partial?' answered right':' right'))}
  <div class="stats" style="margin:10px 0 14px"><div class="stat"><b>${Math.round(r.ok/r.n*100)} %</b><span>accuracy</span></div>${r.score!=null?`<div class="stat"><b>${r.score}</b><span>/600 indicative</span></div>`:''}<div class="stat"><b>${wrong.length}</b><span>to review</span></div></div>
  <div class="grp">${rows}</div>
- <div style="margin-top:16px"><button class="btn" data-act="tmdone">Back to Tage Mage</button></div>
+ ${r.partial&&TMR.secs.some(s=>s.qs.some((_,i)=>s.ans[i]==null))?`<div style="margin-top:16px"><button class="btn tint" data-act="tmskipped">${ic('redo')} Do the unanswered questions now (${TMR.secs.reduce((a,s)=>a+s.qs.filter((_,i)=>s.ans[i]==null).length,0)})</button></div>`:''}
+ <div style="margin-top:${r.partial?'10':'16'}px"><button class="btn" data-act="tmdone">Back to Tage Mage</button></div>
  ${wrong.length?`<div class="eyebrow" style="margin:20px 0 6px">Mistakes and skipped</div><div class="grp">${rev}</div><div class="sf">Answered wrongly: saved in your notebook (skipped ones are not).</div>`:'<div class="card" style="margin-top:14px"><b>Clean sheet.</b> Nothing to review.</div>'}</div>`;
 }
 
@@ -337,8 +340,10 @@ Object.assign(A,{
  tmunpause(){const s=tmCur();if(s&&s.paused){s.pms=(s.pms||0)+Date.now()-s.paused;s.paused=null;tmSaveRun();render();window.scrollTo(0,0)}},
  tmstop(){const s=tmCur(),any=TMR.secs.some(x=>x.ans.some(a=>a!=null));
   if(!any){if(!confirm('No question answered yet, so there is nothing to save. Discard this run?'))return;TMR=null;tmSaveRun();view='tage';hist=[['hub',null]];render();window.scrollTo(0,0);return}
-  if(!confirm('Stop now and save the questions you answered?'))return;
+  if(!confirm('End this run now? Your answers are saved to your progress and mistakes, but you will not be able to resume it. (To continue later, use Save for later instead.)'))return;
   const c=tmCur();if(c&&!c.end)c.end=c.paused||Date.now();tmComplete(true);tmSaveRun();render();window.scrollTo(0,0)},
+ tmlater(){const c=tmCur();if(c&&c.t0&&!c.paused)c.paused=Date.now();tmSaveRun();view='tage';hist=[['hub',null]];TMTAB='train';render();window.scrollTo(0,0)},
+ tmskipped(){const un=[];TMR.secs.forEach(s=>s.qs.forEach((q,i)=>{if(s.ans[i]==null)un.push(Object.assign({},q))}));if(!un.length)return;const rx=TMR.relax;TMR=null;tmStart('drill',['mix'],un.length,rx,un);TMR.secs[0].k=un[0].s;tmSaveRun();view='tmrun';render();window.scrollTo(0,0)},
  tmquit(){if(!confirm('Abandon this run? Nothing will be saved.'))return;TMR=null;tmSaveRun();view='tage';hist=[['hub',null]];render();window.scrollTo(0,0)},
  tmdone(){TMR=null;tmSaveRun();view='tage';hist=[['hub',null]];render();window.scrollTo(0,0)},
  tmopen(el){TMOPEN=TMOPEN===el.dataset.id?null:el.dataset.id;render()},

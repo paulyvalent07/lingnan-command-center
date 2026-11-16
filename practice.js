@@ -29,9 +29,12 @@ setInterval(()=>{const el=document.getElementById('pctimer');if(!el)return;const
 const dDraft=()=>pcLS('lu-deb-draft')||{};
 const wDraft=()=>pcLS('lu-wri-draft')||{kind:'essay',lang:'en',lvl:'B2',course:'BUS2202'};
 let dTO=null;
+let effLast=0;
+const pcTyped=d=>{const n=Date.now(),g=n-effLast;effLast=n;if(g>0&&g<60000)d.eff=(d.eff||0)+g/1000};
+const pcTimed=k=>{const t=pcLS('lu-pc-timer');if(!t||t.k!==k)return 0;const dur=PCMIN[k]*60;return Math.max(0,Math.min(dur,dur-(t.end-Date.now())/1000))};
 document.addEventListener('input',e=>{const el=e.target;if(!el.dataset)return;
- if(el.dataset.df){const d=dDraft();d[el.dataset.df]=el.value;pcLS('lu-deb-draft',d)}
- if(el.dataset.wf){const d=wDraft();d[el.dataset.wf]=el.value;pcLS('lu-wri-draft',d);if(el.dataset.wf==='text'){const w=document.getElementById('wcount');if(w)w.textContent=pcWords(el.value)+' words'}if(el.dataset.wf==='topic'){el.style.height='auto';el.style.height=el.scrollHeight+'px'}}});
+ if(el.dataset.df){const d=dDraft();d[el.dataset.df]=el.value;pcTyped(d);pcLS('lu-deb-draft',d)}
+ if(el.dataset.wf){const d=wDraft();d[el.dataset.wf]=el.value;if(el.dataset.wf==='text')pcTyped(d);pcLS('lu-wri-draft',d);if(el.dataset.wf==='text'){const w=document.getElementById('wcount');if(w)w.textContent=pcWords(el.value)+' words'}if(el.dataset.wf==='topic'){el.style.height='auto';el.style.height=el.scrollHeight+'px'}}});
 const pcWords=t=>(t.trim().match(/\S+/g)||[]).length;
 
 /* ====================  DEBATE  ==================== */
@@ -79,7 +82,7 @@ function wriPassagePrompt(w){
  const lang=w.kind==='theme'?'French':wLangName(w.lang),tp=w.topic?`on the theme: ${w.topic} (business / economics context)`:'on a business or economics theme';
  return `Write a passage of about 120 words in ${lang}, ${tp}. Level ${w.lvl}. Register: press article or professional report. Include 6 to 8 expressions that are hard to translate (idioms, false friends, subjunctive, set phrases). Output only the text, with no title and no commentary.`}
 function wriFeedbackPrompt(w){
- const L=wLangName(w.lang),end=`End with a block that starts exactly with "VOCAB:" followed by up to 8 lines in the format: term | meaning | short example, taken from my mistakes.`;
+ const L=wLangName(w.lang),end=`End with a block that starts exactly with "VOCAB:" followed by up to 8 lines in the format: term in ${L} | French translation | short example in ${L}, taken from my mistakes. The second column must be the FRENCH translation (not an English definition).`;
  if(w.kind==='essay')return `Act as a ${L} writing tutor (target level ${w.lvl}). Essay question: ${w.topic||'(free topic)'}.\nHere is my essay (${pcWords(w.text||'')} words):\n\n${(w.text||'').trim()}\n\nGive me: 1) an estimated CEFR level; 2) three points of feedback on structure and argument; 3) every language mistake as "my wording → correction (rule)", up to 12; 4) a corrected version; 5) a score out of 20. Be blunt. ${end}`;
  const from=w.kind==='theme'?'French':L,to=w.kind==='theme'?L:'French';
  return `Act as a translation tutor. Here is a ${from} source text and my translation into ${to} (level ${w.lvl}).\n\nSOURCE (${from}):\n${(w.src||'').trim()}\n\nMY TRANSLATION (${to}):\n${(w.text||'').trim()}\n\nGive me: 1) every mistake as "my wording → correction (rule)", including mistranslations, false friends, grammar and register; 2) a model translation; 3) a score out of 20 for accuracy, naturalness and grammar. Be blunt. ${end}`;
@@ -115,7 +118,8 @@ function vWri(){
  }else if(tab==='vocab'){
   const due=vocDue(),cur=due[0];
   body=`<div class="stats" style="margin-bottom:14px"><div class="stat"><b>${due.length}</b><span>due now</span></div><div class="stat"><b>${T.vocab.length}</b><span>words saved</span></div><div class="stat"><b>${['en','it','es'].map(l=>T.vocab.filter(v=>v.lang===l).length).join('·')}</b><span>EN · IT · ES</span></div></div>`+
-  (cur?`<div class="card"><div class="eyebrow">${wLangName(cur.lang)}</div><h3 style="font-size:26px;margin:6px 0 12px">${esc(cur.term)}</h3>${VREV?`<p>${esc(cur.tr)}</p>${cur.note?`<p class="mute small" style="margin-top:6px">${esc(cur.note)}</p>`:''}<div style="display:flex;gap:10px;margin-top:16px"><button class="btn red" data-act="vocko" data-id="${cur.id}">Missed</button><button class="btn" data-act="vocok" data-id="${cur.id}">Knew it</button></div>`:`<button class="btn tint" data-act="vocshow">Show meaning</button>`}</div>`:`<div class="empty">Nothing due. New words arrive when you extract vocabulary from Claude's feedback.</div>`)+
+  `<div class="segc" style="margin-bottom:10px">${[['fr','French → '+wLangName(w.lang)],['en',wLangName(w.lang)+' → French']].map(([k,l])=>`<button class="${VDIR===k?'on':''}" data-act="vocdir" data-k="${k}">${l}</button>`).join('')}</div>`+
+  (cur?`<div class="card"><div class="eyebrow">${VDIR==='fr'?'French · find it in '+wLangName(cur.lang):wLangName(cur.lang)}</div><h3 style="font-size:26px;margin:6px 0 12px">${esc(VDIR==='fr'?cur.tr:cur.term)}</h3>${VREV?`<p style="font-size:20px">${esc(VDIR==='fr'?cur.term:cur.tr)}</p>${cur.note?`<p class="mute small" style="margin-top:6px">${esc(cur.note)}</p>`:''}<div style="display:flex;gap:10px;margin-top:16px"><button class="btn red" data-act="vocko" data-id="${cur.id}">Missed</button><button class="btn" data-act="vocok" data-id="${cur.id}">Knew it</button></div>`:`<button class="btn tint" data-act="vocshow">${VDIR==='fr'?'Show the translation':'Show meaning'}</button>`}</div>`:`<div class="empty">Nothing due. New words arrive when you extract vocabulary from Claude's feedback.</div>`)+
   `<div class="grp fgrp" style="margin-top:16px"><div class="cell"><input type="text" id="vnew" placeholder="Add a word: term | meaning" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="vocadd"><span class="sq" style="--c:var(--green)">${ic('plus')}</span><span class="t"><b>Add to ${wLangName(w.lang)}</b></span></button></div>`;
  }else{
   const L=[...T.list].reverse();
@@ -128,6 +132,7 @@ function vWri(){
 /* ---- actions ---- */
 let WRIMODE=(()=>{try{return localStorage.getItem('lu-wri-mode')||'mix'}catch(e){return 'mix'}})();
 let DEBTAB='today',DEBOPEN=null,WRITAB='write',WRIOPEN=null,VREV=false;
+let VDIR=(()=>{try{return localStorage.getItem('lu-voc-dir')||'fr'}catch(e){return 'fr'}})();
 const wSet=(k,v)=>{const d=wDraft();d[k]=v;pcLS('lu-wri-draft',d)};
 Object.assign(A,{
  debtab(el){DEBTAB=el.dataset.k;render()},
@@ -135,7 +140,8 @@ Object.assign(A,{
  debcopy1(el){pcCopy(debTopicPrompt(),el)},
  debcopy2(el){const d=dDraft();d.mins=PCMIN.deb;pcCopy(debChallengePrompt(d),el)},
  debsave(){const d=dDraft();if(!(d.topic||'').trim()&&!(d.pos||'').trim()){alert('Add a topic or your position first.');return}
-  debT().list.push(Object.assign({},d,{id:pcId(),ts:Date.now(),day:today(),mins:PCMIN.deb}));save();pcLS('lu-deb-draft',null);DEBTAB='log';render();window.scrollTo(0,0)},
+  const ef=Math.max(d.eff||0,pcTimed('deb'));effAdd('deb',ef);
+  debT().list.push(Object.assign({},d,{id:pcId(),ts:Date.now(),day:today(),mins:PCMIN.deb,eff:Math.round(ef)}));save();pcLS('lu-deb-draft',null);DEBTAB='log';render();window.scrollTo(0,0)},
  debdel(el){if(!confirm('Delete this debate?'))return;const T=debT();T.list=T.list.filter(x=>x.id!==el.dataset.id);save();render()},
  pctoggle(el){const k=el.dataset.k,t=pcLS('lu-pc-timer');if(t&&t.k===k&&t.end>Date.now())pcLS('lu-pc-timer',null);else pcLS('lu-pc-timer',{k,end:Date.now()+PCMIN[k]*60000});render()},
  pcmin(el){PCMIN[el.dataset.k]=+el.dataset.m;pcLS('lu-pc-timer',null);render()},
@@ -153,11 +159,13 @@ Object.assign(A,{
   items.forEach(x=>{if(T.vocab.some(v=>v.lang===w.lang&&v.term.toLowerCase()===x.term.toLowerCase()))return;T.vocab.push({id:pcId(),lang:w.lang,term:x.term,tr:x.tr,note:x.note,box:0,due:today(),ts:Date.now()});n++});
   save();alert(n?n+' word'+(n===1?'':'s')+' added to your review.':items.length?'Those words are already saved.':'No VOCAB: block found in the feedback.');render()},
  wrisave(){const w=wDraft();if(!(w.text||'').trim()){alert('Nothing to save yet.');return}
-  wriT().list.push({id:pcId(),ts:Date.now(),kind:w.kind,lang:w.lang,lvl:w.lvl,topic:w.topic||'',src:w.src||'',text:w.text,fb:w.fb||'',score:w.score||'',words:pcWords(w.text)});save();
-  pcLS('lu-wri-draft',Object.assign({},w,{text:'',src:'',fb:'',score:'',topic:''}));pcLS('lu-pc-timer',null);WRITAB='log';render();window.scrollTo(0,0)},
+  const ef=Math.max(w.eff||0,pcTimed('wri'));effAdd('wri',ef);
+  wriT().list.push({id:pcId(),ts:Date.now(),kind:w.kind,lang:w.lang,lvl:w.lvl,topic:w.topic||'',src:w.src||'',text:w.text,fb:w.fb||'',score:w.score||'',words:pcWords(w.text),eff:Math.round(ef)});save();
+  pcLS('lu-wri-draft',Object.assign({},w,{text:'',src:'',fb:'',score:'',topic:'',eff:0}));pcLS('lu-pc-timer',null);WRITAB='log';render();window.scrollTo(0,0)},
  wriopen(el){WRIOPEN=WRIOPEN===el.dataset.id?null:el.dataset.id;render()},
  wridel(el){if(!confirm('Delete this exercise?'))return;const T=wriT();T.list=T.list.filter(x=>x.id!==el.dataset.id);save();render()},
  vocshow(){VREV=true;render()},
+ vocdir(el){VDIR=el.dataset.k;VREV=false;try{localStorage.setItem('lu-voc-dir',VDIR)}catch(e){}render()},
  vocok(el){const v=wriT().vocab.find(x=>x.id===el.dataset.id);if(!v)return;v.box=Math.min(WINT.length-1,(v.box||0)+1);const d=new Date();d.setDate(d.getDate()+WINT[v.box]);v.due=dkey(d);v.ts=Date.now();VREV=false;save();render()},
  vocko(el){const v=wriT().vocab.find(x=>x.id===el.dataset.id);if(!v)return;v.box=0;const d=new Date();d.setDate(d.getDate()+1);v.due=dkey(d);v.ts=Date.now();VREV=false;save();render()},
  vocadd(){const el=document.getElementById('vnew'),p=(el&&el.value||'').split('|').map(s=>s.trim());if(p.length<2||!p[0]||!p[1]){alert('Type: term | meaning');return}

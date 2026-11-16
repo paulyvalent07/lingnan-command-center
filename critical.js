@@ -137,12 +137,12 @@ document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.da
 Object.assign(A,{
  cttab(el){CT.tab=el.dataset.k;render()},
  ctskill(el){CT.skill=el.dataset.k;render()},
- ctstart(){const it=ctPick(CT.skill,false,6);if(!it.length)return;CT.run={items:it,i:0,done:false};render();window.scrollTo(0,0)},
- ctstartm(){const it=ctPick('all',true,6);if(!it.length)return;CT.run={items:it,i:0,done:false};render();window.scrollTo(0,0)},
+ ctstart(){const it=ctPick(CT.skill,false,6);if(!it.length)return;CT.run={items:it,i:0,done:false,t0:Date.now()};render();window.scrollTo(0,0)},
+ ctstartm(){const it=ctPick('all',true,6);if(!it.length)return;CT.run={items:it,i:0,done:false,t0:Date.now()};render();window.scrollTo(0,0)},
  ctpick(el){const R=CT.run,it=R.items[R.i];if(it.a!=null)return;const k=+el.dataset.i;it.pk=k;it.a=it.idx[k];
   const T=ctT(),y=T.ans[it.id]||{n:0};T.ans[it.id]={ok:it.a===0,n:(y.n||0)+1,ts:Date.now()};save();render()},
- ctnext(){const R=CT.run;if(R.i<R.items.length-1){R.i++;render();window.scrollTo(0,0)}else{R.done=true;const ok=R.items.filter(x=>x.a===0).length;ctT().list.push({id:pcId(),kind:'run',ts:Date.now(),day:today(),ok,n:R.items.length});save();render();window.scrollTo(0,0)}},
- ctquit(){const R=CT.run,ans=R.items.filter(x=>x.a!=null);if(ans.length){R.items=ans;R.done=true;ctT().list.push({id:pcId(),kind:'run',ts:Date.now(),day:today(),ok:ans.filter(x=>x.a===0).length,n:ans.length,partial:1});save()}else CT.run=null;render()},
+ ctnext(){const R=CT.run;if(R.i<R.items.length-1){R.i++;render();window.scrollTo(0,0)}else{R.done=true;effAdd('crit',Math.min((Date.now()-(R.t0||Date.now()))/1000,R.items.length*150));const ok=R.items.filter(x=>x.a===0).length;ctT().list.push({id:pcId(),kind:'run',ts:Date.now(),day:today(),ok,n:R.items.length});save();render();window.scrollTo(0,0)}},
+ ctquit(){const R=CT.run,ans=R.items.filter(x=>x.a!=null);if(ans.length){effAdd('crit',Math.min((Date.now()-(R.t0||Date.now()))/1000,ans.length*150));R.items=ans;R.done=true;ctT().list.push({id:pcId(),kind:'run',ts:Date.now(),day:today(),ok:ans.filter(x=>x.a===0).length,n:ans.length,partial:1});save()}else CT.run=null;render()},
  ctend(){CT.run=null;render();window.scrollTo(0,0)},
  ctopen(el){CT.open=CT.open===el.dataset.k?null:el.dataset.k;render()},
  ctclaim(){const c=ctClaims();if(!c.length)return;const d=ctDraft(),p=ctShuf(c.filter(x=>x.text!==d.claim))[0]||c[0];pcLS('lu-ct-draft',{claim:p.text,head:p.head,tag:p.tag});render()},

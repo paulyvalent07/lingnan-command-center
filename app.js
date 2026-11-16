@@ -80,7 +80,7 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{},exr:{}},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{},exr:{},pedit:{},eff:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  Object.keys(s.mast||{}).forEach(k=>{if(s.mast[k]&&s.mast[k].p<100&&s.planDone[k])delete s.planDone[k]});
  s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
@@ -116,7 +116,7 @@ function whenLabel(date){
 }
 
 /* ---------- plan, lessons, "most behind" ---------- */
-function planAll(){return (typeof PLAN!=='undefined'?PLAN:[]).concat(S.extraPlan||[])}
+function planAll(){const E=S.pedit||{};return (typeof PLAN!=='undefined'?PLAN:[]).concat(S.extraPlan||[]).filter(p=>!(E[p.id]&&E[p.id].del)).map(p=>E[p.id]&&E[p.id].f?Object.assign({},p,E[p.id].f):p)}
 function itemsOn(day){return planAll().filter(p=>p.date===day)}
 function overdue(){const t=today();return planAll().filter(p=>p.date<t&&!S.planDone[p.id])}
 function todayList(){return overdue().concat(itemsOn(today()))}
@@ -227,12 +227,12 @@ function briefBody(p){
 function lessonsFor(p){const all=lessonsOf(p.course);return pLids(p).map(id=>all.find(l=>l.id===id)).filter(Boolean)}
 
 /* ---------- rows ---------- */
-function planRow(p){
+function planRow(p,ed){
  const x=C(p.course),done=!!S.planDone[p.id],od=p.date<today()&&!done;
  return `<div class="cell has-ico ${done?'done':''}" style="--c:${x.color}">
   <button class="chk ${done?'on':''}" data-act="pdone" data-id="${p.id}" aria-label="Mark done">${ic('check')}</button>
   <button class="t" style="text-align:left;flex:1;min-width:0" data-act="prow" data-id="${p.id}"><b>${esc(p.title)}</b><span>${x.short} · ${KINDS[p.kind].n}${mastTxt(p.id)}${od?` · <i class="late" style="font-style:normal">${whenLabel(p.date)}</i>`:''}</span></button>
-  <span class="sq" style="--c:${x.color}">${ic(KINDS[p.kind].ic)}</span></div>`;
+  ${ed?`<button class="pen" data-act="pedit" data-id="${p.id}" aria-label="Edit this block">${ic('pen')}</button>`:''}<span class="sq" style="--c:${x.color}">${ic(KINDS[p.kind].ic)}</span></div>`;
 }
 const navbar=(back,right='')=>`<div class="navbar">${back?`<button class="back" data-act="back">${ic('chevl')}${esc(back)}</button>`:'<span></span>'}${right}</div>`;
 const title=(t,eb)=>`${eb?`<div class="eyebrow" style="margin-top:10px">${eb}</div>`:''}<h1 class="lt">${t}</h1>`;
@@ -316,11 +316,11 @@ function vTimetable(){
  const rows=days.map(d=>{const it=itemsOn(d),dt=new Date(d+'T12:00');
   const lab=dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
   const dls=S.deadlines.filter(x=>String(x.when).slice(0,10)===d).map(x=>`<div class="cell"><span class="sq" style="--c:var(--red)">${ic('flag')}</span><span class="t"><b>${esc(x.title)}</b><span>${esc(C(x.course).short)} · ${new Date(x.when).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></span></div>`).join('');
-  return `<div class="sh">${lab}${d===today()?' · today':''}</div><div class="grp">${dls}${it.length?it.map(planRow).join(''):(dls?'':`<div class="cell"><span class="t mute">${dt.getDay()===2?'Rest day':'Free'}</span></div>`)}</div>`}).join('');
+  return `<div class="sh shr">${lab}${d===today()?' · today':''}<button class="pen add" data-act="padd" data-d="${d}" aria-label="Add a block on this day">${ic('plus')}</button></div><div class="grp">${dls}${it.length?it.map(p=>planRow(p,true)).join(''):(dls?'':`<div class="cell"><span class="t mute">${dt.getDay()===2?'Rest day':'Free'}</span></div>`)}</div>`}).join('');
  return `<div class="view">${navbar('Hub')}${title('Week',dn+' of '+all.length+' blocks done')}
  <div class="row sp" style="margin:8px 0 6px"><div class="segc" style="flex:1"><button data-act="tprev">←</button><button class="${off===0?'on':''}" data-act="tnow">This week</button><button data-act="tnext">→</button></div></div>
  <div class="bar" style="margin:12px 4px 0"><i style="width:${all.length?dn/all.length*100:0}%"></i></div>${rows}
- <div class="row c" style="margin-top:14px"><button class="link" data-act="lessonopen">Add a lesson</button></div></div>`;
+ <div class="row c" style="margin-top:14px"><button class="link" data-act="padd">Add a block</button><button class="link" data-act="lessonopen" style="margin-left:18px">Add a lesson</button></div></div>`;
 }
 
 /* ----- insights ----- */
@@ -409,6 +409,51 @@ function reviewCard(){
  <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>
  ${per.length?`<div class="tipline mute small">${per.map(x=>x.c.short+' '+fmt(x.v)).join(' · ')}</div>`:'<div class="tipline mute small">Open a lesson and read: the time is counted automatically while the page is open.</div>'}</div>`;
 }
+/* ----- effective time in the other modules ----- */
+const EFFM=[['tage','Tage Mage','#af52de'],['wri','Writing','#ff9f0a'],['deb','Debate','#30b0c7'],['crit','Critical thinking','#34c759'],['orals','Orals','#c2410c']];
+function effDev(){try{let d=localStorage.getItem('lu-dev');if(!d){d=Math.random().toString(36).slice(2,6);localStorage.setItem('lu-dev',d)}return d}catch(e){return 'x'}}
+function effAdd(m,sec){if(!(sec>0))return;S.eff=S.eff||{};const day=today(),k=m+':'+day+':'+effDev(),e=S.eff[k]||{m,day,sec:0};e.sec=Math.round((e.sec+sec)*10)/10;e.ts=Date.now();S.eff[k]=e}
+function effEvents(){
+ const ev=[],T=S.tage;
+ if(T&&T.att)T.att.forEach(a=>Object.keys(a.secs||{}).forEach(k=>{const t=a.secs[k].t;if(t>0)ev.push({m:'tage',ts:a.ts,sec:t})}));
+ Object.values(S.eff||{}).forEach(e=>ev.push({m:e.m,ts:new Date(e.day+'T12:00').getTime(),sec:e.sec}));
+ return ev;
+}
+function effChart(){
+ const bs=buckets(insR),idx={};bs.forEach((b,i)=>idx[b.key]=i);bs.forEach(b=>{b.v={};b.t=0});
+ effEvents().forEach(e=>{const i=idx[bucketKey(insR,e.ts)];if(i==null)return;const b=bs[i],m=e.sec/60;b.v[e.m]=(b.v[e.m]||0)+m;b.t+=m});
+ const max=Math.max(30,...bs.map(x=>x.t)),H=130,tot=bs.reduce((a,x)=>a+x.t,0);
+ const cols=bs.map(x=>{const segs=EFFM.filter(([k])=>x.v[k]).map(([k,n,c])=>`<div class="seg" style="height:${Math.max(2,x.v[k]/max*H)}px;background:${c}"></div>`).join('');
+  const tip=`${x.full}: ${fmt(x.t)}`+EFFM.filter(([k])=>x.v[k]).map(([k,n])=>` · ${n} ${fmt(x.v[k])}`).join('');
+  return `<div class="bcol" data-act="tip3" data-tip="${esc(tip)}" title="${esc(tip)}"><div class="stk">${segs}</div></div>`}).join('');
+ const every=insR==='d'?5:insR==='w'?2:1,labs=bs.map((x,i)=>`<span>${(bs.length-1-i)%every===0?x.label:''}</span>`).join('');
+ if(!tot)return `<div class="empty">Nothing yet. Time counts only while you are really working: timed Tage Mage tests, typing in Writing or Debate, critical thinking runs, reciting an oral.</div>`;
+ return ywrap(max,H,`<div class="chart" style="height:${H}px"><div class="cols">${cols}</div></div><div class="axis">${labs}</div>`)+`<div class="tipline mute small" id="tipline3">Tap a bar for details · total ${fmt(tot)}</div><div class="legend">${EFFM.map(([k,n,c])=>`<span class="lg"><i style="background:${c}"></i>${n}</span>`).join('')}</div>`;
+}
+function modCard(){
+ const ws=weekStart().getTime(),we=ws+7*864e5,inW=t=>t>=ws&&t<we,tot={};
+ effEvents().filter(e=>inW(e.ts)).forEach(e=>tot[e.m]=(tot[e.m]||0)+e.sec/60);
+ const att=((S.tage||{}).att||[]).filter(a=>inW(a.ts)),tOk=att.reduce((a,x)=>a+x.ok,0),tN=att.reduce((a,x)=>a+x.n,0);
+ const wr=((S.wri||{}).list||[]).filter(x=>inW(x.ts)),db=((S.deb||{}).list||[]).filter(x=>inW(x.ts));
+ const cr=((S.crit||{}).list||[]).filter(x=>x.kind==='run'&&inW(x.ts)),cOk=cr.reduce((a,x)=>a+x.ok,0),cN=cr.reduce((a,x)=>a+x.n,0);
+ let od=0;try{od=Object.keys(JSON.parse(localStorage.getItem('lu-orals')||'{}').done||{}).length}catch(e){}
+ const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+ const sub={tage:pl(att.length,'test')+(tN?' · '+Math.round(tOk/tN*100)+' % right':''),wri:pl(wr.length,'exercise')+' · '+wr.reduce((a,x)=>a+(x.words||0),0)+' words',deb:pl(db.length,'debate'),crit:pl(cr.length,'run')+(cN?' · '+Math.round(cOk/cN*100)+' % right':''),orals:od+' text'+(od===1?'':'s')+' learned in total'};
+ return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>Other modules · this week</h3><span class="mute small">${fmt(Object.values(tot).reduce((a,b)=>a+b,0))} effective</span></div><div class="grp" style="background:var(--fill)">${EFFM.map(([k,n,c])=>`<div class="cell has-ico"><span class="sq" style="--c:${c}">${ic('timer')}</span><span class="t"><b>${n}</b><span>${sub[k]}</span></span><span class="badge">${fmt(tot[k]||0)}</span></div>`).join('')}</div></div>`;
+}
+function tageInsights(){
+ const att=((S.tage||{}).att||[]);if(!att.length||typeof TM_SECS==='undefined')return '';
+ const ws=weekStart(),H=80,pts=[];
+ for(let i=11;i>=0;i--){const a=new Date(ws);a.setDate(a.getDate()-i*7);const b=new Date(a);b.setDate(b.getDate()+7);
+  const l=att.filter(x=>x.ts>=a.getTime()&&x.ts<b.getTime()),n=l.reduce((x,y)=>x+y.n,0),ok=l.reduce((x,y)=>x+y.ok,0);
+  pts.push({lab:a.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),p:n?ok/n:null})}
+ const cut=Date.now()-30*864e5,sec=TM_SECS.map(s=>{let ok=0,n=0,t=0;att.filter(a=>a.ts>=cut).forEach(a=>{const r=a.secs[s.k];if(r){ok+=r.ok;n+=r.n;t+=r.t||0}});return {s,ok,n,t}}).filter(x=>x.n);
+ const bar=(p,c)=>`<div class="tmb"><i style="width:${Math.round((p||0)*100)}%;background:${c}"></i></div>`;
+ return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>Tage Mage accuracy</h3><span class="mute small">% right per week</span></div>
+ <div class="tmh" style="height:${H+10}px;margin-top:18px">${pts.map(x=>`<div style="height:${x.p==null?2:Math.max(4,x.p*H)}px;${x.p==null?'opacity:.25':''}">${x.p==null?'':`<b>${Math.round(x.p*100)}</b>`}</div>`).join('')}</div>
+ <div class="axis">${pts.map((x,i)=>`<span>${i%2?'':x.lab}</span>`).join('')}</div>
+ ${sec.length?`<div class="eyebrow" style="margin:16px 0 6px">By subtest · last 30 days</div><div class="grp" style="background:var(--fill)">${sec.map(x=>`<div class="cell has-ico"><span class="sq" style="--c:${x.s.c}">${ic(x.s.i)}</span><span class="t"><b>${x.s.n}</b><span>${Math.round(x.ok/x.n*100)} % right · ${x.n} questions · ${fmt(x.t/60)}</span>${bar(x.ok/x.n,x.s.c)}</span></div>`).join('')}</div>`:''}</div>`;
+}
 function vInsights(){
  const seg=(opts,cur,act)=>`<div class="segc" style="flex:1">${opts.map(([k,l])=>`<button class="${cur===k?'on':''}" data-act="${act}" data-k="${k}">${l}</button>`).join('')}</div>`;
  const st=streak(),week=weekDays(0).reduce((a,d)=>a+minsOn(d)+readMin(d),0);
@@ -419,7 +464,9 @@ function vInsights(){
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>Progress curve</h3><span class="mute small">your work over time</span></div>${trendChart()}</div>
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>When you work</h3><span class="mute small">hour of day</span></div>${hourChart()}</div>
  <div class="card" style="margin-top:14px"><div class="card-h"><h3>Which days</h3></div>${weekdayChart()}</div>
- ${reviewCard()}</div>`;
+ ${reviewCard()}
+ <div class="card" style="margin-top:14px"><div class="card-h"><h3>Effective time · other modules</h3><span class="mute small">Tage Mage, Writing, Debate, Critical, Orals</span></div>${effChart()}</div>
+ ${modCard()}${tageInsights()}</div>`;
 }
 
 /* ----- more + sub views ----- */
@@ -648,6 +695,9 @@ function mergeState(r){
  const xm=new Map();[...(older.xcards||[]),...(newer.xcards||[])].forEach(x=>xm.set(x.id,x));o.xcards=[...xm.values()];
  o.exr=Object.assign({},older.exr);Object.entries(newer.exr||{}).forEach(([k,v])=>{const y=o.exr[k];if(!y||(v.ts||0)>=(y.ts||0))o.exr[k]=v});
  o.dlHide=Object.assign({},older.dlHide,newer.dlHide);
+ o.pedit=Object.assign({},older.pedit);Object.entries(newer.pedit||{}).forEach(([k,v])=>{const y=o.pedit[k];if(!y||(v.ts||0)>=(y.ts||0))o.pedit[k]=v});
+ o.eff=Object.assign({},older.eff);Object.entries(newer.eff||{}).forEach(([k,v])=>{const y=o.eff[k];if(!y||(v.ts||0)>=(y.ts||0))o.eff[k]=v});
+ {const um=new Map();[...(older.extraPlan||[]),...(newer.extraPlan||[])].forEach(x=>{if(/^ux/.test(x.id))um.set(x.id,x)});o.extraPlan=(newer.extraPlan||[]).filter(x=>!/^ux/.test(x.id)).concat([...um.values()])}
  o.tage=typeof tmMerge==='function'?tmMerge(older.tage,newer.tage):(newer.tage||older.tage);
  if(typeof pcMerge==='function'){o.deb=pcMerge(older.deb,newer.deb);o.wri=pcMerge(older.wri,newer.wri)}
  if(typeof ctMerge==='function')o.crit=ctMerge(older.crit,newer.crit);
@@ -851,6 +901,7 @@ const A={
  insr(el){insR=el.dataset.k;render()},insby(el){insBy=el.dataset.k;render()},
  tip(el){const t=$('tipline');if(t)t.textContent=el.dataset.tip},
  tip2(el){const t=$('tipline2');if(t)t.textContent=el.dataset.tip},
+ tip3(el){const t=$('tipline3');if(t)t.textContent=el.dataset.tip},
  theme(el){setTheme(el.dataset.k);render()},
  manual(){sessionModal()},
  sedit(el){sessionModal(S.sessions.find(s=>s.id===el.dataset.id))},
@@ -1231,6 +1282,25 @@ document.addEventListener('scroll',()=>{rs();document.body.classList.add('scrl')
 if(typeof document.createElement==='function'){const b=document.createElement('button');b.className='sbtog';b.setAttribute('aria-label','Hide or show the menu');b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M9.5 4.5v15"/></svg>';
  const ap=v=>document.body.classList.toggle('nosb',v);try{ap(localStorage.getItem('lu-nosb')==='1')}catch(_){}
  b.onclick=()=>{const v=!document.body.classList.contains('nosb');ap(v);try{localStorage.setItem('lu-nosb',v?'1':'0')}catch(_){}};document.body.appendChild(b)}
+/* ----- agenda: edit and add blocks ----- */
+function planForm(p){
+ return `<div class="grp fgrp"><div class="cell"><textarea id="pe-t" class="wtopic" rows="2" placeholder="Title">${esc(p.title||'')}</textarea></div>
+ ${fld('Date',`<input id="pe-d" type="date" value="${p.date}">`)}${fld('Course',courseSel(p.course,'pe-c'))}
+ ${fld('Type',`<select id="pe-k">${Object.keys(KINDS).map(k=>`<option value="${k}" ${k===p.kind?'selected':''}>${KINDS[k].n}</option>`).join('')}</select>`)}</div>`;
+}
+function planRead(){const t=(($('pe-t')||{}).value||'').trim(),d=($('pe-d')||{}).value||'',c=($('pe-c')||{}).value,k=($('pe-k')||{}).value;if(!t||!d){alert('Add a title and a date.');return null}return {title:t,date:d,course:c,kind:k}}
+Object.assign(A,{
+ pedit(el){const p=planAll().find(x=>x.id===el.dataset.id);if(!p)return;const orig=typeof PLAN!=='undefined'&&PLAN.some(x=>x.id===p.id),E=(S.pedit||{})[p.id];
+  openSheet('Edit block',planForm(p),`<button class="btn" data-act="psave" data-id="${p.id}">Save</button><button class="btn red" style="margin-top:8px" data-act="pdel" data-id="${p.id}">Delete this block</button>${orig&&E?`<button class="btn gray" style="margin-top:8px" data-act="preset" data-id="${p.id}">Back to the original</button>`:''}`)},
+ padd(el){const d=(el&&el.dataset&&el.dataset.d)||today();openSheet('New block',planForm({title:'',date:d,course:S.course||COURSES[0].id,kind:'L'}),`<button class="btn" data-act="pnew">Add</button>`)},
+ psave(el){const id=el.dataset.id,f=planRead();if(!f)return;const p=planAll().find(x=>x.id===id);if(!p)return;
+  if(f.course!==p.course){f.lid=null;f.ex=null;f.lids=null}
+  S.pedit=S.pedit||{};S.pedit[id]={f:Object.assign({},(S.pedit[id]||{}).f,f),ts:Date.now()};save();closeSheet();render()},
+ pdel(el){if(!confirm('Delete this block from the agenda?'))return;S.pedit=S.pedit||{};S.pedit[el.dataset.id]={del:true,ts:Date.now()};save();closeSheet();render()},
+ preset(el){S.pedit=S.pedit||{};S.pedit[el.dataset.id]={f:{},ts:Date.now()};save();closeSheet();render()},
+ pnew(){const f=planRead();if(!f)return;S.extraPlan=S.extraPlan||[];S.extraPlan.push(Object.assign({id:'ux'+uid()},f));
+  const wd=weekStart(new Date(f.date+'T12:00')).getTime(),w0=weekStart().getTime();S.tw=Math.round((wd-w0)/(7*864e5));save();closeSheet();if(view!=='timetable')view='timetable';render()}
+});
 setTheme(S.settings.theme);
 autoPlan();
 syncUI();
