@@ -681,17 +681,19 @@ async function cloudPush(now){
  catch(e){setCS('Not synced yet ('+e.message+')',false)}
 }
 function schedulePush(){if(!CL.token||!CL.gid)return;clearTimeout(pushT);pushT=setTimeout(()=>cloudPush(),2500)}
+let CLERR='';
 async function cloudConnect(token,gid){
- CL={token:token.trim()};
+ CL={token:token.trim()};CLERR='';
  try{
   let g=null;
-  if(gid){g=await gh('/gists/'+gid)}
-  else{for(let p=1;p<=10&&!g;p++){const list=await gh('/gists?per_page=100&page='+p);g=list.find(x=>x.description===GDESC);if(list.length<100)break}}
+  if(gid){try{g=await gh('/gists/'+gid)}catch(e){if(!/HTTP 404/.test(e.message))throw e;g=null}}
+  if(!g){for(let p=1;p<=10&&!g;p++){const list=await gh('/gists?per_page=100&page='+p);g=list.find(x=>x.description===GDESC);if(list.length<100)break}}
+  if(!g&&gid)throw new Error('HTTP 404');
   if(!g)g=await gh('/gists',{method:'POST',body:JSON.stringify({description:GDESC,public:false,files:{'state.json':{content:JSON.stringify(snap())}}})});
   else if(!(S.sessions&&S.sessions.length)&&!Object.keys(S.planDone||{}).length)S.mod=0;
   CL.gid=g.id;saveCL();await cloudPull();
   return true;
- }catch(e){CL={};saveCL();return false}
+ }catch(e){CLERR=e.message||'error';CL={};saveCL();return false}
 }
 
 /* ---------- session screen (opens the course page) ---------- */
@@ -869,7 +871,7 @@ const A={
   S.deadlines.push({id:uid(),course:$('m-course').value,title:t,when:w});save();closeSheet();render()},
  dldel(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(d&&d.off)S.dlHide[d.id]=1;S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
  notif(){askNotif()},
- async cconnect(){const v=($('cl-token')||{}).value;if(!v||v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const pr=v.trim().split('~'),ok=await cloudConnect(pr[0],pr[1]);if(!ok)alert('Could not connect. The token needs the "gist" permission only.');render()},
+ async cconnect(){const v=(($('cl-token')||{}).value||'').replace(/[\s"']+/g,'');if(v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const pr=v.split('~'),ok=await cloudConnect(pr[0],pr[1]);if(!ok){const m=/401/.test(CLERR)?'GitHub rejected the token (HTTP 401): it is wrong or has expired. Create a new one (classic token, only the "gist" permission) or copy the sync code again from your other device.':/403/.test(CLERR)?'GitHub refused the request (HTTP 403): the token lacks the "gist" permission, or GitHub is limiting requests. Wait a minute or create a new token with "gist".':/404/.test(CLERR)?'GitHub found no sync gist for this token (HTTP 404). The token may belong to a different GitHub account than the one that holds your progress.':/Failed to fetch|NetworkError|Load failed/i.test(CLERR)?'No connection to GitHub. Check the internet or any blocker on this device, then try again.':'Could not connect ('+CLERR+'). The token needs the "gist" permission only.';alert(m)}render()},
  csync(){cloudPull().then(()=>render())},
  cdisc(){if(confirm('Disconnect this device from the cloud? Your data stays here.')){CL={};saveCL();render()}},
  async ccopy(){try{await navigator.clipboard.writeText((CL.token||'')+'~'+(CL.gid||''));alert('Sync code copied. Paste it on your other device in More > Cloud sync.')}catch(e){alert('Copy failed.')}},
