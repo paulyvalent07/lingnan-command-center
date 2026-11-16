@@ -5,7 +5,7 @@
 const ORALS=[
  {id:'bus2205',course:'BUS2205',title:'Pop Bakery Paris launch plan',kind:'Group oral',when:'2026-11-17T09:00',tentative:true,
   deposit:'PPT deposit: Sun 15 Nov, 23:59',
-  mine:'Person 3 of 7 · slides 7 to 9 (printed numbers 07 to 09 on the Canva deck: differentiation table, competitive landscape, SWOT) · about 3 minutes',
+  part:'Slides 7 to 9',mine:'Person 3 of 7 · slides 7 to 9 (printed numbers 07 to 09 on the Canva deck: differentiation table, competitive landscape, SWOT) · about 3 minutes',
   note:'Figures come from the live Canva deck (Nov 2026): Hermé Chou Mogador 10 euros, Grolet Fleur Vanille 18 euros, Kitsuné cappuccino 6.50 euros (Uber Eats), Pop Bakery proposed 8 to 12 euros. In the deck the Different table (printed 07) comes before the Competitive Landscape slide (08): ask your group if that order is final. Oral date tentative (17 or 24 Nov).',
   sections:[
    {id:"s7",label:"Slide 7",head:"What Makes Pop Bakery Different?",img:"orals/bus2205-s7.png",
@@ -17,8 +17,8 @@ const ORALS=[
   ]},
  {id:'bus2202',course:'BUS2202',title:"Back to the Office, Back to Motivation? Amazon's 5-Day Return-to-Office Policy",kind:'Group presentation',when:'2026-11-23T09:00',tentative:true,
   deposit:'PPT deposit: Tue 17 Nov, 23:59 · printed notes-format PPT with AI-use declaration at class 12',
-  mine:'Step 4 of the guide: the analysis (70% of the grade). The deck slides 2 to 10 below are the analysis part: confirm with your group which of them are yours. 15 min + 5 min Q&A, in English. Your guide (FR v3) is translated at the end.',
-  note:'Spoken text rebuilt from the real Canva slides (2 to 10). The deck has no equity, justice or EVLN slides, and slides 11 to 18 are leftover template pages. The date is not settled (18 or 23 Nov): confirm with the lecturer. Turnitin limits: 20% AI, 10% similarity. Marking: analysis (slides 5 to 8) is 70% of the grade, and judging whether Amazon\'s actions worked is one of 8 criteria. Do not just tell the story.',
+  part:'Analysis, slides 2 to 10',mine:'The analysis: the content part of the deck (slides 2 to 10), worth 70% of the grade. The oral is 15 min + 5 min Q&A in English; the other parts are only in the overview at the bottom.',
+  note:'Spoken text rebuilt from the real Canva slides (2 to 10). The deck has no equity, justice or EVLN slides yet, and slides 11 to 18 are leftover template pages. The date is not settled (18 or 23 Nov): confirm with the lecturer. Turnitin limits: 20% AI, 10% similarity. Marking: the analysis is 70% of the grade, and judging whether Amazon\'s actions worked is one of 8 criteria. Do not just tell the story.',
   sections:[
    {id:"s2",label:"Slide 2",head:"Expectancy Theory",img:"orals/bus2202-s2.png",
     text:"Our first theory is expectancy theory. It says people are motivated when three links hold. First, effort leads to performance: I believe that trying hard makes me perform well. Second, performance leads to outcomes: I believe good performance is rewarded. Third, valence: I value the reward. If one link is weak, motivation drops."},
@@ -40,19 +40,16 @@ const ORALS=[
     text:"So what changed at Amazon? Five days a week, pre-assigned desks, and badge swipes. Autonomy goes down, and competence goes down too. One employee wrote on Blind that morale for this job is gone and they will check out until a performance improvement plan. Before, motivation was intrinsic. Now it is extrinsic. Less autonomy and less competence means employees stop caring and do the minimum."},
    {id:'g0',label:'Guide',head:'Main question and 5 key dates',text:'',outline:["Main question: did the 5-day rule really improve culture and collaboration, or did it mainly damage motivation, trust and commitment?","Feb/May 2023: Amazon asks office staff to come in 3 days a week; a few protests and a walkout.","16 Sept 2024: CEO Andy Jassy memo: 5 days a week from 2 Jan 2025, to strengthen culture and run like the world's biggest start-up. Exceptions only with an executive's approval.","17-19 Sept 2024: Blind survey of 2,585 employees: 91% dissatisfied, 73% considering leaving, 32% know someone who already quit. AWS CEO Matt Garman: those who don't like it can go to other companies.","Jan-May 2025: the rule starts but offices are short of space: return delayed in New York, Atlanta, Houston, Nashville and elsewhere; complaints about parking, meeting rooms, people still on video calls at the office.","Oct 2025: Amazon cuts 14,000 office jobs. Per Reuters sources, RTO did not make enough people leave; some employees who didn't badge in were treated as resignations, without severance."]},
    {id:'g1',label:'Guide · slide 1',head:'Cover',text:'',outline:["Module code and title: BUS2202 Organisational Behaviour","Title: Back to the Office, Back to Motivation? Amazon's 5-Day Return-to-Office Policy","FULL names and student numbers of ALL members"]},
-   {id:'g2',label:'Guide · slides 2-3',head:'Introduction and context',text:'',outline:["On the slides: Amazon in numbers (about 350,000 office employees); timeline 2023 (3 days) → Sept 2024 memo → Jan 2025 start → delays for lack of desks → Oct 2025 layoffs; Amazon's official reasons: culture, collaboration, learning, speed.","To say: open with a strong number (91% dissatisfied) or a question to the class (“Would you accept going to the office 5 days out of 5?”).","Explain what RTO (return to office) is, and that hybrid work had become normal since Covid.","Present Amazon's view fairly first: Jassy thinks being together is better for culture and innovation.","Course link: remote and hybrid work trend (Ch.1)."]},
+   {id:'g2',label:'Slides 2-3 (guide)',head:'Introduction and context',text:'',outline:["On the slides: Amazon in numbers (about 350,000 office employees); timeline 2023 (3 days) → Sept 2024 memo → Jan 2025 start → delays for lack of desks → Oct 2025 layoffs; Amazon's official reasons: culture, collaboration, learning, speed.","To say: open with a strong number (91% dissatisfied) or a question to the class (“Would you accept going to the office 5 days out of 5?”).","Explain what RTO (return to office) is, and that hybrid work had become normal since Covid.","Present Amazon's view fairly first: Jassy thinks being together is better for culture and innovation.","Course link: remote and hybrid work trend (Ch.1)."]},
    {id:'g3',label:'Guide · slide 4',head:'The OB problem',text:'',outline:["On the slide: Amazon's goals; employee reaction (91% dissatisfied, 73% considering leaving); one sentence: a decision imposed from the top that risks lowering motivation, engagement and retention.","To say: announce that we use course theories to explain WHY employees reacted so strongly.","Course link: definitions of motivation and commitment (Ch.5)."]},
-   {id:'g4',label:'Guide · slide 5',head:'Expectancy theory + MARS model',text:'',outline:["Effort → performance link is weaker (no desks, long commutes, still on video calls).","Performance → reward link is unclear (presence seems to matter more than results).","Valence: flexibility was the most valued reward, and it was removed."]},
-   {id:'g5',label:'Guide · slide 6',head:'Intrinsic motivation + Four-drive theory',text:'',outline:["Intrinsic motivation needs autonomy, and the choice of where to work was taken away.","Drive to defend: employees feel threatened (“go to other companies”).","Drive to bond: conflict between family life and the office."]},
-   {id:'g6',label:'Guide · slide 7',head:'Equity theory + organisational justice',text:'',outline:["Equity: strong performers who worked well remotely compare their effort and what they receive, and find it unfair.","Procedural justice: no voice for employees, exceptions only granted by executives, no real appeal.","Interactional justice: the memo was long and many found the explanation not honest."]},
-   {id:'g7',label:'Guide · slide 8',head:'Reactions: EVLN, commitment, stress',text:'',outline:["EVLN: Exit = resignations; Voice = posts on Blind, complaints; Neglect = “I disengage until the PIP”.","Affective commitment drops; continuance commitment stays (people stay only because of the job market).","Stress from low control over work and work-life conflict.","For each theory: 1) explain it in one sentence, 2) link it to a fact about Amazon, 3) say the “so what” for Amazon.","Ways to reduce a feeling of unfairness: “reduce our inputs” and “leave the field” match what Amazon employees said.","Course links: Ch.5 (expectancy, intrinsic/extrinsic, four drives, equity, justice), Ch.4 (EVLN, commitment, stress), Ch.1 (MARS), Ch.10 (legitimate and coercive power).","Tip: Herzberg and Self-Determination Theory were in the proposal but are NOT in the course slides: mention them only briefly as “beyond the course”."]},
+   {id:'tips',label:'Tips',head:'How to deliver your analysis',text:'',mine:true,outline:["For each theory: 1) explain it in one sentence, 2) link it to a fact about Amazon, 3) say the “so what” for Amazon.","Do not just tell the story: the marking also asks whether Amazon's actions worked.","Course links: Ch.5 (expectancy, intrinsic/extrinsic, four drives), Ch.1 (MARS).","Herzberg and Self-Determination Theory are not in the course slides: mention them only briefly as “beyond the course”."]},
    {id:'g8',label:'Guide · slide 9',head:'Critical evaluation',text:'',outline:["Did it reach its goals? Culture and collaboration vs lack of desks and people still on video calls.","Hidden goal? Reuters: RTO did not create enough voluntary exits, then 14,000 layoffs.","Research: S&P 500 firms that imposed RTO had 14% more departures, especially among women, managers and skilled staff (Pittsburgh study).","In Amazon's favour: Ch.1 says remote work can bring isolation, less informal communication and a weaker culture.","Give a clear opinion: the goal (culture) is legitimate, but the method (one 5-day rule, no consultation) damaged motivation and trust.","Course links: benefits and risks of remote work (Ch.1); building affective commitment through justice and trust (Ch.4)."]},
    {id:'g9',label:'Guide · slides 10-11',head:'Recommendations',text:'',outline:["1. Team-level hybrid: each team picks 3 shared “anchor days” to collaborate (gives back autonomy, keeps culture; team cohesion and norms, Ch.8).","2. Judge results, not badges: SMART goals and regular, specific feedback (fixes the performance → reward link; Ch.5).","3. Restore fairness: surveys and consultation before decisions, a real exceptions and appeals system run locally, honest communication (procedural and interactional justice; Ch.5).","4. Transformational leadership: leaders explain the vision, lead by example and build buy-in instead of threatening (Ch.12).","For each: what to do, which problem it fixes, why it is feasible for Amazon. Mention that other companies use organised hybrid successfully."]},
    {id:'g10',label:'Slides 12-14',head:'Conclusion, references, AI declaration',text:'',outline:["3 key messages + the answer to our main question.","References in APA format.","AI declaration: which tools, for what, and how we changed the output."]}
   ]},
  {id:'bus2108',course:'BUS2108',title:'GP Batteries: where to build the new factory (Germany or Vietnam)',kind:'Group presentation',when:'2026-11-18T08:00',
   deposit:'PPT on Turnitin before 11:00 on the day · written report due Sun 22 Nov, 17:00',
-  mine:'Person 5 of 6 · slides 13 to 15 (culture, management, ethics) · 364 words, about 3 minutes. Person 6 (slides 16 to 18) gives the final recommendation.',
+  part:'Slides 13 to 15',mine:'Person 5 of 6 · slides 13 to 15 (culture, management, ethics) · 364 words, about 3 minutes. Person 6 (slides 16 to 18) gives the final recommendation.',
   note:'Slide numbers checked against the live deck: Hofstede values on slide 13 are HK 68/25/29/61, Germany 35/67/65/83, Vietnam 70/20/30/57. English scores: EF English Proficiency Index 2025, Germany 615 (4th), Vietnam 500 (64th of 123).',
   sections:[
    {id:'s13',label:'Slide 13',head:'Cultural Distance from Hong Kong',img:'orals/bus2108-s13.png',
@@ -64,7 +61,7 @@ const ORALS=[
   ]},
  {id:'bus2105',course:'BUS2105',title:'Group debate',kind:'Debate (15%)',when:'2026-11-30T09:30',
   deposit:'Topics A to H on Moodle',
-  mine:'Topic, side and arguments: not added yet.',note:'',
+  part:'To be defined',mine:'Topic, side and arguments: not added yet.',note:'',
   sections:[{id:'todo',label:'Text',head:'Not added yet',text:''}]}
 ];
 
@@ -83,29 +80,35 @@ function orTileSub(){const all=ORALS.map(orStats);const t=all.reduce((a,x)=>a+x.
 function vOrals(){
  const rows=ORALS.map(o=>{const s=orStats(o),col=orCol(o.course),ready=s.total>0;
   const sub=ready?`${s.done}/${s.total} learned · ${s.words} words · about ${Math.max(1,Math.round(s.words/130))} min`:(o.sections.some(x=>x.outline)?'Outline only, no spoken text yet':'Text missing');
-  return `<button class="cell has-ico" data-act="open" data-v="oral" data-p="${o.id}"><span class="sq" style="--c:${col}">${ic('people')}</span><span class="t"><b>${esc(o.course)} · ${esc(o.kind)}</b><span style="white-space:normal">${esc(o.title)}</span><span>${esc(sub)}</span></span>${ready?'':'<span class="badge red">to add</span>'}${typeof countdown==='function'?`<span class="badge ${typeof urgent==='function'&&urgent(o.when)?'red':''}">${countdown(o.when)}</span>`:''}${ic('chev','chev')}</button>`}).join('');
+  return `<button class="cell has-ico" data-act="open" data-v="oral" data-p="${o.id}"><span class="sq" style="--c:${col}">${ic('people')}</span><span class="t"><b>${esc(o.course)} · ${esc(o.kind)}</b><span style="white-space:normal">${esc(o.title)}</span><span style="color:${col};font-weight:600">Your part: ${esc(o.part||'')}</span><span>${esc(sub)}</span></span>${ready?'':'<span class="badge red">to add</span>'}${typeof countdown==='function'?`<span class="badge ${typeof urgent==='function'&&urgent(o.when)?'red':''}">${countdown(o.when)}</span>`:''}${ic('chev','chev')}</button>`}).join('');
  return `<div class="view">${navbar('Hub')}${title('Orals','Texts to learn')}<div class="grp" style="margin-top:12px">${rows}</div>
- <div class="sf">Open an oral to learn its text. Slide screenshots appear above each part once the images are added to the orals folder.</div></div>`;
+ <div class="sf">Open an oral to learn your part (not the whole oral). Slide screenshots appear above each part once the images are added to the orals folder.</div></div>`;
 }
 
 function vOral(){
  const o=orOf(param);if(!o)return vOrals();
  const st=orLS(),mode=st.mode||'read',s=orStats(o),col=orCol(o.course);
  const modes=`<div class="segc" style="margin:14px 0">${[['read','Read'],['cue','Cue words'],['hide','Recite']].map(([k,l])=>`<button class="${mode===k?'on':''}" data-act="ormode" data-k="${k}">${l}</button>`).join('')}</div>`;
- const secs=o.sections.map(x=>{
+ const isMine=x=>!x.outline||x.mine;
+ const card=(x,rest)=>{
   const key=o.id+':'+x.id,done=!!st.done[key];
   const img=x.img?`<img class="orimg" src="${x.img}" alt="${esc(x.label+' '+x.head)}" loading="lazy" onerror="this.outerHTML='<div class=&quot;orph&quot;>Slide screenshot not added yet</div>'">`:'';
-  if(x.outline)return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>${esc(x.label)} · ${esc(x.head)}</h3></div><ul class="orol">${x.outline.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`;
+  if(x.outline)return `<div class="card ${rest?'':'ormine'}" style="margin-top:14px;${rest?'':'--mc:'+col}"><div class="card-h"><h3>${esc(x.label)} · ${esc(x.head)}</h3></div><ul class="orol">${x.outline.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></div>`;
   if(!orHas(x))return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>${esc(x.head)}</h3><span class="badge red">to add</span></div><p class="mute small">The spoken text is not here yet. Send it to Claude to add it.</p></div>`;
   const shown=mode==='read'?x.text:mode==='cue'?orCue(x.text):x.text;
   const hidden=mode==='hide'&&!ORREV[key];
-  return `<div class="card" style="margin-top:14px"><div class="card-h"><h3>${esc(x.label)} · ${esc(x.head)}</h3><span class="badge">${orWords(x.text)} words</span></div>${img}
+  return `<div class="card ormine" style="margin-top:14px;--mc:${col}"><div class="card-h"><h3>${esc(x.label)} · ${esc(x.head)}</h3><span class="badge">${orWords(x.text)} words</span></div>${img}
   <p class="ortx ${hidden?'blur':''}" ${mode==='hide'?`data-act="orreveal" data-k="${key}"`:''}>${esc(shown)}</p>
   ${mode==='hide'?`<div class="sf" style="margin:4px 0 8px">${hidden?'Say it out loud, then tap the text to check.':'Tap the text to hide it again.'}</div>`:''}
-  <button class="btn ${done?'gray':'tint'}" data-act="ordone" data-k="${key}">${ic('check')} ${done?'Learned (tap to undo)':'Mark as learned'}</button></div>`}).join('');
+  <button class="btn ${done?'gray':'tint'}" data-act="ordone" data-k="${key}">${ic('check')} ${done?'Learned (tap to undo)':'Mark as learned'}</button></div>`};
+ const mineSecs=o.sections.filter(isMine).map(x=>card(x,false)).join('');
+ const restList=o.sections.filter(x=>!isMine(x));
+ const restSecs=restList.length?`<details class="orrest"><summary>Rest of the oral · overview only, not your part</summary>${restList.map(x=>card(x,true)).join('')}</details>`:'';
+ const secs=mineSecs+restSecs;
  return `<div class="view">${navbar('Orals')}${title(esc(o.title),esc(o.course)+' · '+esc(o.kind))}
  <div class="grp" style="margin-top:12px"><div class="cell"><span class="t"><b>${typeof fmtD==='function'?fmtD({when:o.when}):esc(o.when)}${o.tentative?' (tentative)':''}</b><span style="white-space:normal">${esc(o.deposit)}</span></span>${typeof countdown==='function'?`<span class="badge ${typeof urgent==='function'&&urgent(o.when)?'red':''}">${countdown(o.when)}</span>`:''}</div>
- <div class="cell"><span class="t"><b>Your part</b><span style="white-space:normal">${esc(o.mine)}</span></span></div></div>
+ </div>
+ <div class="card ormine" style="margin-top:12px;--mc:${col}"><div class="card-h"><h3>YOUR PART · ${esc(o.part||'')}</h3>${s.total?`<span class="badge">${s.done}/${s.total} learned</span>`:''}</div><p class="small" style="margin:4px 0 2px;white-space:normal">${esc(o.mine)}</p></div>
  ${o.note?`<div class="sf" style="white-space:normal">${esc(o.note)}</div>`:''}
  ${s.total?modes:''}${secs}</div>`;
 }
@@ -121,5 +124,7 @@ VMAP.orals=vOrals;VMAP.oral=vOral;
 .orimg{display:block;width:100%;height:auto;border-radius:12px;margin:10px 0;border:1px solid var(--sep);background:var(--fill)}
 .orph{display:grid;place-items:center;aspect-ratio:16/9;margin:10px 0;border-radius:12px;background:var(--fill);color:var(--l2);font-size:13px}
 .ortx{font-size:17px;line-height:1.6;margin:8px 0 12px;white-space:pre-line}
+.ormine{border-left:4px solid var(--mc,#c2410c)}
+.orrest{margin-top:22px}.orrest>summary{cursor:pointer;font-size:14px;color:var(--l2);padding:10px 4px}
 .ortx.blur{filter:blur(7px);user-select:none}
 .orol{margin:8px 0 4px;padding-left:20px;font-size:15px;line-height:1.5}.orol li{margin:4px 0}`;document.head.appendChild(css)})();
