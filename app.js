@@ -92,7 +92,7 @@ function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','crit'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','crit','orals','oral'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -455,6 +455,8 @@ function vHub(){
  ${tile('button','data-act="open" data-v="tage"','#e11d48','target','Tage Mage',typeof tmNextSub==='function'?tmNextSub():'Test prep')}
  ${tile('button','data-act="open" data-v="deb"','#0f766e','people','Daily debate',typeof debStreak==='function'?(debStreak()?debStreak()+' day streak':'Think harder'):'Think harder')}
  ${tile('button','data-act="open" data-v="crit"','#7c3aed','bulb','Critical thinking',typeof ctMistakes==='function'?(ctMistakes()?ctMistakes()+' to redo':'Spot the flaw'):'Spot the flaw')}
+
+ ${tile('button','data-act="open" data-v="orals"','#c2410c','flag','Orals',typeof orTileSub==='function'?orTileSub():'Texts to learn')}
  ${tile('button','data-act="open" data-v="wri"','#b45309','pen','Writing',typeof vocDue==='function'?vocDue().length+' words due':'EN · IT · ES')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
  <a class="tile" href="https://ankiweb.net/decks/" target="_blank" rel="noopener" style="--c:#2f6fed"><span class="tq im" id="ankiq"><img src="https://www.google.com/s2/favicons?domain=ankiweb.net&sz=128" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.className='tq';this.parentNode.innerHTML=window.__gridIc"></span><b>Anki</b><span>Open your AnkiWeb decks</span></a>
