@@ -631,7 +631,7 @@ const saveCL=()=>{try{localStorage.setItem(CKEY,JSON.stringify(CL))}catch(e){}};
 const snap=()=>{const x=Object.assign({},S);delete x.active;delete x.brk;return x};
 async function gh(path,opt){
  const r=await fetch('https://api.github.com'+path,Object.assign({},opt,{headers:{'Authorization':'Bearer '+CL.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'}}));
- if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+ if(!r.ok){let m='';try{m=((await r.json()).message||'').slice(0,140)}catch(e){}const rl=r.headers.get('x-ratelimit-remaining');throw new Error('HTTP '+r.status+(m?' - '+m:'')+(rl!==null?' [rate left '+rl+']':''))}return r.json();
 }
 function mergeState(r){
  const L=S,newer=(r.mod||0)>(L.mod||0)?r:L,older=newer===r?L:r;
@@ -871,7 +871,7 @@ const A={
   S.deadlines.push({id:uid(),course:$('m-course').value,title:t,when:w});save();closeSheet();render()},
  dldel(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(d&&d.off)S.dlHide[d.id]=1;S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
  notif(){askNotif()},
- async cconnect(){const v=(($('cl-token')||{}).value||'').replace(/[\s"']+/g,'');if(v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const pr=v.split('~'),ok=await cloudConnect(pr[0],pr[1]);if(!ok){const m=/401/.test(CLERR)?'GitHub rejected the token (HTTP 401): it is wrong or has expired. Create a new one (classic token, only the "gist" permission) or copy the sync code again from your other device.':/403/.test(CLERR)?'GitHub refused the request (HTTP 403): the token lacks the "gist" permission, or GitHub is limiting requests. Wait a minute or create a new token with "gist".':/404/.test(CLERR)?'GitHub found no sync gist for this token (HTTP 404). The token may belong to a different GitHub account than the one that holds your progress.':/Failed to fetch|NetworkError|Load failed/i.test(CLERR)?'No connection to GitHub. Check the internet or any blocker on this device, then try again.':'Could not connect ('+CLERR+'). The token needs the "gist" permission only.';alert(m)}render()},
+ async cconnect(){const v=(($('cl-token')||{}).value||'').replace(/[\s"']+/g,'');if(v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const pr=v.split('~'),ok=await cloudConnect(pr[0],pr[1]);if(!ok){const m=/401/.test(CLERR)?'GitHub rejected the token (HTTP 401): it is wrong or has expired. Create a new one (classic token, only the "gist" permission) or copy the sync code again from your other device.':/403/.test(CLERR)?'GitHub refused the request (HTTP 403): the token lacks the "gist" permission, or GitHub is limiting requests. Wait a minute or create a new token with "gist".\n\nDetail: '+CLERR:/404/.test(CLERR)?'GitHub found no sync gist for this token (HTTP 404). The token may belong to a different GitHub account than the one that holds your progress.':/Failed to fetch|NetworkError|Load failed/i.test(CLERR)?'No connection to GitHub. Check the internet or any blocker on this device, then try again.':'Could not connect ('+CLERR+'). The token needs the "gist" permission only.';alert(m)}render()},
  csync(){cloudPull().then(()=>render())},
  cdisc(){if(confirm('Disconnect this device from the cloud? Your data stays here.')){CL={};saveCL();render()}},
  async ccopy(){try{await navigator.clipboard.writeText((CL.token||'')+'~'+(CL.gid||''));alert('Sync code copied. Paste it on your other device in More > Cloud sync.')}catch(e){alert('Copy failed.')}},
