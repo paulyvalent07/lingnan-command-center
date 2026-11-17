@@ -83,9 +83,9 @@ function wriPassagePrompt(w){
  return `Write a passage of about 120 words in ${lang}, ${tp}. Level ${w.lvl}. Register: press article or professional report. Include 6 to 8 expressions that are hard to translate (idioms, false friends, subjunctive, set phrases). Output only the text, with no title and no commentary.`}
 function wriFeedbackPrompt(w){
  const L=wLangName(w.lang),end=`End with a block that starts exactly with "VOCAB:" followed by one line for every mistake, word or expression worth learning (no limit on the number; do not leave any out) in the format: term in ${L} | French translation | short example in ${L}, taken from my mistakes. The second column must be the FRENCH translation (not an English definition).`;
- if(w.kind==='essay')return `Act as a ${L} writing tutor (target level ${w.lvl}). Essay question: ${w.topic||'(free topic)'}.\nHere is my essay (${pcWords(w.text||'')} words):\n\n${(w.text||'').trim()}\n\nGive me: 1) an estimated CEFR level; 2) three points of feedback on structure and argument; 3) every language mistake as "my wording → correction (rule)", up to 12; 4) a corrected version; 5) a score out of 20. Be blunt. ${end}`;
+ if(w.kind==='essay')return `Act as a ${L} writing tutor (target level ${w.lvl}). Essay question: ${w.topic||'(free topic)'}.\nHere is my essay (${pcWords(w.text||'')} words):\n\n${(w.text||'').trim()}\n\nGive me: 1) an estimated CEFR level; 2) three points of feedback on structure and argument; 3) every language mistake as "my wording → correction (rule)", up to 12; 4) a corrected version; 5) a grade using this exact scale: ${WRI_SCALE.essay.map(x=>x[0]+' /'+x[1]).join(', ')} (that adds up to 20), then ONE last line in exactly this form: FINAL SCORE: X/20 (the sum of the parts, half points allowed). Be blunt. ${end}`;
  const from=w.kind==='theme'?'French':L,to=w.kind==='theme'?L:'French';
- return `Act as a translation tutor. Here is a ${from} source text and my translation into ${to} (level ${w.lvl}).\n\nSOURCE (${from}):\n${(w.src||'').trim()}\n\nMY TRANSLATION (${to}):\n${(w.text||'').trim()}\n\nGive me: 1) every mistake as "my wording → correction (rule)", including mistranslations, false friends, grammar and register; 2) a model translation; 3) a score out of 20 for accuracy, naturalness and grammar. Be blunt. ${end}`;
+ return `Act as a translation tutor. Here is a ${from} source text and my translation into ${to} (level ${w.lvl}).\n\nSOURCE (${from}):\n${(w.src||'').trim()}\n\nMY TRANSLATION (${to}):\n${(w.text||'').trim()}\n\nGive me: 1) every mistake as "my wording → correction (rule)", including mistranslations, false friends, grammar and register; 2) a model translation; 3) a grade using this exact scale: ${WRI_SCALE.tr.map(x=>x[0]+' /'+x[1]).join(', ')} (that adds up to 20), then ONE last line in exactly this form: FINAL SCORE: X/20 (the sum of the parts, half points allowed). Be blunt. ${end}`;
 }
 function wriParseVocab(txt,lang){
  const i=txt.search(/VOCAB:?/i);if(i<0)return [];
@@ -110,12 +110,18 @@ function vocQueue(){
 const vocDue=()=>{const q=vocQueue();return q.due.concat(q.fresh)};
 function startVocStudy(){const q=vocQueue(),ids=q.due.concat(q.fresh).map(c=>c.id);if(!ids.length)return;
  STUDY={course:null,vocab:true,queue:ids,flipped:false,done:0,again:0,t:Date.now()};hist.push([view,param]);view='study';param=null;render();window.scrollTo(0,0)}
+const WRI_SCALE={tr:[['Accuracy of meaning (no mistranslation, omission or false friend)',8],['Grammar, spelling and agreement',6],['Naturalness and register',6]],essay:[['Task and argument',6],['Structure and coherence',4],['Grammar and vocabulary accuracy',6],['Range and style',4]]};
+const wriScaleTxt=k=>WRI_SCALE[k==='essay'?'essay':'tr'].map(x=>x[0].split(' (')[0]+' '+x[1]).join(' · ');
 function wriExtractScore(t){
  t=String(t||'').replace(/\*\*|__/g,'');
+ const fin=t.match(/final\s+(?:score|grade|note)\s*[:=\-–—]?\s*(\d{1,2}(?:[.,]\d{1,2})?)/i);
+ if(fin){const v=parseFloat(fin[1].replace(',','.'));if(v>=0&&v<=20)return v}
  const re=/(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:\/|out of|sur)\s*20\b/gi,all=[];let m;
  while((m=re.exec(t))){const v=parseFloat(m[1].replace(',','.'));if(v>=0&&v<=20)all.push({v,i:m.index})}
- if(all.length){const kw=/score|note|grade|mark|total|overall|final|rating/i;
-  const w=all.filter(x=>kw.test(t.slice(t.lastIndexOf('\n',x.i)+1,x.i+30)));return (w.length?w[w.length-1]:all[all.length-1]).v}
+ if(all.length){const kw=/total|overall|final|global|moyenne|average/i;
+  const w=all.filter(x=>kw.test(t.slice(t.lastIndexOf('\n',x.i)+1,x.i+30)));if(w.length)return w[w.length-1].v;
+  if(all.length>1){const lines=new Set(all.map(x=>t.lastIndexOf('\n',x.i)));if(lines.size>1)return Math.round(all.reduce((s,x)=>s+x.v,0)/all.length*2)/2}
+  return all[all.length-1].v}
  const c=t.replace(/(?:out of|sur|\/)\s*20\b/gi,' ');
  const m2=c.match(/(?:score|grade|rating|note|mark)(?:\s+(?:finale?|final|overall|globale?))?\s*[:=\-–—]\s*(\d{1,2}(?:[.,]\d{1,2})?)(?!\d)/i);
  if(m2){const v=parseFloat(m2[1].replace(',','.'));if(v>=0&&v<=20)return v}
@@ -143,6 +149,7 @@ function vWri(){
   <div class="eyebrow" style="margin:18px 0 6px">Claude's feedback</div><textarea class="pcta" data-wf="fb" rows="6" placeholder="Paste Claude's answer here, including the VOCAB: block">${esc(w.fb||'')}</textarea>
   <div class="grp fgrp" style="margin-top:10px"><div class="cell"><label>Score /20</label><input type="text" inputmode="decimal" data-wf="score" value="${esc(w.score||'')}" placeholder="auto" style="text-align:right"></div></div>
   <div class="sf" id="wscorehint" style="margin-top:6px">${esc(wriHint(w.fb||''))}</div>
+  <div class="sf" style="margin-top:2px">Scale in the prompt: ${esc(wriScaleTxt(w.kind))} = 20. Claude ends with one FINAL SCORE line.</div>
   <div style="margin-top:12px;display:flex;gap:10px"><button class="btn tint" data-act="wrivocab">Extract vocabulary</button><button class="btn" data-act="wrisave">Save exercise</button></div>
   <div class="sf">When you save, the /20 score is read from Claude's feedback (type one above only to override it). Vocabulary comes from the VOCAB: lines and goes into your flashcards.</div>`;
  }else if(tab==='vocab'){
