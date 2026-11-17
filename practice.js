@@ -92,6 +92,10 @@ function wriParseVocab(txt,lang){
  return txt.slice(i).split('\n').slice(1).map(l=>l.replace(/^[\s\-\*\d\.\)]+/,'').trim()).filter(l=>l.split('|').length>=2).map(l=>{const p=l.split('|').map(s=>s.trim());return {term:p[0].replace(/\*\*/g,''),tr:p[1].replace(/\*\*/g,''),note:(p[2]||'').replace(/\*\*/g,'')}}).filter(x=>x.term&&x.tr);
 }
 const WINT=[1,3,7,14,30];
+function wriAddVocab(x){const T=wriT(),items=wriParseVocab(x.fb||'',x.lang);let n=0;
+ items.forEach((v,i)=>{const id='x'+x.id+'_'+i;if(T.vocab.some(o=>o.id===id||(o.lang===x.lang&&o.term.toLowerCase()===v.term.toLowerCase())))return;T.vocab.push({id,lang:x.lang,term:v.term,tr:v.tr,note:v.note,box:0,due:today(),ts:Date.now()});n++});return n}
+/* words extracted by an older version only on the Extract button: recover them from saved exercises of the last week */
+function wriRecover(){const T=wriT(),lim=Date.now()-7*864e5;let ch=0;T.list.forEach(x=>{if(!x.vx&&x.fb&&x.ts>=lim&&/VOCAB/i.test(x.fb)){wriAddVocab(x);x.vx=1;x.mod=Date.now();ch++}});if(ch)save()}
 /* vocabulary uses the same cards, swipe screen and spaced repetition as the course flashcards (state in S.vc) */
 const VNEW=30;
 function vcGet(v){const s=S.vc&&S.vc['v:'+v.id];if(s)return s;
@@ -129,29 +133,22 @@ function wriExtractScore(t){
 const wriHint=fb=>{const s=wriExtractScore(fb);return s!=null?'Score read from the feedback: '+s+'/20':(String(fb||'').trim()?'No /20 score found in the feedback yet':"The /20 score is read from Claude's feedback when you save.")};
 document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.wf==='fb'){const h=document.getElementById('wscorehint');if(h)h.textContent=wriHint(el.value)}});
 function vWri(){
+ wriRecover();
  const w=wDraft(),T=wriT(),tab=WRITAB;
  const seg=(opts,cur,act)=>`<div class="segc" style="flex:1">${opts.map(([k,l])=>`<button class="${String(cur)===String(k)?'on':''}" data-act="${act}" data-k="${k}">${l}</button>`).join('')}</div>`;
  const tabs=`<div class="segc" style="margin:6px 0 14px">${[['write','Write'],['vocab','Vocab ('+vocDue().length+' due)'],['prog','Progress']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="writab" data-k="${k}">${l}</button>`).join('')}</div>`;
  let body='';
  if(tab==='write'){
-  const isT=w.kind!=='essay';
-  body=`<div class="stack" style="margin-bottom:8px">${seg(WRI_KINDS,w.kind,'wrikind')}</div>
-  <div class="stack" style="margin-bottom:8px">${seg([['en','English'],['it','Italian'],['es','Spanish']],w.lang,'wrilang')}${seg([['B1','B1'],['B2','B2'],['C1','C1']],w.lvl,'wrilvl')}</div>
-  <div class="grp fgrp" style="margin-top:12px"><div class="cell"><textarea class="wtopic" data-wf="topic" rows="${Math.max(2,Math.min(8,Math.ceil((w.topic||'').length/32)))}" placeholder="${w.kind==='essay'?'Essay question (tap the button below for one)':'Theme (optional)'}">${esc(w.topic||'')}</textarea></div>
-  <button class="cell has-ico" data-act="writopic"><span class="sq" style="--c:var(--accent)">${ic('redo')}</span><span class="t"><b>${w.kind==='essay'?'Give me a new essay question':'Pick a theme from my courses'}</b><span>${w.kind==='essay'?(WRIMODE==='time'?'Timeless questions':WRIMODE==='news'?'Linked to the news':'Timeless and news mixed')+' · tap again for another':esc((COURSES.find(c=>c.id===w.course)||COURSES[0]).short)+' · tap again for another'}</span></span></button></div>
-  ${w.kind==='essay'?`<div class="segc" style="margin-top:8px">${[['mix','Mix'],['time','Timeless'],['news','In the news']].map(([k,l])=>`<button class="${WRIMODE===k?'on':''}" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>${w.cat?`<p class="mute small" style="margin:8px 4px 0">${esc(w.cat)}${w.ctx?' · '+esc(w.ctx):''}</p>`:''}`:`<div class="chips" style="margin-top:8px">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}</div>`}
-  ${isT?`<div style="margin-top:6px"><button class="btn tint" data-act="wricopy0">${ic('doc')} Copy the prompt that creates the source text</button></div>
-  <div class="eyebrow" style="margin:16px 0 6px">Source text (${w.kind==='theme'?'French':wLangName(w.lang)})</div><textarea class="pcta" data-wf="src" rows="6" placeholder="Paste the text Claude gave you here">${esc(w.src||'')}</textarea>`:''}
-  <div style="margin-top:14px">${pcTimerHtml('wri')}</div>
-  <div class="eyebrow" style="margin:16px 0 6px;display:flex;justify-content:space-between"><span>${w.kind==='essay'?'Your essay':'Your translation'} (${w.kind==='theme'?wLangName(w.lang):w.kind==='version'?'French':wLangName(w.lang)})</span><span id="wcount">${pcWords(w.text||'')} words</span></div>
-  <textarea class="pcta" data-wf="text" rows="12" placeholder="Write here">${esc(w.text||'')}</textarea>
-  <div style="margin-top:14px"><button class="btn" data-act="wricopy1">${ic('doc')} Copy the correction prompt for Claude</button></div>
-  <div class="eyebrow" style="margin:18px 0 6px">Claude's feedback</div><textarea class="pcta" data-wf="fb" rows="6" placeholder="Paste Claude's answer here, including the VOCAB: block">${esc(w.fb||'')}</textarea>
-  <div class="grp fgrp" style="margin-top:10px"><div class="cell"><label>Score /20</label><input type="text" inputmode="decimal" data-wf="score" value="${esc(w.score||'')}" placeholder="auto" style="text-align:right"></div></div>
-  <div class="sf" id="wscorehint" style="margin-top:6px">${esc(wriHint(w.fb||''))}</div>
-  <div class="sf" style="margin-top:2px">Scale in the prompt: ${esc(wriScaleTxt(w.kind))} = 20. Claude ends with one FINAL SCORE line.</div>
-  <div style="margin-top:12px;display:flex;gap:10px"><button class="btn tint" data-act="wrivocab">Extract vocabulary</button><button class="btn" data-act="wrisave">Save exercise</button></div>
-  <div class="sf">When you save, the /20 score is read from Claude's feedback (type one above only to override it). Vocabulary comes from the VOCAB: lines and goes into your flashcards.</div>`;
+  const on=(w.text||'').trim()||(w.src||'').trim(),kd=WRI_KINDS.find(k=>k[0]===w.kind)||WRI_KINDS[0];
+  const TY=[['theme','Thème','French → '+wLangName(w.lang),'redo','var(--orange)'],['version','Version',wLangName(w.lang)+' → French','doc','var(--green)'],['essay','Essay','Argued answer in '+wLangName(w.lang),'pen','var(--accent)']];
+  body=(on?`<div class="card" style="margin-bottom:14px"><div class="card-h"><h3>Exercise in progress</h3></div><p class="mute small" style="margin:0 0 10px">${esc(kd[1])} · ${wLangName(w.lang)} ${w.lvl} · ${pcWords(w.text||'')} words written</p><div style="display:flex;gap:10px"><button class="btn" data-act="wresume">Resume</button><button class="btn gray" data-act="wdiscard">Discard</button></div></div>`:'')+
+  `<div class="eyebrow" style="margin:4px 0 8px">Choose an exercise</div>
+  <div class="wtypes">${TY.map(([k,n,s,ico,c])=>`<button class="wtype ${w.kind===k?'on':''}" data-act="wrikind" data-k="${k}" style="--c:${c}"><span class="sq" style="--c:${c}">${ic(ico)}</span><b>${n}</b><span>${esc(s)}</span></button>`).join('')}</div>
+  <div class="stack" style="margin-top:14px">${seg([['en','English'],['it','Italian'],['es','Spanish']],w.lang,'wrilang')}${seg([['B1','B1'],['B2','B2'],['C1','C1']],w.lvl,'wrilvl')}</div>
+  <div class="eyebrow" style="margin:16px 0 6px">Timer</div><div class="segc">${[[0,'Off'],[20,'20 min'],[30,'30 min'],[45,'45 min']].map(([m,l])=>`<button class="${PCMIN.wri===m?'on':''}" data-act="wtimer" data-m="${m}">${l}</button>`).join('')}</div>
+  ${w.kind==='essay'?`<div class="eyebrow" style="margin:16px 0 6px">Questions</div><div class="segc">${[['mix','Mix'],['time','Timeless'],['news','In the news']].map(([k,l])=>`<button class="${WRIMODE===k?'on':''}" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>`:`<div class="eyebrow" style="margin:16px 0 6px">Theme of the text</div><div class="chips">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}</div>`}
+  <div style="margin-top:18px"><button class="btn" data-act="wstart">${ic('play')} Start ${esc(kd[1].split(' ')[0])}</button></div>
+  <div class="sf">${w.kind==='essay'?'You get a question on the next page.':'On the next page, Daily gives you a prompt that makes Claude write the source text. Paste it on the left, translate on the right.'} Press Finish when you are done, then paste Claude's correction to get your /20 and your vocabulary.</div>`;
  }else if(tab==='vocab'){
   const q=vocQueue(),n=q.due.length+q.fresh.length,V=T.vocab;
   body=`<div class="stats" style="margin-bottom:14px"><div class="stat"><b>${q.due.length}</b><span>due</span></div><div class="stat"><b>${q.fresh.length}</b><span>new</span></div><div class="stat"><b>${V.length}</b><span>words saved</span></div></div>`+
@@ -193,15 +190,30 @@ Object.assign(A,{
  wrimode(el){WRIMODE=el.dataset.k;try{localStorage.setItem('lu-wri-mode',WRIMODE)}catch(e){}render()},
  wricopy0(el){pcCopy(wriPassagePrompt(wDraft()),el)},
  wricopy1(el){const w=wDraft();if(!(w.text||'').trim()){alert('Write something first.');return}pcCopy(wriFeedbackPrompt(w),el)},
- wrivocab(){const w=wDraft(),items=wriParseVocab(w.fb||'',w.lang),T=wriT();let n=0;
-  items.forEach(x=>{if(T.vocab.some(v=>v.lang===w.lang&&v.term.toLowerCase()===x.term.toLowerCase()))return;T.vocab.push({id:pcId(),lang:w.lang,term:x.term,tr:x.tr,note:x.note,box:0,due:today(),ts:Date.now()});n++});
-  save();alert(n?n+' word'+(n===1?'':'s')+' added to your review.':items.length?'Those words are already saved.':'No VOCAB: block found in the feedback.');render()},
- wrisave(){const w=wDraft();if(!(w.text||'').trim()){alert('Nothing to save yet.');return}
-  const ef=Math.max(w.eff||0,pcTimed('wri'));effAdd('wri',ef);
-  const man=String(w.score||'').trim().replace(',','.'),ex=wriExtractScore(w.fb||''),sc=man&&!isNaN(parseFloat(man))?man:(ex!=null?String(ex):'');
-  wriT().list.push({id:pcId(),ts:Date.now(),kind:w.kind,lang:w.lang,lvl:w.lvl,topic:w.topic||'',src:w.src||'',text:w.text,fb:w.fb||'',score:sc,words:pcWords(w.text),eff:Math.round(ef)});save();
-  if(!sc&&(w.fb||'').trim())alert('Saved, but no /20 score was found in the feedback. You can set it by hand in the Progress tab.');
-  pcLS('lu-wri-draft',Object.assign({},w,{text:'',src:'',fb:'',score:'',topic:'',eff:0}));pcLS('lu-pc-timer',null);WRITAB='prog';render();window.scrollTo(0,0)},
+ wricopy1x(el){const x=wriT().list.find(y=>y.id===el.dataset.id);if(x)pcCopy(wriFeedbackPrompt(x),el)},
+ wtimer(el){PCMIN.wri=+el.dataset.m;render()},
+ wstart(){const w=wDraft();if((w.text||'').trim()&&!confirm('Replace the exercise in progress?'))return;
+  const d=Object.assign({},w,{text:'',src:'',fb:'',score:'',eff:0,t0:Date.now()});
+  if(d.kind==='essay'){const q=wriPickTopic(WRIMODE,'');d.topic=q.q;d.cat=q.c;d.ctx=q.ctx||''}else{d.topic='';d.cat='';d.ctx='';const th=wriTopic(d.course);if(th)d.topic=th}
+  pcLS('lu-wri-draft',d);pcLS('lu-pc-timer',PCMIN.wri>0?{k:'wri',end:Date.now()+PCMIN.wri*60000}:null);effLast=0;
+  hist.push([view,param]);view='wex';param=null;render();window.scrollTo(0,0)},
+ wresume(){hist.push([view,param]);view='wex';param=null;render();window.scrollTo(0,0)},
+ wdiscard(){if(!confirm('Discard the exercise in progress?'))return;const d=wDraft();Object.assign(d,{text:'',src:'',fb:'',score:'',eff:0,t0:0});pcLS('lu-wri-draft',d);pcLS('lu-pc-timer',null);render()},
+ wfinish(){const w=wDraft();if(!(w.text||'').trim()){alert('Write something first.');return}
+  const ef=Math.max(w.eff||0,pcTimed("wri"));effAdd('wri',ef);
+  const x={id:pcId(),ts:Date.now(),kind:w.kind,lang:w.lang,lvl:w.lvl,topic:w.topic||'',src:w.src||'',text:w.text,fb:'',score:'',words:pcWords(w.text),eff:Math.round(ef)};
+  wriT().list.push(x);save();
+  pcLS('lu-wri-draft',Object.assign({},w,{text:'',src:'',fb:'',score:'',topic:'',eff:0,t0:0}));pcLS('lu-pc-timer',null);
+  view='wfb';param=x.id;render();window.scrollTo(0,0)},
+ wfbopen(el){hist.push([view,param]);view='wfb';param=el.dataset.id;render();window.scrollTo(0,0)},
+ wfbsave(){const x=wriT().list.find(y=>y.id===param),ta=document.getElementById('wfbtxt');if(!x||!ta)return;const fb=ta.value.trim();if(!fb){alert("Paste Claude's answer first.");return}
+  const sc=document.getElementById('wfbsc'),man=((sc&&sc.value)||'').trim().replace(',','.'),ex=wriExtractScore(fb);
+  x.fb=fb;x.score=man&&!isNaN(parseFloat(man))&&parseFloat(man)<=20?man:(ex!=null?String(ex):'');x.mod=Date.now();
+  wriAddVocab(x);x.vx=1;save();pcLS('lu-wfb-'+x.id,null);
+  if(!x.score)alert('Saved, but no /20 score was found in the answer. You can type it below.');render()},
+ wfbvocab(el){const x=wriT().list.find(y=>y.id===el.dataset.id);if(!x)return;const n=wriAddVocab(x);x.vx=1;x.mod=Date.now();save();alert(n?n+' word'+(n===1?'':'s')+' added to your flashcards.':'No new words found (VOCAB: block missing or already saved).');render()},
+ wstudyvoc(){startVocStudy()},
+ wdone(){A.back();WRITAB='prog';render()},
  wriopen(el){WRIOPEN=WRIOPEN===el.dataset.id?null:el.dataset.id;render()},
  wridel(el){if(!confirm('Delete this exercise?'))return;const T=wriT();T.list=T.list.filter(x=>x.id!==el.dataset.id);save();render()},
  vocdir(el){VDIR=el.dataset.k;try{localStorage.setItem('lu-voc-dir',VDIR)}catch(e){}render()},
@@ -211,4 +223,45 @@ Object.assign(A,{
  vocadd(){const el=document.getElementById('vnew'),p=(el&&el.value||'').split('|').map(s=>s.trim());if(p.length<2||!p[0]||!p[1]){alert('Type: term | meaning');return}
   wriT().vocab.push({id:pcId(),lang:wDraft().lang,term:p[0],tr:p[1],note:p[2]||'',box:0,due:today(),ts:Date.now()});save();render()}
 });
-VMAP.deb=vDeb;VMAP.wri=vWri;
+function vWex(){
+ const w=wDraft(),isT=w.kind!=='essay',from=w.kind==='theme'?'French':wLangName(w.lang),to=w.kind==='theme'?wLangName(w.lang):'French';
+ const toL=w.kind==='essay'?wLangName(w.lang):(w.kind==='theme'?wLangName(w.lang):'French'),kd=(WRI_KINDS.find(k=>k[0]===w.kind)||WRI_KINDS[0])[1].split(' ')[0];
+ const tm=pcLS('lu-pc-timer'),cd=tm&&tm.k==='wri',chip=cd?`<span class="wchip" id="pctimer">${tm.end>Date.now()?fmtMS((tm.end-Date.now())/1000):"Time's up"}</span>`:`<span class="wchip" id="wexel">${fmtMS((Date.now()-(w.t0||Date.now()))/1000)}</span>`;
+ const left=isT?`<div class="wpane"><div class="wph"><b>Source · ${from}</b><button class="btn tint sm" data-act="wricopy0">Copy prompt for a text</button></div>
+   <div class="wth"><input type="text" data-wf="topic" value="${esc(w.topic||'')}" placeholder="Theme (optional)"><button class="btn gray sm" data-act="writopic">New theme</button></div>
+   <textarea class="wta" data-wf="src" placeholder="Paste the ${from} text Claude gave you here">${esc(w.src||'')}</textarea></div>`
+  :`<div class="wpane"><div class="wph"><b>Question</b><button class="btn tint sm" data-act="writopic">New question</button></div>
+   <textarea class="wta wq" data-wf="topic" rows="5" placeholder="Essay question">${esc(w.topic||'')}</textarea>
+   <div class="segc" style="margin-top:8px">${[['mix','Mix'],['time','Timeless'],['news','News']].map(([k,l])=>`<button class="${WRIMODE===k?'on':''}" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>${w.cat?`<p class="mute small" style="margin:8px 2px 0">${esc(w.cat)}${w.ctx?' · '+esc(w.ctx):''}</p>`:''}</div>`;
+ return `<div class="view wexv">${navbar('Writing')}
+ <div class="wexh"><div><b>${kd}</b><span class="mute small"> · ${wLangName(w.lang)} ${w.lvl}</span></div>${chip}<button class="btn sm" data-act="wfinish">Finish</button></div>
+ <div class="wsplit ${isT?'':'ess'}">${left}
+  <div class="wpane"><div class="wph"><b>${w.kind==='essay'?'Your essay':'Your translation'} · ${toL}</b><span class="mute small" id="wcount">${pcWords(w.text||'')} words</span></div>
+   <textarea class="wta" data-wf="text" placeholder="Write here">${esc(w.text||'')}</textarea></div></div></div>`;
+}
+function vWfb(){
+ const x=wriT().list.find(y=>y.id===param);
+ if(!x)return `<div class="view">${navbar('Writing')}<div class="empty"><b>Exercise not found</b></div></div>`;
+ const kd={essay:'Essay',theme:'Thème',version:'Version'}[x.kind]||'Exercise',sc=wScore(x);
+ const head=`<div class="done-card" style="padding:22px 16px"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:26px">${x.fb?'Exercise corrected':'Exercise saved'}</h1><p class="mute" style="margin:6px 0 0">${kd} · ${wLangName(x.lang)} ${x.lvl} · ${x.words} words${x.eff?' · '+fmt(x.eff/60)+' worked':''}</p></div>`;
+ let body;
+ if(x.fb){
+  const V=wriParseVocab(x.fb,x.lang).length,inV=wriT().vocab.filter(v=>String(v.id).startsWith('x'+x.id+'_')).length;
+  body=`<div class="card" style="margin-top:14px;text-align:center"><div class="eyebrow">Your grade</div><div class="wscore">${sc!=null?pgNum(sc)+'<small>/20</small>':'—'}</div>
+   ${sc==null?`<div class="sf">No /20 found in the answer. Type it here:</div>`:''}
+   <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-top:8px"><input type="text" inputmode="decimal" class="wsedit" data-wsid="${x.id}" value="${esc(x.score||'')}" placeholder="/20" style="width:70px;text-align:center"><button class="btn tint sm" data-act="wriscore" data-id="${x.id}">${sc==null?'Set score':'Change'}</button></div></div>
+   <div class="card" style="margin-top:12px"><div class="card-h"><h3>Vocabulary</h3><span class="mute small">${inV||V} word${(inV||V)===1?'':'s'}</span></div><p class="mute small" style="margin:0 0 10px">${V?`${inV} added to your flashcards${inV<V?' (the rest were already there)':''}.`:'No VOCAB: block in the answer.'}</p>${V&&!x.vx?`<button class="btn tint" data-act="wfbvocab" data-id="${x.id}">Add the words</button>`:''}${vocDue().length?`<button class="btn" data-act="wstudyvoc" style="margin-top:8px">${ic('play')} Study vocabulary · ${vocDue().length}</button>`:''}</div>
+   <details style="margin-top:12px"><summary class="mute small" style="padding:4px">Claude's answer</summary><p class="mute small" style="white-space:pre-line">${esc(x.fb)}</p></details>`;
+ }else{
+  const dr=pcLS('lu-wfb-'+x.id)||'';
+  body=`<div class="card" style="margin-top:14px"><div class="card-h"><h3>1 · Get the correction</h3></div><p class="mute small" style="margin:0 0 10px">Copy the prompt, paste it in a Claude chat, and copy the answer back here.</p><button class="btn" data-act="wricopy1x" data-id="${x.id}">${ic('doc')} Copy the correction prompt</button></div>
+   <div class="card" style="margin-top:12px"><div class="card-h"><h3>2 · Paste Claude's answer</h3></div><textarea class="pcta" id="wfbtxt" data-wfb="${x.id}" rows="7" placeholder="Paste here, including the FINAL SCORE and VOCAB: lines">${esc(dr)}</textarea>
+   <div class="sf" id="wfbhint" style="margin-top:6px">${esc(wriHint(dr))}</div>
+   <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="text" inputmode="decimal" id="wfbsc" placeholder="/20 (auto)" style="width:96px;text-align:center" class="wsedit"><button class="btn" data-act="wfbsave" style="flex:1">Save correction</button></div></div>
+   <p class="mute small" style="margin:12px 4px 0">You can also do this later: the exercise stays in your Progress tab with an "Add correction" button.</p>`;
+ }
+ return `<div class="view">${navbar('Writing')}${head}${body}<div style="margin-top:18px"><button class="btn ${x.fb?'':'gray'}" data-act="wdone">${x.fb?'Done':'Later'}</button></div></div>`;
+}
+document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.wfb){pcLS('lu-wfb-'+el.dataset.wfb,el.value);const h=document.getElementById('wfbhint');if(h)h.textContent=wriHint(el.value)}});
+setInterval(()=>{const el=document.getElementById('wexel');if(el&&view==='wex'){const d=wDraft();el.textContent=fmtMS((Date.now()-(d.t0||Date.now()))/1000)}},1000);
+VMAP.deb=vDeb;VMAP.wri=vWri;VMAP.wex=vWex;VMAP.wfb=vWfb;

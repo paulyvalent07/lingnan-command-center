@@ -93,7 +93,7 @@ function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','crit','news','nstory','orals','oral'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','wex','wfb','crit','news','nstory','orals','oral'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 

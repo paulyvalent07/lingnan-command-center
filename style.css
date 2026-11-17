@@ -606,3 +606,24 @@ html{overscroll-behavior:none}
 .pgs{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin:10px 0 8px}
 .pgs i{display:block;height:100%}
 .wsedit{background:var(--fill);border-radius:8px;border:0;padding:6px 8px;font-size:15px;color:var(--label)}
+/* Writing: launcher and split exercise page */
+.wtypes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.wtype{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:var(--card);border:2px solid transparent;border-radius:16px;padding:12px;min-height:116px;cursor:pointer}
+.wtype .sq{margin-bottom:6px}
+.wtype b{font-size:16px;color:var(--label)}
+.wtype>span:last-child{font-size:12px;color:var(--l2);line-height:1.25}
+.wtype.on{border-color:var(--c,var(--accent));background:color-mix(in srgb,var(--c,var(--accent)) 9%,var(--card))}
+.wexh{display:flex;align-items:center;gap:10px;margin:6px 0 10px}
+.wexh>div:first-child{flex:1;min-width:0}
+.wchip{font-variant-numeric:tabular-nums;font-weight:600;background:var(--fill);border-radius:999px;padding:6px 12px;font-size:14px}
+.wsplit{display:grid;grid-template-rows:1fr 1fr;gap:10px;height:calc(100dvh - 270px);min-height:440px}
+.wsplit.ess{grid-template-rows:auto 1fr}
+.wpane{display:flex;flex-direction:column;min-height:0;background:var(--card);border-radius:16px;padding:12px}
+.wph{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.wph b{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--l2)}
+.wth{display:flex;gap:8px;margin-bottom:8px}
+.wth input{flex:1;min-width:0;border:0;background:var(--fill);border-radius:10px;padding:8px 10px;font-size:15px;color:var(--label)}
+.wta{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;font:inherit;font-size:17px;line-height:1.5;color:var(--label)}
+.wta.wq{flex:none;height:auto;min-height:92px;font-size:16px;font-weight:500}
+.wscore{font-size:54px;font-weight:700;line-height:1.1;margin:4px 0}.wscore small{font-size:20px;color:var(--l2);font-weight:500}
+@media(min-width:700px){.wsplit{grid-template-rows:1fr;grid-template-columns:1fr 1fr;height:calc(100dvh - 190px)}.wsplit.ess{grid-template-rows:1fr;grid-template-columns:minmax(260px,34%) 1fr}.wta{font-size:18px}}
