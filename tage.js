@@ -196,24 +196,6 @@ const tmMocks=()=>tmT().att.filter(a=>a.kind==='mock'&&!a.partial);
 const tmWeekStart=()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()};
 function tmNextSub(){const d=tmDays('j')>=0?tmDays('j'):tmDays('n');return d>=0?'J-'+d+' to the next sitting':'Set your test dates'}
 const tmBar=(p,c)=>`<div class="tmb"><i style="width:${Math.round((p||0)*100)}%;background:${c}"></i></div>`;
-function tmPlan(){
- const nextK=tmDays('j')>=0?'j':'n',days=tmDays(nextK),wk=Math.max(0,Math.ceil(days/7));
- const ws=tmWeekStart(),att=tmT().att.filter(a=>a.ts>=ws),dr=att.filter(a=>a.kind==='drill').length,mk=att.filter(a=>a.kind==='mock'&&!a.partial).length;
- let ph,drT,mkT,rvT,txt;
- if(days<0){return `<div class="card"><h3>Study plan</h3><p class="mute" style="margin-top:8px">Both sittings are in the past. Update the dates on the Train tab.</p></div>`}
- if(wk>16){ph='Foundation';drT=3;mkT=0;rvT=1;txt='Learn the formats and fix basics. One drill per section type, slowly. No mock yet unless you want a baseline.'}
- else if(wk>4){ph='Build';drT=4;mkT=wk%2?0:1;rvT=1;txt='Mix targeted drills with one full mock every two weeks. Always review the mistakes the day after.'}
- else{ph='Sprint';drT=3;mkT=1;rvT=2;txt='One full mock a week under real conditions (2 hours, no pause), then review. Drills only on your weakest sections.'}
- const weak=TM_SECS.map(s=>({s,a:tmAcc(s.k)})).filter(x=>x.a.n>=5).sort((a,b)=>a.a.p-b.a.p).slice(0,2);
- const mist=Object.keys(tmT().mist).length;
- const row=(t,done,goal,sub)=>`<div class="cell"><span class="t"><b>${t}</b><span>${sub}</span></span><span class="badge ${done>=goal?'green':'blue'}">${done}/${goal}</span></div>`;
- return `<div class="card"><div class="card-h"><h3>This week</h3><span class="badge blue">${ph} phase</span></div>
- <p class="mute small" style="margin-bottom:10px">${wk} week${wk===1?'':'s'} to ${TM_DEF[nextK][1].toLowerCase()} (${tmDate(nextK)}). ${txt}</p>
- <div class="grp" style="background:var(--fill)">${row('Section drills',dr,drT,weak.length?'Focus: '+weak.map(x=>x.s.n).join(' and '):'Start with one drill in each section as a baseline')}
- ${mkT?row('Full mock',mk,mkT,'2 hours, real conditions'):''}
- ${row('Mistake review',Math.min(rvT,tmT().att.filter(a=>a.ts>=ws&&a.kind==='drill'&&a.review).length),rvT,mist?mist+' question'+(mist===1?'':'s')+' waiting in your notebook':'Notebook is empty')}</div></div>
- <div class="sf">Targets adapt to the time left. They are a guide, not a rule: during Lingnan exam weeks keep it light.</div>`;
-}
 function tmTrain(){
  const nd=k=>{const d=tmDays(k);return d>=0?d:'—'};
  const run=TMR&&!TMR.done?`<button class="btn" style="margin-bottom:14px" data-act="tmresume">${ic('play')} Resume your ${TMR.kind==='mock'?'mock test':'drill'}</button>`:'';
@@ -239,17 +221,9 @@ function tmMist(){
    ${open?`<div class="tmx">${m.x?`<p class="tmp">${esc(m.x)}</p>`:''}<p style="white-space:pre-line">${esc(m.q)}</p>${tmExtra(m)}<p class="tmok"><b>Answer:</b> ${tmOptH(m,m.a)}</p><p class="mute small">${esc(m.e||'')}</p></div>`:''}</div>`}).join('')}</div>`}).join('');
  return `<button class="btn" data-act="tmredo" style="margin-bottom:6px">${ic('redo')} Redo my mistakes (${Math.min(15,ids.length)} questions)</button>${grp}`;
 }
-function tmHist(){
- const A=[...tmT().att].reverse();
- if(!A.length)return `<div class="empty">Your drills and mocks will be listed here.</div>`;
- const m=tmMocks(),H=70,max=600;
- const chart=m.length>1?`<div class="card" style="margin-bottom:14px"><div class="card-h"><h3>Mock scores</h3><span class="mute small">/600, indicative</span></div><div class="tmh">${m.slice(-12).map(a=>`<div style="height:${Math.max(4,a.score/max*H)}px" title="${a.score}"><b>${a.score}</b></div>`).join('')}</div></div>`:'';
- return chart+`<div class="grp">${A.slice(0,40).map(a=>{const d=new Date(a.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'}),s=(a.kind==='mock'?'Full mock':(TMK[Object.keys(a.secs)[0]]||{n:'Drill'}).n+(a.review?' · mistakes':''))+(a.hard?' · hard':'');
-  return `<div class="cell"><span class="t"><b>${s}</b><span>${d} · ${a.ok}/${a.n} right${a.score!=null?' · '+a.score+'/600':''}${a.partial?' · stopped early':''}</span></span><span class="badge ${a.ok/a.n>=.7?'green':a.ok/a.n>=.5?'blue':'red'}">${Math.round(a.ok/a.n*100)} %</span></div>`}).join('')}</div>`;
-}
 function vTage(){
- const tabs=[['train','Train'],['plan','Plan'],['mist','Mistakes'+(Object.keys(tmT().mist).length?' ('+Object.keys(tmT().mist).length+')':'')],['hist','History']];
- const body=TMTAB==='plan'?tmPlan():TMTAB==='mist'?tmMist():TMTAB==='hist'?tmHist():tmTrain();
+ const tabs=[['train','Train'],['mist','Mistakes'+(Object.keys(tmT().mist).length?' ('+Object.keys(tmT().mist).length+')':'')],['prog','Progress']];
+ const body=TMTAB==='mist'?tmMist():TMTAB==='prog'?tmProg():tmTrain();
  return `<div class="view">${navbar('Hub')}${title('Tage Mage','Test prep')}
  <div class="segc" style="margin:6px 0 14px">${tabs.map(([k,l])=>`<button class="${TMTAB===k?'on':''}" data-act="tmtab" data-k="${k}">${l}</button>`).join('')}</div>${body}</div>`;
 }

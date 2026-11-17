@@ -8,7 +8,7 @@ function pcCopy(text,btn){
  const fb=()=>{const t=document.createElement('textarea');t.value=text;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(e){}t.remove();done()};
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done,fb);else fb();
 }
-function pcMergeList(a,b){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>{const y=m.get(x.id);if(!y||(x.ts||0)>=(y.ts||0))m.set(x.id,x)});return [...m.values()].sort((x,y)=>(x.ts||0)-(y.ts||0))}
+function pcMergeList(a,b){const m=new Map();[...(a||[]),...(b||[])].forEach(x=>{const y=m.get(x.id);if(!y||(x.mod||x.ts||0)>=(y.mod||y.ts||0))m.set(x.id,x)});return [...m.values()].sort((x,y)=>(x.ts||0)-(y.ts||0))}
 const debT=()=>{if(!S.deb)S.deb={list:[]};if(!S.deb.list)S.deb.list=[];return S.deb};
 const wriT=()=>{if(!S.wri)S.wri={list:[],vocab:[]};S.wri.list=S.wri.list||[];S.wri.vocab=S.wri.vocab||[];return S.wri};
 const pcMerge=(a,b)=>({list:pcMergeList(a&&a.list,b&&b.list),vocab:pcMergeList(a&&a.vocab,b&&b.vocab)});
@@ -92,11 +92,40 @@ function wriParseVocab(txt,lang){
  return txt.slice(i).split('\n').slice(1).map(l=>l.replace(/^[\s\-\*\d\.\)]+/,'').trim()).filter(l=>l.split('|').length>=2).map(l=>{const p=l.split('|').map(s=>s.trim());return {term:p[0].replace(/\*\*/g,''),tr:p[1].replace(/\*\*/g,''),note:(p[2]||'').replace(/\*\*/g,'')}}).filter(x=>x.term&&x.tr);
 }
 const WINT=[1,3,7,14,30];
-const vocDue=()=>wriT().vocab.filter(v=>(v.due||'')<=today());
+/* vocabulary uses the same cards, swipe screen and spaced repetition as the course flashcards (state in S.vc) */
+const VNEW=30;
+function vcGet(v){const s=S.vc&&S.vc['v:'+v.id];if(s)return s;
+ if((v.box||0)>0||(v.due||'')>today())return {n:v.box||0,i:WINT[Math.min(v.box||0,WINT.length-1)]||1,e:2.5,f:0,due:new Date((v.due||today())+'T00:00:00').getTime(),ts:v.ts||1,fd:''};
+ return null}
+function vcSeed(id){const v=wriT().vocab.find(x=>'v:'+x.id===id);return v?vcGet(v):null}
+function vocCards(){return wriT().vocab.map(v=>({id:'v:'+v.id,v:1,vid:v.id,c:'wri',lang:v.lang,lt:wLangName(v.lang),q:VDIR==='fr'?v.tr:v.term,a:(VDIR==='fr'?v.term:v.tr)+(v.note?'\n\n'+v.note:'')}))}
+const vocCard=id=>vocCards().find(c=>c.id===id);
+function vocQueue(){
+ const now=Date.now(),due=[],fr=[];
+ vocCards().forEach(c=>{const s=vcGet(wriT().vocab.find(x=>x.id===c.vid));if(s){if(s.due<=now)due.push([s.due,c])}else fr.push(c)});
+ due.sort((a,b)=>a[0]-b[0]);
+ const intro=Object.values(S.vc||{}).filter(s=>s.fd===today()).length;
+ return {due:due.map(x=>x[1]),fresh:fr.slice(0,Math.max(0,VNEW-intro))};
+}
+const vocDue=()=>{const q=vocQueue();return q.due.concat(q.fresh)};
+function startVocStudy(){const q=vocQueue(),ids=q.due.concat(q.fresh).map(c=>c.id);if(!ids.length)return;
+ STUDY={course:null,vocab:true,queue:ids,flipped:false,done:0,again:0,t:Date.now()};hist.push([view,param]);view='study';param=null;render();window.scrollTo(0,0)}
+function wriExtractScore(t){
+ t=String(t||'').replace(/\*\*|__/g,'');
+ const re=/(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:\/|out of|sur)\s*20\b/gi,all=[];let m;
+ while((m=re.exec(t))){const v=parseFloat(m[1].replace(',','.'));if(v>=0&&v<=20)all.push({v,i:m.index})}
+ if(all.length){const kw=/score|note|grade|mark|total|overall|final|rating/i;
+  const w=all.filter(x=>kw.test(t.slice(t.lastIndexOf('\n',x.i)+1,x.i+30)));return (w.length?w[w.length-1]:all[all.length-1]).v}
+ const c=t.replace(/(?:out of|sur|\/)\s*20\b/gi,' ');
+ const m2=c.match(/(?:score|grade|rating|note|mark)(?:\s+(?:finale?|final|overall|globale?))?\s*[:=\-–—]\s*(\d{1,2}(?:[.,]\d{1,2})?)(?!\d)/i);
+ if(m2){const v=parseFloat(m2[1].replace(',','.'));if(v>=0&&v<=20)return v}
+ return null}
+const wriHint=fb=>{const s=wriExtractScore(fb);return s!=null?'Score read from the feedback: '+s+'/20':(String(fb||'').trim()?'No /20 score found in the feedback yet':"The /20 score is read from Claude's feedback when you save.")};
+document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.wf==='fb'){const h=document.getElementById('wscorehint');if(h)h.textContent=wriHint(el.value)}});
 function vWri(){
  const w=wDraft(),T=wriT(),tab=WRITAB;
  const seg=(opts,cur,act)=>`<div class="segc" style="flex:1">${opts.map(([k,l])=>`<button class="${String(cur)===String(k)?'on':''}" data-act="${act}" data-k="${k}">${l}</button>`).join('')}</div>`;
- const tabs=`<div class="segc" style="margin:6px 0 14px">${[['write','Write'],['vocab','Vocab ('+vocDue().length+' due)'],['log','Log']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="writab" data-k="${k}">${l}</button>`).join('')}</div>`;
+ const tabs=`<div class="segc" style="margin:6px 0 14px">${[['write','Write'],['vocab','Vocab ('+vocDue().length+' due)'],['prog','Progress']].map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="writab" data-k="${k}">${l}</button>`).join('')}</div>`;
  let body='';
  if(tab==='write'){
   const isT=w.kind!=='essay';
@@ -112,26 +141,28 @@ function vWri(){
   <textarea class="pcta" data-wf="text" rows="12" placeholder="Write here">${esc(w.text||'')}</textarea>
   <div style="margin-top:14px"><button class="btn" data-act="wricopy1">${ic('doc')} Copy the correction prompt for Claude</button></div>
   <div class="eyebrow" style="margin:18px 0 6px">Claude's feedback</div><textarea class="pcta" data-wf="fb" rows="6" placeholder="Paste Claude's answer here, including the VOCAB: block">${esc(w.fb||'')}</textarea>
-  <div class="grp fgrp" style="margin-top:10px"><div class="cell"><label>Score /20</label><input type="text" inputmode="decimal" data-wf="score" value="${esc(w.score||'')}" placeholder="optional" style="text-align:right"></div></div>
+  <div class="grp fgrp" style="margin-top:10px"><div class="cell"><label>Score /20</label><input type="text" inputmode="decimal" data-wf="score" value="${esc(w.score||'')}" placeholder="auto" style="text-align:right"></div></div>
+  <div class="sf" id="wscorehint" style="margin-top:6px">${esc(wriHint(w.fb||''))}</div>
   <div style="margin-top:12px;display:flex;gap:10px"><button class="btn tint" data-act="wrivocab">Extract vocabulary</button><button class="btn" data-act="wrisave">Save exercise</button></div>
-  <div class="sf">Vocabulary comes from the VOCAB: lines of Claude's feedback and goes into spaced review.</div>`;
+  <div class="sf">When you save, the /20 score is read from Claude's feedback (type one above only to override it). Vocabulary comes from the VOCAB: lines and goes into your flashcards.</div>`;
  }else if(tab==='vocab'){
-  const due=vocDue(),cur=due[0];
-  body=`<div class="stats" style="margin-bottom:14px"><div class="stat"><b>${due.length}</b><span>due now</span></div><div class="stat"><b>${T.vocab.length}</b><span>words saved</span></div><div class="stat"><b>${['en','it','es'].map(l=>T.vocab.filter(v=>v.lang===l).length).join('·')}</b><span>EN · IT · ES</span></div></div>`+
+  const q=vocQueue(),n=q.due.length+q.fresh.length,V=T.vocab;
+  body=`<div class="stats" style="margin-bottom:14px"><div class="stat"><b>${q.due.length}</b><span>due</span></div><div class="stat"><b>${q.fresh.length}</b><span>new</span></div><div class="stat"><b>${V.length}</b><span>words saved</span></div></div>`+
   `<div class="segc" style="margin-bottom:10px">${[['fr','French → '+wLangName(w.lang)],['en',wLangName(w.lang)+' → French']].map(([k,l])=>`<button class="${VDIR===k?'on':''}" data-act="vocdir" data-k="${k}">${l}</button>`).join('')}</div>`+
-  (cur?`<div class="card"><div class="eyebrow">${VDIR==='fr'?'French · find it in '+wLangName(cur.lang):wLangName(cur.lang)}</div><h3 style="font-size:26px;margin:6px 0 12px">${esc(VDIR==='fr'?cur.tr:cur.term)}</h3>${VREV?`<p style="font-size:20px">${esc(VDIR==='fr'?cur.term:cur.tr)}</p>${cur.note?`<p class="mute small" style="margin-top:6px">${esc(cur.note)}</p>`:''}<div style="display:flex;gap:10px;margin-top:16px"><button class="btn red" data-act="vocko" data-id="${cur.id}">Missed</button><button class="btn" data-act="vocok" data-id="${cur.id}">Knew it</button></div>`:`<button class="btn tint" data-act="vocshow">${VDIR==='fr'?'Show the translation':'Show meaning'}</button>`}</div>`:`<div class="empty">Nothing due. New words arrive when you extract vocabulary from Claude's feedback.</div>`)+
-  `<div class="grp fgrp" style="margin-top:16px"><div class="cell"><input type="text" id="vnew" placeholder="Add a word: term | meaning" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="vocadd"><span class="sq" style="--c:var(--green)">${ic('plus')}</span><span class="t"><b>Add to ${wLangName(w.lang)}</b></span></button></div>`;
+  `<button class="btn" data-act="vocstudy" ${n?'':'disabled'}>${ic('play')} Study vocabulary${n?' · '+n+' card'+(n>1?'s':''):''}</button>`+
+  (n?'':`<div class="empty" style="margin-top:12px">Nothing due. New words arrive when you extract vocabulary from Claude's feedback.</div>`)+
+  `<div class="sf">Same cards as the course flashcards: tap to flip, swipe right if you knew it, left if not, or use Again / Hard / Good / Easy. ${['en','it','es'].map(l=>wLangName(l)+' '+V.filter(v=>v.lang===l).length).join(' · ')}.</div>`+
+  `<div class="grp fgrp" style="margin-top:16px"><div class="cell"><input type="text" id="vnew" placeholder="Add a word: term | meaning" style="flex:1;width:100%;max-width:none;text-align:left;font-size:17px;border:0;outline:0;background:transparent"></div><button class="cell has-ico" data-act="vocadd"><span class="sq" style="--c:var(--green)">${ic('plus')}</span><span class="t"><b>Add to ${wLangName(w.lang)}</b></span></button></div>`+
+  (V.length?`<details style="margin-top:14px"><summary class="mute small" style="padding:4px 4px">All words (${V.length})</summary><div class="grp" style="margin-top:8px">${[...V].reverse().map(v=>`<div class="cell"><span class="t"><b style="font-size:15px;white-space:normal">${esc(v.term)}</b><span>${esc(v.tr)} · ${wLangName(v.lang)}</span></span><button class="btn red sm" data-act="vocdel" data-id="${v.id}">Delete</button></div>`).join('')}</div></details>`:'');
  }else{
-  const L=[...T.list].reverse();
-  body=L.length?`<div class="grp">${L.map(x=>{const o=WRIOPEN===x.id;return `<div class="tmm"><button class="cell" data-act="wriopen" data-id="${x.id}"><span class="t"><b style="font-size:15px;white-space:normal">${x.topic?esc(x.topic):(x.kind==='essay'?'Essay':x.kind==='theme'?'Thème':'Version')}</b><span>${x.kind==='essay'?'Essay':x.kind==='theme'?'Thème':'Version'} · ${wLangName(x.lang)} ${x.lvl}</span><span>${new Date(x.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · ${x.words} words${x.score?' · '+esc(x.score)+'/20':''}${x.topic?' · '+esc(x.topic.slice(0,40)):''}</span></span>${ic(o?'chevd':'chev','chev')}</button>
-  ${o?`<div class="tmx">${x.src?`<p class="tmp">${esc(x.src)}</p>`:''}<p style="white-space:pre-line">${esc(x.text)}</p>${x.fb?`<p class="mute small" style="white-space:pre-line">${esc(x.fb)}</p>`:''}<button class="btn red sm" data-act="wridel" data-id="${x.id}">Delete</button></div>`:''}</div>`}).join('')}</div>`:`<div class="empty">Saved exercises will be listed here.</div>`;
+  body=wriProg();
  }
  return `<div class="view">${navbar('Hub')}${title('Writing','EN · IT · ES')}${tabs}${body}</div>`;
 }
 
 /* ---- actions ---- */
 let WRIMODE=(()=>{try{return localStorage.getItem('lu-wri-mode')||'mix'}catch(e){return 'mix'}})();
-let DEBTAB='today',DEBOPEN=null,WRITAB='write',WRIOPEN=null,VREV=false;
+let DEBTAB='today',DEBOPEN=null,WRITAB='write',WRIOPEN=null;
 let VDIR=(()=>{try{return localStorage.getItem('lu-voc-dir')||'fr'}catch(e){return 'fr'}})();
 const wSet=(k,v)=>{const d=wDraft();d[k]=v;pcLS('lu-wri-draft',d)};
 Object.assign(A,{
@@ -160,14 +191,16 @@ Object.assign(A,{
   save();alert(n?n+' word'+(n===1?'':'s')+' added to your review.':items.length?'Those words are already saved.':'No VOCAB: block found in the feedback.');render()},
  wrisave(){const w=wDraft();if(!(w.text||'').trim()){alert('Nothing to save yet.');return}
   const ef=Math.max(w.eff||0,pcTimed('wri'));effAdd('wri',ef);
-  wriT().list.push({id:pcId(),ts:Date.now(),kind:w.kind,lang:w.lang,lvl:w.lvl,topic:w.topic||'',src:w.src||'',text:w.text,fb:w.fb||'',score:w.score||'',words:pcWords(w.text),eff:Math.round(ef)});save();
-  pcLS('lu-wri-draft',Object.assign({},w,{text:'',src:'',fb:'',score:'',topic:'',eff:0}));pcLS('lu-pc-timer',null);WRITAB='log';render();window.scrollTo(0,0)},
+  const man=String(w.score||'').trim().replace(',','.'),ex=wriExtractScore(w.fb||''),sc=man&&!isNaN(parseFloat(man))?man:(ex!=null?String(ex):'');
+  wriT().list.push({id:pcId(),ts:Date.now(),kind:w.kind,lang:w.lang,lvl:w.lvl,topic:w.topic||'',src:w.src||'',text:w.text,fb:w.fb||'',score:sc,words:pcWords(w.text),eff:Math.round(ef)});save();
+  if(!sc&&(w.fb||'').trim())alert('Saved, but no /20 score was found in the feedback. You can set it by hand in the Progress tab.');
+  pcLS('lu-wri-draft',Object.assign({},w,{text:'',src:'',fb:'',score:'',topic:'',eff:0}));pcLS('lu-pc-timer',null);WRITAB='prog';render();window.scrollTo(0,0)},
  wriopen(el){WRIOPEN=WRIOPEN===el.dataset.id?null:el.dataset.id;render()},
  wridel(el){if(!confirm('Delete this exercise?'))return;const T=wriT();T.list=T.list.filter(x=>x.id!==el.dataset.id);save();render()},
- vocshow(){VREV=true;render()},
- vocdir(el){VDIR=el.dataset.k;VREV=false;try{localStorage.setItem('lu-voc-dir',VDIR)}catch(e){}render()},
- vocok(el){const v=wriT().vocab.find(x=>x.id===el.dataset.id);if(!v)return;v.box=Math.min(WINT.length-1,(v.box||0)+1);const d=new Date();d.setDate(d.getDate()+WINT[v.box]);v.due=dkey(d);v.ts=Date.now();VREV=false;save();render()},
- vocko(el){const v=wriT().vocab.find(x=>x.id===el.dataset.id);if(!v)return;v.box=0;const d=new Date();d.setDate(d.getDate()+1);v.due=dkey(d);v.ts=Date.now();VREV=false;save();render()},
+ vocdir(el){VDIR=el.dataset.k;try{localStorage.setItem('lu-voc-dir',VDIR)}catch(e){}render()},
+ vocstudy(){startVocStudy()},
+ vocdel(el){if(!confirm('Delete this word?'))return;const T=wriT();T.vocab=T.vocab.filter(v=>v.id!==el.dataset.id);if(S.vc)delete S.vc['v:'+el.dataset.id];save();render()},
+ wriscore(el){const x=wriT().list.find(y=>y.id===el.dataset.id),inp=document.querySelector('.wsedit[data-wsid="'+el.dataset.id+'"]');if(!x||!inp)return;const v=inp.value.trim().replace(',','.');if(v&&(isNaN(parseFloat(v))||parseFloat(v)>20||parseFloat(v)<0)){alert('Enter a number between 0 and 20.');return}x.score=v;x.mod=Date.now();save();render()},
  vocadd(){const el=document.getElementById('vnew'),p=(el&&el.value||'').split('|').map(s=>s.trim());if(p.length<2||!p[0]||!p[1]){alert('Type: term | meaning');return}
   wriT().vocab.push({id:pcId(),lang:wDraft().lang,term:p[0],tr:p[1],note:p[2]||'',box:0,due:today(),ts:Date.now()});save();render()}
 });
