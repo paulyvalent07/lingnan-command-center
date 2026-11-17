@@ -67,10 +67,11 @@ const FILLED=new Set(['play']);
 const ic=(n,extra='')=>`<svg class="ic ${FILLED.has(n)?'f':''} ${extra}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||''}</svg>`;
 
 /* ---------- state ---------- */
-function mergeDl(saved,hide){
- hide=hide||{};const off=new Set(DEADLINES.map(x=>x.id));
- const out=DEADLINES.filter(x=>!hide[x.id]).map(x=>Object.assign({},x,{off:1}));
- (saved||[]).forEach(x=>{if(!off.has(x.id)&&!x.off)out.push(x)});
+function mergeDl(saved,hide,ed){
+ hide=hide||{};ed=ed||{};const off=new Set(DEADLINES.map(x=>x.id)),seen=new Set();
+ const ov=x=>ed[x.id]&&ed[x.id].f?Object.assign({},x,ed[x.id].f):x,gone=x=>ed[x.id]&&ed[x.id].del;
+ const out=DEADLINES.filter(x=>!hide[x.id]&&!gone(x)).map(x=>ov(Object.assign({},x,{off:1})));
+ (saved||[]).forEach(x=>{if(!off.has(x.id)&&!x.off&&!seen.has(x.id)&&!gone(x)){seen.add(x.id);out.push(ov(x))}});
  return out;
 }
 let S=load();
@@ -80,10 +81,10 @@ function load(){
  const st=Object.assign({daily:4,weekly:24,theme:'auto',target:{},confidence:{},quota:{0:6,1:3,2:0,3:6,4:6,5:6,6:6}},d.settings||{});
  if(st.weekly===20)st.weekly=24;
  COURSES.forEach(c=>{if(!st.target[c.id])st.target[c.id]='A-';if(st.confidence[c.id]==null)st.confidence[c.id]=0});
- const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{},exr:{},pedit:{},eff:{}},d,{settings:st});
+ const s=Object.assign({sessions:[],redo:[],deadlines:[],active:null,course:'BUS1103',planDone:{},extraPlan:[],brk:null,auto:{},mod:0,reads:[],mast:{},cards:{},xcards:[],flags:{},edits:{},exr:{},pedit:{},eff:{},dedit:{}},d,{settings:st});
  if(!s.mig2){const q=st.quota;Object.keys(q).forEach(k=>{if(q[k]===5)q[k]=6});s.extraPlan=(s.extraPlan||[]).filter(p=>!(p.course==='BUS2202'&&p.lid&&!(s.planDone||{})[p.id]));Object.keys(s.auto||{}).forEach(k=>{if(k.indexOf('BUS2202:')===0)delete s.auto[k]});s.mig2=1}
  Object.keys(s.mast||{}).forEach(k=>{if(s.mast[k]&&s.mast[k].p<100&&s.planDone[k])delete s.planDone[k]});
- s.dlHide=s.dlHide||{};s.deadlines=mergeDl(s.deadlines,s.dlHide);
+ s.dlHide=s.dlHide||{};s.dedit=s.dedit||{};s.deadlines=mergeDl(s.deadlines,s.dlHide,s.dedit);
  if(s.active&&s.active.mode==='block'&&!s.active.items){s.active.items=[s.active.planId];s.active.cur=s.active.planId;s.active.tab='lesson'}
  return s;
 }
@@ -486,10 +487,10 @@ function calendarCard(){
  let list,head;
  if(calSel){list=(by[calSel]||[]);head=new Date(calSel+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}
  else{list=S.deadlines.filter(d=>new Date(d.when)>now).sort((a,b)=>new Date(a.when)-new Date(b.when)).slice(0,4);head='Coming up'}
- const rows=list.sort((a,b)=>new Date(a.when)-new Date(b.when)).map(d=>{const x=C(d.course);return `<div class="cell has-ico"><span class="sq" style="--c:${x.color}">${ic(x.ic)}</span><span class="t"><b>${esc(d.title)}</b><span>${x.id==='ALL'?'All courses':x.short} · ${fmtD(d)}</span></span><span class="badge ${urgent(d.when)?'red':''}">${countdown(d.when)}</span></div>`}).join('')||'<div class="cell"><span class="t mute">Nothing on this day.</span></div>';
+ const rows=list.sort((a,b)=>new Date(a.when)-new Date(b.when)).map(d=>{const x=C(d.course);return `<div class="cell has-ico"><span class="sq" style="--c:${x.color}">${ic(x.ic)}</span><span class="t"><b>${esc(d.title)}</b><span>${x.id==='ALL'?'All courses':x.short} · ${fmtD(d)}</span></span><span class="badge ${urgent(d.when)?'red':''}">${countdown(d.when)}</span><button class="pen" data-act="dledit" data-id="${d.id}" aria-label="Edit this event">${ic('pen')}</button></div>`}).join('')||'<div class="cell"><span class="t mute">Nothing on this day.</span></div>';
  return `<div class="calc"><div class="calh"><button class="xbtn" data-act="calprev" aria-label="Previous month">${ic('chev','flip')}</button><b>${mname}</b><button class="xbtn" data-act="calnext" aria-label="Next month">${ic('chev')}</button></div>
  <div class="calw"><i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i></div><div class="calg">${cells.join('')}</div></div>
- <div class="sh">${head}</div><div class="grp">${rows}</div>`;
+ <div class="sh shr">${head}<button class="pen add" data-act="dladd" data-d="${calSel||''}" aria-label="Add an event">${ic('plus')}</button></div><div class="grp">${rows}</div>`;
 }
 function vHub(){
  const app=(t,i,col,siteTxt,web,sc,img)=>{const ig=img?`<span class="tq im"><img src="icons/${img}.png" alt=""></span>`:`<span class="tq">${ic(i)}</span>`;return IOS?`<a class="tile" href="shortcuts://run-shortcut?name=${sc}" style="--c:${col}">${ig}<b>${t}</b><span>Opens the app</span></a>`
@@ -613,6 +614,8 @@ function sessionModal(s){
  <div class="grp fgrp" style="margin-top:12px">${fld('What',`<input type="text" id="m-title" value="${esc(s.title||'')}" placeholder="Optional" style="text-align:right">`)}</div>`,`<button class="btn" data-act="msave" data-id="${e?s.id:''}">Save</button>`);
 }
 function redoModal(){openSheet('New exercise to redo',`<div class="grp fgrp">${fld('Course',courseSel(S.course))}${fld('Exercise','<input type="text" id="m-title" placeholder="e.g. E6-3 sales returns" style="text-align:right">')}</div>`,`<button class="btn" data-act="rsave">Add</button>`)}
+function dlForm(d){return `<div class="grp fgrp"><div class="cell"><textarea id="m-title" class="wtopic" rows="2" placeholder="Title">${esc(d.title||'')}</textarea></div>${fld('Course',`<select id="m-course">${COURSES.map(c=>`<option value="${c.id}" ${c.id===d.course?'selected':''}>${c.short}</option>`).join('')}<option value="ALL" ${d.course==='ALL'?'selected':''}>All courses</option></select>`)}${fld('When',`<input type="datetime-local" id="m-when" value="${String(d.when||'').slice(0,16)}">`)}</div>`}
+function dlRead(){const t=(($('m-title')||{}).value||'').trim(),w=($('m-when')||{}).value||'',c=($('m-course')||{}).value;if(!t||!w){alert('Add a title and a date.');return null}return {title:t,when:w,course:c}}
 function dlModal(){openSheet('New deadline',`<div class="grp fgrp">${fld('Course',`<select id="m-course">${COURSES.map(c=>`<option value="${c.id}">${c.short}</option>`).join('')}<option value="ALL">All courses</option></select>`)}${fld('Title','<input type="text" id="m-title" style="text-align:right">')}${fld('When','<input type="datetime-local" id="m-when">')}</div>`,`<button class="btn" data-act="dlsave">Add</button>`)}
 function addLesson(course,ttl,n,withEx,lidOverride,opt){
  opt=opt||{};
@@ -703,7 +706,8 @@ function mergeState(r){
  if(typeof ctMerge==='function')o.crit=ctMerge(older.crit,newer.crit);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
- o.deadlines=mergeDl(o.deadlines,o.dlHide);
+ o.dedit=Object.assign({},older.dedit);Object.entries(newer.dedit||{}).forEach(([k,v])=>{const y=o.dedit[k];if(!y||(v.ts||0)>=(y.ts||0))o.dedit[k]=v});
+ o.deadlines=mergeDl([...(older.deadlines||[]),...(newer.deadlines||[])],o.dlHide,o.dedit);
  return o;
 }
 function setCS(t,ok){CL.status=t;CL.ok=ok!==false;saveCL();if(view==='data')render()}
@@ -918,9 +922,14 @@ const A={
  rko(el){const r=S.redo.find(x=>x.id===el.dataset.id);r.stage=0;const d=new Date();d.setDate(d.getDate()+1);r.due=dkey(d);save();render()},
  rdel(el){S.redo=S.redo.filter(x=>x.id!==el.dataset.id);save();render()},
  newdl(){dlModal()},
- dlsave(){const t=$('m-title').value.trim(),w=$('m-when').value;if(!t||!w)return;
-  S.deadlines.push({id:uid(),course:$('m-course').value,title:t,when:w});save();closeSheet();render()},
- dldel(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(d&&d.off)S.dlHide[d.id]=1;S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
+ dlsave(){const f=dlRead();if(!f)return;
+  S.deadlines.push(Object.assign({id:uid()},f));save();closeSheet();if(typeof calM!=='undefined'){const n=new Date(),w=new Date(f.when);calM=(w.getFullYear()-n.getFullYear())*12+w.getMonth()-n.getMonth();calSel=String(f.when).slice(0,10)}render()},
+ dldel(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(d&&d.off)S.dlHide[d.id]=1;S.dedit=S.dedit||{};S.dedit[el.dataset.id]={del:true,ts:Date.now()};S.deadlines=S.deadlines.filter(x=>x.id!==el.dataset.id);save();render()},
+ dledit(el){const d=S.deadlines.find(x=>x.id===el.dataset.id);if(!d)return;
+  openSheet('Edit event',dlForm(d),`<button class="btn" data-act="dlsave2" data-id="${d.id}">Save</button><button class="btn red" style="margin-top:8px" data-act="dlremove" data-id="${d.id}">Delete this event</button>`)},
+ dladd(el){const k=(el&&el.dataset&&el.dataset.d)||today();openSheet('New event',dlForm({title:'',course:S.course||COURSES[0].id,when:k+'T12:00'}),`<button class="btn" data-act="dlsave">Add</button>`)},
+ dlsave2(el){const f=dlRead();if(!f)return;S.dedit=S.dedit||{};S.dedit[el.dataset.id]={f,ts:Date.now()};S.deadlines=mergeDl(S.deadlines,S.dlHide,S.dedit);save();closeSheet();render()},
+ dlremove(el){if(!confirm('Delete this event from the calendar?'))return;A.dldel(el);closeSheet()},
  notif(){askNotif()},
  async cconnect(){const v=(($('cl-token')||{}).value||'').replace(/[\s"']+/g,'');if(v.length<20){alert('Paste your GitHub token first.');return}CL.status='Connecting…';const pr=v.split('~'),ok=await cloudConnect(pr[0],pr[1]);if(!ok){const m=/401/.test(CLERR)?'GitHub rejected the token (HTTP 401): it is wrong or has expired. Create a new one (classic token, only the "gist" permission) or copy the sync code again from your other device.':/403/.test(CLERR)?'GitHub refused the request (HTTP 403): the token lacks the "gist" permission, or GitHub is limiting requests. Wait a minute or create a new token with "gist".\n\nDetail: '+CLERR:/404/.test(CLERR)?'GitHub found no sync gist for this token (HTTP 404). The token may belong to a different GitHub account than the one that holds your progress.':/Failed to fetch|NetworkError|Load failed/i.test(CLERR)?'No connection to GitHub. Check the internet or any blocker on this device, then try again.':'Could not connect ('+CLERR+'). The token needs the "gist" permission only.';alert(m)}render()},
  csync(){cloudPull().then(()=>render())},
