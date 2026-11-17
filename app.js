@@ -93,7 +93,7 @@ function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','crit','orals','oral'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','crit','news','nstory','orals','oral'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -411,7 +411,7 @@ function reviewCard(){
  ${per.length?`<div class="tipline mute small">${per.map(x=>x.c.short+' '+fmt(x.v)).join(' · ')}</div>`:'<div class="tipline mute small">Open a lesson and read: the time is counted automatically while the page is open.</div>'}</div>`;
 }
 /* ----- effective time in the other modules ----- */
-const EFFM=[['tage','Tage Mage','#af52de'],['wri','Writing','#ff9f0a'],['deb','Debate','#30b0c7'],['crit','Critical thinking','#34c759'],['orals','Orals','#c2410c']];
+const EFFM=[['tage','Tage Mage','#af52de'],['wri','Writing','#ff9f0a'],['deb','Debate','#30b0c7'],['crit','Critical thinking','#34c759'],['news','News','#0f766e'],['orals','Orals','#c2410c']];
 function effDev(){try{let d=localStorage.getItem('lu-dev');if(!d){d=Math.random().toString(36).slice(2,6);localStorage.setItem('lu-dev',d)}return d}catch(e){return 'x'}}
 function effAdd(m,sec){if(!(sec>0))return;S.eff=S.eff||{};const day=today(),k=m+':'+day+':'+effDev(),e=S.eff[k]||{m,day,sec:0};e.sec=Math.round((e.sec+sec)*10)/10;e.ts=Date.now();S.eff[k]=e}
 function effEvents(){
@@ -501,8 +501,7 @@ function vHub(){
  return `<div class="view">${title('Hub')}${calendarCard()}<div class="tiles" style="margin-top:18px">
  ${tile('button','data-act="open" data-v="cards"','#8b5cf6','cards','Cards',n?q.due.length+' due · '+q.fresh.length+' new':'Nothing due',q.due.length||'')}
  ${tile('button','data-act="open" data-v="tage"','#e11d48','target','Tage Mage',typeof tmNextSub==='function'?tmNextSub():'Test prep')}
- ${tile('button','data-act="open" data-v="deb"','#0f766e','people','Daily debate',typeof debStreak==='function'?(debStreak()?debStreak()+' day streak':'Think harder'):'Think harder')}
- ${tile('button','data-act="open" data-v="crit"','#7c3aed','bulb','Critical thinking',typeof ctMistakes==='function'?(ctMistakes()?ctMistakes()+' to redo':'Spot the flaw'):'Spot the flaw')}
+ ${tile('button','data-act="open" data-v="news"','#0f766e','globe','News',typeof nwTile==='function'?nwTile():'Newsletter',typeof nwUnread==='function'?nwUnread()||'':'')}
 
  ${tile('button','data-act="open" data-v="orals"','#c2410c','flag','Orals',typeof orTileSub==='function'?orTileSub():'Texts to learn')}
  ${tile('button','data-act="open" data-v="wri"','#b45309','pen','Writing',typeof vocDue==='function'?vocDue().length+' words due':'EN · IT · ES')}
@@ -704,6 +703,7 @@ function mergeState(r){
  o.tage=typeof tmMerge==='function'?tmMerge(older.tage,newer.tage):(newer.tage||older.tage);
  if(typeof pcMerge==='function'){o.deb=pcMerge(older.deb,newer.deb);o.wri=pcMerge(older.wri,newer.wri)}
  if(typeof ctMerge==='function')o.crit=ctMerge(older.crit,newer.crit);
+ if(typeof nwMerge==='function')o.news=nwMerge(older.news,newer.news);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
  o.dedit=Object.assign({},older.dedit);Object.entries(newer.dedit||{}).forEach(([k,v])=>{const y=o.dedit[k];if(!y||(v.ts||0)>=(y.ts||0))o.dedit[k]=v});
