@@ -260,7 +260,7 @@ function vWfb(){
    <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="text" inputmode="decimal" id="wfbsc" placeholder="/20 (auto)" style="width:96px;text-align:center" class="wsedit"><button class="btn" data-act="wfbsave" style="flex:1">Save correction</button></div></div>
    <p class="mute small" style="margin:12px 4px 0">You can also do this later: the exercise stays in your Progress tab with an "Add correction" button.</p>`;
  }
- return `<div class="view">${navbar('Writing')}${head}${body}<div style="margin-top:18px"><button class="btn ${x.fb?'':'gray'}" data-act="wdone">${x.fb?'Done':'Later'}</button></div></div>`;
+ return `<div class="view wfbv">${navbar('Writing')}${head}${body}<div style="margin-top:18px"><button class="btn ${x.fb?'':'gray'}" data-act="wdone">${x.fb?'Done':'Later'}</button></div></div>`;
 }
 document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.wfb){pcLS('lu-wfb-'+el.dataset.wfb,el.value);const h=document.getElementById('wfbhint');if(h)h.textContent=wriHint(el.value)}});
 setInterval(()=>{const el=document.getElementById('wexel');if(el&&view==='wex'){const d=wDraft();el.textContent=fmtMS((Date.now()-(d.t0||Date.now()))/1000)}},1000);

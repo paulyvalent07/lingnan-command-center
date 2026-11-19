@@ -629,3 +629,6 @@ html{overscroll-behavior:none}
 .wfbta{min-height:55dvh;resize:none;overflow:hidden}
 .wscore{font-size:54px;font-weight:700;line-height:1.1;margin:4px 0}.wscore small{font-size:20px;color:var(--l2);font-weight:500}
 @media(min-width:700px){.wsplit{grid-template-rows:auto;grid-template-columns:1fr 1fr}.wsplit.ess{grid-template-rows:auto;grid-template-columns:minmax(260px,34%) 1fr}.wpane{min-height:calc(100dvh - 190px)}.wta{min-height:calc(100dvh - 290px);font-size:18px}}
+/* Writing: use the full window width on the exercise page */
+body:has(.wexv) #main{max-width:none;padding-left:14px;padding-right:14px}
+body:has(.wfbv) #main{max-width:920px}
