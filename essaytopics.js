@@ -1,4 +1,4 @@
-/* Essay topic bank for Writing > Essay. Timeless questions in philosophy, anthropology, politics and society (no course content).
+/* Essay topic bank for Writing > Essay. Timeless questions in philosophy, general culture, anthropology, politics and society (no course content).
    News-linked questions come from BRIEFS (briefs.js) and are added automatically. Format: [category, question]. */
 const WTOPICS=[
 ['Philosophy',"Is it ever right to break a promise?"],
@@ -152,12 +152,66 @@ const WTOPICS=[
 ['Global affairs',"Do big international events such as the Olympics bring more benefit than harm to host cities?"],
 ['Global affairs',"Is it wise for a country to depend on another for energy?"],
 ['Global affairs',"Can a small state have real influence in the world?"],
-['Global affairs',"Is nuclear deterrence a guarantee of peace or a permanent danger?"]
+['Global affairs',"Is nuclear deterrence a guarantee of peace or a permanent danger?"],
+['Philosophy',"Is disobedience ever a duty?"],
+['Philosophy',"Can we be happy without being free?"],
+['Philosophy',"Is work a curse or a way to find ourselves?"],
+['Philosophy',"Does technology make us more human or less?"],
+['Philosophy',"Is a just law always a good law?"],
+['Philosophy',"Can one be wrong in good faith?"],
+['Philosophy',"Is it better to know the truth about oneself or to keep one's illusions?"],
+['Philosophy',"Is language a tool for thought or a limit on it?"],
+['Philosophy',"Can the state be neutral about what makes a good life?"],
+['Philosophy',"Is art necessary for a good life?"],
+['Philosophy',"Is progress a fact or a belief?"],
+['Philosophy',"Are we responsible for what we do not choose to be?"],
+['General culture',"Has the printing press changed the world more than the internet?"],
+['General culture',"Why do some empires collapse while others endure?"],
+['General culture',"Does history repeat itself, or do we only look for patterns?"],
+['General culture',"Should museums return artefacts taken during colonial rule?"],
+['General culture',"Can a great work of art be separated from the morals of its creator?"],
+['General culture',"Is the Renaissance really a rebirth, or a story we tell about the past?"],
+['General culture',"Did the Industrial Revolution make ordinary people better off?"],
+['General culture',"Is European identity built on shared history or on shared values?"],
+['General culture',"Are the classics still worth reading today?"],
+['General culture',"Does science progress by revolutions or by small steps?"],
+['General culture',"Is the Cold War really over?"],
+['General culture',"What does a country gain from hosting the Olympic Games?"],
+['General culture',"Is a common language necessary for a nation?"],
+['General culture',"Has globalisation made cultures more alike or more aware of their differences?"],
+['General culture',"Is football only a sport, or also a political and economic force?"],
+['General culture',"Does cinema reflect society or shape it?"],
+['General culture',"Can money ever measure the value of a work of art?"],
+['General culture',"Who writes history: the victors, the historians or the public?"],
+['General culture',"Is cultural heritage a duty towards the past or a burden on the future?"],
+['General culture',"Does a city's architecture shape the people who live in it?"],
+['General culture',"Why do revolutions so often end up in the very thing they fought against?"],
+['General culture',"Is the nation-state still the right frame for solving today's problems?"],
+['General culture',"Is it fair to judge the figures of the past by today's moral standards?"],
+['General culture',"Have social media made us more informed or only more opinionated?"],
+['General culture',"Is the Enlightenment a European inheritance or a universal one?"],
+['General culture',"Does geography still decide the fate of nations?"],
+['General culture',"Should a democracy tolerate those who want to destroy it?"],
+['General culture',"Is travel the best form of education?"],
+['General culture',"Does great art need suffering?"],
+['General culture',"What role should the state play in culture?"],
+['General culture',"Can a language die without its culture dying with it?"],
+['General culture',"Is a world without borders a dream or a threat?"],
+['General culture',"Do scientific discoveries carry a moral responsibility?"],
+['General culture',"Is nostalgia a form of memory or a form of escape?"],
+['General culture',"Does the rise of Asia mean the end of Western dominance?"],
+['General culture',"Is fashion an art, an industry or a mirror of its time?"],
+['General culture',"Why do we need heroes?"],
+['General culture',"Is humour a good way to discuss serious subjects?"],
+['General culture',"Does tourism protect or damage the places it celebrates?"],
 ];
 /* topic pool: mode 'mix' | 'time' | 'news'. Returns the question string. */
 function wriNewsPool(){const o=[];try{(typeof BRIEFS!=='undefined'?BRIEFS:[]).forEach(b=>(b.stories||[]).forEach(s=>(s.qs||[]).forEach(q=>o.push({c:'In the news · '+s.tag,q:q.q,ctx:s.head}))))}catch(e){}return o}
 function wriPickTopic(mode,last){
  const time=WTOPICS.map(x=>({c:x[0],q:x[1]})),news=wriNewsPool();
- let pool=mode==='time'?time:mode==='news'&&news.length?news:time.concat(news,news);
+ const cat=time.filter(x=>x.c===mode);
+ let pool=mode==='time'?time:mode==='news'&&news.length?news:cat.length?cat:time.concat(news,news);
  pool=pool.filter(x=>x.q!==last);return pool[Math.floor(Math.random()*pool.length)]||time[0];
 }
+
+const WRICATS=[['mix','Mix'],['Philosophy','Philosophy'],['General culture','General culture'],['Politics','Politics'],['Society','Society'],['Anthropology','Anthropology'],['Ethics and technology','Ethics & tech'],['Global affairs','Global affairs'],['news','News']];
