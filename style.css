@@ -616,14 +616,16 @@ html{overscroll-behavior:none}
 .wexh{display:flex;align-items:center;gap:10px;margin:6px 0 10px}
 .wexh>div:first-child{flex:1;min-width:0}
 .wchip{font-variant-numeric:tabular-nums;font-weight:600;background:var(--fill);border-radius:999px;padding:6px 12px;font-size:14px}
-.wsplit{display:grid;grid-template-rows:1fr 1fr;gap:10px;height:calc(100dvh - 270px);min-height:440px}
-.wsplit.ess{grid-template-rows:auto 1fr}
-.wpane{display:flex;flex-direction:column;min-height:0;background:var(--card);border-radius:16px;padding:12px}
+.wsplit{display:grid;grid-template-rows:auto auto;gap:10px;align-items:stretch}
+.wsplit.ess{grid-template-rows:auto auto}
+.wpane{display:flex;flex-direction:column;min-height:55dvh;background:var(--card);border-radius:16px;padding:12px}
+.wsplit.ess .wpane:first-child{min-height:0}
 .wph{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .wph b{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--l2)}
 .wth{display:flex;gap:8px;margin-bottom:8px}
 .wth input{flex:1;min-width:0;border:0;background:var(--fill);border-radius:10px;padding:8px 10px;font-size:15px;color:var(--label)}
-.wta{flex:1;min-height:0;width:100%;resize:none;border:0;outline:0;background:transparent;font:inherit;font-size:17px;line-height:1.5;color:var(--label)}
+.wta{flex:1 0 auto;min-height:46dvh;width:100%;resize:none;overflow:hidden;border:0;outline:0;background:transparent;font:inherit;font-size:17px;line-height:1.5;color:var(--label)}
 .wta.wq{flex:none;height:auto;min-height:92px;font-size:16px;font-weight:500}
+.wfbta{min-height:55dvh;resize:none;overflow:hidden}
 .wscore{font-size:54px;font-weight:700;line-height:1.1;margin:4px 0}.wscore small{font-size:20px;color:var(--l2);font-weight:500}
-@media(min-width:700px){.wsplit{grid-template-rows:1fr;grid-template-columns:1fr 1fr;height:calc(100dvh - 190px)}.wsplit.ess{grid-template-rows:1fr;grid-template-columns:minmax(260px,34%) 1fr}.wta{font-size:18px}}
+@media(min-width:700px){.wsplit{grid-template-rows:auto;grid-template-columns:1fr 1fr}.wsplit.ess{grid-template-rows:auto;grid-template-columns:minmax(260px,34%) 1fr}.wpane{min-height:calc(100dvh - 190px)}.wta{min-height:calc(100dvh - 290px);font-size:18px}}

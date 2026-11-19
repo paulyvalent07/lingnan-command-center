@@ -255,7 +255,7 @@ function vWfb(){
  }else{
   const dr=pcLS('lu-wfb-'+x.id)||'';
   body=`<div class="card" style="margin-top:14px"><div class="card-h"><h3>1 · Get the correction</h3></div><p class="mute small" style="margin:0 0 10px">Copy the prompt, paste it in a Claude chat, and copy the answer back here.</p><button class="btn" data-act="wricopy1x" data-id="${x.id}">${ic('doc')} Copy the correction prompt</button></div>
-   <div class="card" style="margin-top:12px"><div class="card-h"><h3>2 · Paste Claude's answer</h3></div><textarea class="pcta" id="wfbtxt" data-wfb="${x.id}" rows="7" placeholder="Paste here, including the FINAL SCORE and VOCAB: lines">${esc(dr)}</textarea>
+   <div class="card" style="margin-top:12px"><div class="card-h"><h3>2 · Paste Claude's answer</h3></div><textarea class="pcta wfbta" id="wfbtxt" data-wfb="${x.id}" rows="14" placeholder="Paste here, including the FINAL SCORE and VOCAB: lines">${esc(dr)}</textarea>
    <div class="sf" id="wfbhint" style="margin-top:6px">${esc(wriHint(dr))}</div>
    <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="text" inputmode="decimal" id="wfbsc" placeholder="/20 (auto)" style="width:96px;text-align:center" class="wsedit"><button class="btn" data-act="wfbsave" style="flex:1">Save correction</button></div></div>
    <p class="mute small" style="margin:12px 4px 0">You can also do this later: the exercise stays in your Progress tab with an "Add correction" button.</p>`;
@@ -264,4 +264,11 @@ function vWfb(){
 }
 document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.wfb){pcLS('lu-wfb-'+el.dataset.wfb,el.value);const h=document.getElementById('wfbhint');if(h)h.textContent=wriHint(el.value)}});
 setInterval(()=>{const el=document.getElementById('wexel');if(el&&view==='wex'){const d=wDraft();el.textContent=fmtMS((Date.now()-(d.t0||Date.now()))/1000)}},1000);
+/* big writing boxes grow with their text, so the page scrolls instead of the box */
+const wGrow=el=>{el.style.height='auto';el.style.height=Math.max(el.scrollHeight+4,0)+'px'};
+const wGrowAll=()=>document.querySelectorAll('.wta:not(.wq),.wfbta').forEach(wGrow);
+document.addEventListener('input',e=>{const el=e.target;if(el&&el.matches&&el.matches('.wta:not(.wq),.wfbta'))wGrow(el)});
+window.addEventListener('resize',wGrowAll);
+{const m=document.getElementById('main');if(m)new MutationObserver(wGrowAll).observe(m,{childList:true,subtree:true})}
+setTimeout(wGrowAll,300);
 VMAP.deb=vDeb;VMAP.wri=vWri;VMAP.wex=vWex;VMAP.wfb=vWfb;
