@@ -74,12 +74,13 @@ function vDeb(){
 const WRI_KINDS=[['essay','Essay'],['theme','Thème (FR → …)'],['version','Version (… → FR)']];
 const wLangName=l=>pcLabel[l]||l;
 function wriTopic(course){
+ if(String(course).startsWith('cat:')){const c=course.slice(4),l=WTOPICS.filter(x=>x[0]===c);return l.length?l[Math.floor(Math.random()*l.length)][1]:''}
  const C_=(typeof CONTENT!=='undefined'&&CONTENT.courses&&CONTENT.courses[course])||null;if(!C_)return '';
  const ls=Object.values(C_.lessons||{}).map(x=>x.title).filter(Boolean);if(!ls.length)return '';
  return ls[Math.floor(Math.random()*ls.length)];
 }
 function wriPassagePrompt(w){
- const lang=w.kind==='theme'?'French':wLangName(w.lang),tp=w.topic?`on the theme: ${w.topic} (business / economics context)`:'on a business or economics theme';
+ const lang=w.kind==='theme'?'French':wLangName(w.lang),cat=String(w.course||'').startsWith('cat:'),tp=w.topic?`on the theme: ${w.topic}${cat?' (treat it as a general-interest text, not a business one)':' (business / economics context)'}`:cat?`on a ${w.course.slice(4).toLowerCase()} theme`:'on a business or economics theme';
  return `Write a passage of about 120 words in ${lang}, ${tp}. Level ${w.lvl}. Register: press article or professional report. Include 6 to 8 expressions that are hard to translate (idioms, false friends, subjunctive, set phrases). Output only the text, with no title and no commentary.`}
 function wriFeedbackPrompt(w){
  const L=wLangName(w.lang),end=`End with a block that starts exactly with "VOCAB:" followed by one line for every mistake, word or expression worth learning (no limit on the number; do not leave any out) in the format: term in ${L} | French translation | short example in ${L}, taken from my mistakes. The second column must be the FRENCH translation (not an English definition).`;
@@ -146,7 +147,7 @@ function vWri(){
   <div class="wtypes">${TY.map(([k,n,s,ico,c])=>`<button class="wtype ${w.kind===k?'on':''}" data-act="wrikind" data-k="${k}" style="--c:${c}"><span class="sq" style="--c:${c}">${ic(ico)}</span><b>${n}</b><span>${esc(s)}</span></button>`).join('')}</div>
   <div class="stack" style="margin-top:14px">${seg([['en','English'],['it','Italian'],['es','Spanish']],w.lang,'wrilang')}${seg([['B1','B1'],['B2','B2'],['C1','C1']],w.lvl,'wrilvl')}</div>
   <div class="eyebrow" style="margin:16px 0 6px">Timer</div><div class="segc">${[[0,'Off'],[20,'20 min'],[30,'30 min'],[45,'45 min']].map(([m,l])=>`<button class="${PCMIN.wri===m?'on':''}" data-act="wtimer" data-m="${m}">${l}</button>`).join('')}</div>
-  ${w.kind==='essay'?`<div class="eyebrow" style="margin:16px 0 6px">Questions</div><div class="chips">${WRICATS.map(([k,l])=>`<button class="chip ${WRIMODE===k?'on':''}" style="--c:var(--accent)" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>`:`<div class="eyebrow" style="margin:16px 0 6px">Theme of the text</div><div class="chips">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}</div>`}
+  ${w.kind==='essay'?`<div class="eyebrow" style="margin:16px 0 6px">Questions</div><div class="chips">${WRICATS.map(([k,l])=>`<button class="chip ${WRIMODE===k?'on':''}" style="--c:var(--accent)" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>`:`<div class="eyebrow" style="margin:16px 0 6px">Theme of the text</div><div class="chips">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}${WRICATS.filter(x=>x[0]!=='mix'&&x[0]!=='news').map(([k,l])=>`<button class="chip ${w.course==='cat:'+k?'on':''}" style="--c:var(--accent)" data-act="wricourse" data-id="cat:${k}">${l}</button>`).join('')}</div>`}
   <div style="margin-top:18px"><button class="btn" data-act="wstart">${ic('play')} Start ${esc(kd[1].split(' ')[0])}</button></div>
   <div class="sf">${w.kind==='essay'?'You get a question on the next page.':'On the next page, Daily gives you a prompt that makes Claude write the source text. Paste it on the left, translate on the right.'} Press Finish when you are done, then paste Claude's correction to get your /20 and your vocabulary.</div>`;
  }else if(tab==='vocab'){
