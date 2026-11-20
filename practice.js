@@ -109,7 +109,7 @@ function wriAddVocab(x){const T=wriT(),items=wriParseVocab(x.fb||'',x.lang);let 
 /* words extracted by an older version only on the Extract button: recover them from saved exercises of the last week */
 function wriRecover(){const T=wriT(),lim=Date.now()-7*864e5;let ch=0;T.list.forEach(x=>{if(x.fb&&x.ts>=lim&&/VOCAB/i.test(x.fb)&&(!x.vx||!T.vocab.some(v=>String(v.id).startsWith('x'+x.id+'_')))){if(wriAddVocab(x)||!x.vx){x.vx=1;x.mod=Date.now();ch++}}});if(ch)save()}
 /* vocabulary uses the same cards, swipe screen and spaced repetition as the course flashcards (state in S.vc) */
-const VNEW=30;
+const VNEW=300;
 function vcGet(v){const s=S.vc&&S.vc['v:'+v.id];if(s)return s;
  if((v.box||0)>0||(v.due||'')>today())return {n:v.box||0,i:WINT[Math.min(v.box||0,WINT.length-1)]||1,e:2.5,f:0,due:new Date((v.due||today())+'T00:00:00').getTime(),ts:v.ts||1,fd:''};
  return null}
@@ -223,6 +223,7 @@ Object.assign(A,{
   x.fb=fb;x.score=man&&!isNaN(parseFloat(man))&&parseFloat(man)<=20?man:(ex!=null?String(ex):'');x.mod=Date.now();
   wriAddVocab(x);x.vx=1;save();pcLS('lu-wfb-'+x.id,null);
   if(!x.score)alert('Saved, but no /20 score was found in the answer. You can type it below.');render()},
+ wriReex(){const T=wriT();let n=0,c=0;T.list.forEach(x=>{if(x.fb){const k=wriAddVocab(x);if(k){n+=k;c++}x.vx=1}});save();alert(n?n+' word'+(n===1?'':'s')+' recovered from '+c+' exercise'+(c===1?'':'s')+'.':'No missing words: every VOCAB entry found in your saved corrections is already in your flashcards.');render()},
  wfbvocab(el){const x=wriT().list.find(y=>y.id===el.dataset.id);if(!x)return;const n=wriAddVocab(x);x.vx=1;x.mod=Date.now();save();alert(n?n+' word'+(n===1?'':'s')+' added to your flashcards.':'No new words found (VOCAB: block missing or already saved).');render()},
  wstudyvoc(){startVocStudy()},
  wdone(){A.back();WRITAB='prog';render()},
