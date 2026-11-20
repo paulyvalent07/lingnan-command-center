@@ -109,7 +109,7 @@ function wriAddVocab(x){const T=wriT(),items=wriParseVocab(x.fb||'',x.lang);let 
 /* words extracted by an older version only on the Extract button: recover them from saved exercises of the last week */
 function wriRecover(){const T=wriT(),lim=Date.now()-7*864e5;let ch=0;T.list.forEach(x=>{if(x.fb&&x.ts>=lim&&/VOCAB/i.test(x.fb)&&(!x.vx||!T.vocab.some(v=>String(v.id).startsWith('x'+x.id+'_')))){if(wriAddVocab(x)||!x.vx){x.vx=1;x.mod=Date.now();ch++}}});if(ch)save()}
 /* vocabulary uses the same cards, swipe screen and spaced repetition as the course flashcards (state in S.vc) */
-const VNEW=30;
+const VNEW=1e9;
 function vcGet(v){const s=S.vc&&S.vc['v:'+v.id];if(s)return s;
  if((v.box||0)>0||(v.due||'')>today())return {n:v.box||0,i:WINT[Math.min(v.box||0,WINT.length-1)]||1,e:2.5,f:0,due:new Date((v.due||today())+'T00:00:00').getTime(),ts:v.ts||1,fd:''};
  return null}

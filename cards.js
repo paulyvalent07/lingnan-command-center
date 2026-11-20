@@ -200,7 +200,7 @@ function grade(st,gr,now){
   else if(gr===1){s.i=Math.max(s.i+1,Math.round(s.i*1.2));s.e=Math.max(1.3,s.e-.15)}
   else if(gr===2)s.i=s.i<=1?3:Math.max(s.i+1,Math.round(s.i*s.e));
   else{s.i=Math.max(s.i+2,Math.round(s.i*s.e*1.3));s.e+=.15}
-  s.n++;s.due=now+s.i*DAY;
+  s.n++;{const d=new Date(now);d.setHours(0,0,0,0);s.due=d.getTime()+s.i*DAY}/* due at the start of that calendar day, like Anki */
  }
  s.ts=now;return s;
 }
