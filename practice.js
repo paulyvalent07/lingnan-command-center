@@ -109,7 +109,7 @@ function wriAddVocab(x){const T=wriT(),items=wriParseVocab(x.fb||'',x.lang);let 
 /* words extracted by an older version only on the Extract button: recover them from saved exercises of the last week */
 function wriRecover(){const T=wriT(),lim=Date.now()-7*864e5;let ch=0;T.list.forEach(x=>{if(x.fb&&x.ts>=lim&&/VOCAB/i.test(x.fb)&&(!x.vx||!T.vocab.some(v=>String(v.id).startsWith('x'+x.id+'_')))){if(wriAddVocab(x)||!x.vx){x.vx=1;x.mod=Date.now();ch++}}});if(ch)save()}
 /* vocabulary uses the same cards, swipe screen and spaced repetition as the course flashcards (state in S.vc) */
-const VNEW=300;
+const VNEW=30;
 function vcGet(v){const s=S.vc&&S.vc['v:'+v.id];if(s)return s;
  if((v.box||0)>0||(v.due||'')>today())return {n:v.box||0,i:WINT[Math.min(v.box||0,WINT.length-1)]||1,e:2.5,f:0,due:new Date((v.due||today())+'T00:00:00').getTime(),ts:v.ts||1,fd:''};
  return null}
@@ -121,7 +121,10 @@ function vocQueue(){
  vocCards().forEach(c=>{const s=vcGet(wriT().vocab.find(x=>x.id===c.vid));if(s){if(s.due<=now)due.push([s.due,c])}else fr.push(c)});
  due.sort((a,b)=>a[0]-b[0]);
  const intro=Object.values(S.vc||{}).filter(s=>s.fd===today()).length;
- return {due:due.map(x=>x[1]),fresh:fr.slice(0,Math.max(0,VNEW-intro))};
+ /* words from an exercise done in the last 24 h are always offered; older never-seen words come in at VNEW a day */
+ const L=wriT().list,day=now-864e5,rec=c=>{const m=/^x(.+)_\d+$/.exec(String(c.vid)),e=m&&L.find(y=>y.id===m[1]);return (e?e.ts:(wriT().vocab.find(x=>x.id===c.vid)||{}).ts||0)>=day};
+ const nw=fr.filter(rec).sort((a,b)=>0),old=fr.filter(c=>!rec(c));
+ return {due:due.map(x=>x[1]),fresh:nw.concat(old.slice(0,Math.max(0,VNEW-intro)))};
 }
 const vocDue=()=>{const q=vocQueue();return q.due.concat(q.fresh)};
 function startVocStudy(){const q=vocQueue(),ids=q.due.concat(q.fresh).map(c=>c.id);if(!ids.length)return;
