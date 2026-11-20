@@ -89,14 +89,25 @@ function wriFeedbackPrompt(w){
  return `Act as a translation tutor. Here is a ${from} source text and my translation into ${to} (level ${w.lvl}).\n\nSOURCE (${from}):\n${(w.src||'').trim()}\n\nMY TRANSLATION (${to}):\n${(w.text||'').trim()}\n\nGive me: 1) every mistake as "my wording → correction (rule)", including mistranslations, false friends, grammar and register; 2) a model translation; 3) a grade using this exact scale: ${WRI_SCALE.tr.map(x=>x[0]+' /'+x[1]).join(', ')} (that adds up to 20), then ONE last line in exactly this form: FINAL SCORE: X/20 (the sum of the parts, half points allowed). Be blunt. ${end}`;
 }
 function wriParseVocab(txt,lang){
- const i=txt.search(/VOCAB:?/i);if(i<0)return [];
- return txt.slice(i).split('\n').slice(1).map(l=>l.replace(/^[\s\-\*\d\.\)]+/,'').trim()).filter(l=>l.split('|').length>=2).map(l=>{const p=l.split('|').map(s=>s.trim());return {term:p[0].replace(/\*\*/g,''),tr:p[1].replace(/\*\*/g,''),note:(p[2]||'').replace(/\*\*/g,'')}}).filter(x=>x.term&&x.tr);
+ txt=String(txt||'');const lines=txt.split('\n');
+ /* the LAST line that opens the block: "VOCAB:", "**VOCAB:**", "## Vocabulary", ... (an earlier mention of the word in the prose must not count) */
+ let h=-1;lines.forEach((l,i)=>{if(/^[\s#*_>`\-]*(vocab(ulary|ulaire)?)\b[^|]{0,40}$/i.test(l)||/^[\s#*_>`\-]*vocab:/i.test(l))h=i});
+ if(h<0)return [];
+ let rest=lines.slice(h+1);const same=lines[h].replace(/^[\s#*_>`\-]*vocab\w*\s*[:：]?\**\s*/i,'');if(same.includes('|'))rest.unshift(same);
+ const out=[],seen={};
+ rest.forEach(l=>{
+  l=l.replace(/^[\s>\-\*\u2022\d\.\)]+/,'').replace(/^\|/,'').replace(/\|\s*$/,'').trim();
+  if(!l||/^[\s:\-|]+$/.test(l))return;
+  const p=l.split('|').map(x=>x.replace(/\*\*|`/g,'').trim());if(p.length<2)return;
+  if(/^(term|terme|word|mot|expression)\b/i.test(p[0])&&/(french|fran|translation|traduction)/i.test(p[1]))return;
+  const t=p[0].replace(/^["“]|["”]$/g,''),k=t.toLowerCase();if(!t||!p[1]||seen[k])return;seen[k]=1;out.push({term:t,tr:p[1],note:(p.slice(2).join(' | ')||'')});
+ });return out;
 }
 const WINT=[1,3,7,14,30];
 function wriAddVocab(x){const T=wriT(),items=wriParseVocab(x.fb||'',x.lang);let n=0;
  items.forEach((v,i)=>{const id='x'+x.id+'_'+i;if(T.vocab.some(o=>o.id===id||(o.lang===x.lang&&o.term.toLowerCase()===v.term.toLowerCase())))return;T.vocab.push({id,lang:x.lang,term:v.term,tr:v.tr,note:v.note,box:0,due:today(),ts:Date.now()});n++});return n}
 /* words extracted by an older version only on the Extract button: recover them from saved exercises of the last week */
-function wriRecover(){const T=wriT(),lim=Date.now()-7*864e5;let ch=0;T.list.forEach(x=>{if(!x.vx&&x.fb&&x.ts>=lim&&/VOCAB/i.test(x.fb)){wriAddVocab(x);x.vx=1;x.mod=Date.now();ch++}});if(ch)save()}
+function wriRecover(){const T=wriT(),lim=Date.now()-7*864e5;let ch=0;T.list.forEach(x=>{if(x.fb&&x.ts>=lim&&/VOCAB/i.test(x.fb)&&(!x.vx||!T.vocab.some(v=>String(v.id).startsWith('x'+x.id+'_')))){if(wriAddVocab(x)||!x.vx){x.vx=1;x.mod=Date.now();ch++}}});if(ch)save()}
 /* vocabulary uses the same cards, swipe screen and spaced repetition as the course flashcards (state in S.vc) */
 const VNEW=30;
 function vcGet(v){const s=S.vc&&S.vc['v:'+v.id];if(s)return s;
@@ -251,7 +262,7 @@ function vWfb(){
   body=`<div class="card" style="margin-top:14px;text-align:center"><div class="eyebrow">Your grade</div><div class="wscore">${sc!=null?pgNum(sc)+'<small>/20</small>':'—'}</div>
    ${sc==null?`<div class="sf">No /20 found in the answer. Type it here:</div>`:''}
    <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-top:8px"><input type="text" inputmode="decimal" class="wsedit" data-wsid="${x.id}" value="${esc(x.score||'')}" placeholder="/20" style="width:70px;text-align:center"><button class="btn tint sm" data-act="wriscore" data-id="${x.id}">${sc==null?'Set score':'Change'}</button></div></div>
-   <div class="card" style="margin-top:12px"><div class="card-h"><h3>Vocabulary</h3><span class="mute small">${inV||V} word${(inV||V)===1?'':'s'}</span></div><p class="mute small" style="margin:0 0 10px">${V?`${inV} added to your flashcards${inV<V?' (the rest were already there)':''}.`:'No VOCAB: block in the answer.'}</p>${V&&!x.vx?`<button class="btn tint" data-act="wfbvocab" data-id="${x.id}">Add the words</button>`:''}${vocDue().length?`<button class="btn" data-act="wstudyvoc" style="margin-top:8px">${ic('play')} Study vocabulary · ${vocDue().length}</button>`:''}</div>
+   <div class="card" style="margin-top:12px"><div class="card-h"><h3>Vocabulary</h3><span class="mute small">${inV||V} word${(inV||V)===1?'':'s'}</span></div><p class="mute small" style="margin:0 0 10px">${V?`${inV} added to your flashcards${inV<V?' (the rest were already there)':''}.`:'No VOCAB: block in the answer.'}</p>${V&&(!x.vx||inV<V)?`<button class="btn tint" data-act="wfbvocab" data-id="${x.id}">Add the words</button>`:''}${vocDue().length?`<button class="btn" data-act="wstudyvoc" style="margin-top:8px">${ic('play')} Study vocabulary · ${vocDue().length}</button>`:''}</div>
    <details style="margin-top:12px"><summary class="mute small" style="padding:4px">Claude's answer</summary><p class="mute small" style="white-space:pre-line">${esc(x.fb)}</p></details>`;
  }else{
   const dr=pcLS('lu-wfb-'+x.id)||'';
