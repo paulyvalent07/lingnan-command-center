@@ -71,22 +71,38 @@ function vDeb(){
 }
 
 /* ====================  WRITING  ==================== */
-const WRI_KINDS=[['essay','Essay'],['theme','Thème (FR → …)'],['version','Version (… → FR)']];
+const WRI_KINDS=[['essay','Essay'],['theme','Thème (FR → …)'],['version','Version (… → FR)'],['dialogue','Dialogue (FR → …)']];
+const wFR=k=>k==='theme'||k==='dialogue';
+/* everyday situations for the Dialogue exercise */
+const WDLG=[
+ ['Café & restaurant',['ordering at a café and changing your mind twice','sending back a dish that is not what you ordered','splitting the bill between friends','booking a table for a group at the last minute']],
+ ['Flatmates & home',['arguing politely about the washing-up and chores','a noisy neighbour at midnight','the wifi or the boiler has broken down and you call the landlord','a flatmate who never buys the shared groceries']],
+ ['Shopping',['returning a jumper that does not fit','haggling at a street market','looking for a gift with a shop assistant','the supermarket card machine is refusing your payment']],
+ ['Getting around',['you missed the last train and ask a stranger for advice','asking for directions in a city you do not know','a taxi driver who takes the long way','a delayed flight and a rebooking at the airport desk']],
+ ['Friends & plans',['organising a weekend trip and nobody agrees','cancelling at the last minute','catching up with a friend you have not seen for a year','planning a surprise birthday party']],
+ ['Phone & messages',['leaving a voicemail to rebook an appointment','a call to customer service about a wrong bill','a wrong number that turns into a conversation','explaining a tech problem to a helpline']],
+ ['Admin & money',['opening a bank account','the immigration or visa office','an insurance claim after a stolen phone','picking up a parcel at the post office']],
+ ['Health & sport',['at the pharmacy with a cold','booking a doctor appointment and describing symptoms','joining a gym and asking about the membership','after football training, talking about an injury']],
+ ['Uni & work',['asking a professor for an extension','a group project where one member does nothing','small talk with a colleague at the coffee machine','an informal chat before an internship interview']],
+ ['Small talk',['the weather and weekend plans','football and last night\'s match','where are you from and what do you study','giving your opinion on a film you just saw']]];
+const WDK=()=>WDLG.map(x=>x[0]);
 const wLangName=l=>pcLabel[l]||l;
 function wriTopic(course){
+ if(String(course).startsWith('scn:')||course==='scn'){const k=String(course).slice(4),l=(WDLG.find(x=>x[0]===k)||[0,[].concat(...WDLG.map(x=>x[1]))])[1];return l[Math.floor(Math.random()*l.length)]}
  if(String(course).startsWith('cat:')){const c=course.slice(4),l=WTOPICS.filter(x=>x[0]===c);return l.length?l[Math.floor(Math.random()*l.length)][1]:''}
  const C_=(typeof CONTENT!=='undefined'&&CONTENT.courses&&CONTENT.courses[course])||null;if(!C_)return '';
  const ls=Object.values(C_.lessons||{}).map(x=>x.title).filter(Boolean);if(!ls.length)return '';
  return ls[Math.floor(Math.random()*ls.length)];
 }
 function wriPassagePrompt(w){
- const lang=w.kind==='theme'?'French':wLangName(w.lang),cat=String(w.course||'').startsWith('cat:'),tp=w.topic?`on the theme: ${w.topic}${cat?' (treat it as a general-interest text, not a business one)':' (business / economics context)'}`:cat?`on a ${w.course.slice(4).toLowerCase()} theme`:'on a business or economics theme';
+ if(w.kind==='dialogue')return `Write a realistic everyday dialogue in French between two people (A and B), ${w.topic?'situation: '+w.topic:'about a day-to-day situation'}. 14 to 18 short lines, natural spoken French (contractions, fillers, common idioms, informal register where it fits). Level ${w.lvl}. Include 8 to 10 everyday expressions that cannot be translated word for word into ${wLangName(w.lang)}. Output only the dialogue, one line per turn, with no title and no commentary.`;
+ const lang=wFR(w.kind)?'French':wLangName(w.lang),cat=String(w.course||'').startsWith('cat:'),tp=w.topic?`on the theme: ${w.topic}${cat?' (treat it as a general-interest text, not a business one)':' (business / economics context)'}`:cat?`on a ${w.course.slice(4).toLowerCase()} theme`:'on a business or economics theme';
  return `Write a passage of about 120 words in ${lang}, ${tp}. Level ${w.lvl}. Register: press article or professional report. Include 6 to 8 expressions that are hard to translate (idioms, false friends, subjunctive, set phrases). Output only the text, with no title and no commentary.`}
 function wriFeedbackPrompt(w){
  const L=wLangName(w.lang),end=`End with a block that starts exactly with "VOCAB:" followed by one line for every mistake, word or expression worth learning (no limit on the number; do not leave any out) in the format: term in ${L} | French translation | short example in ${L}, taken from my mistakes. The second column must be the FRENCH translation (not an English definition).`;
  if(w.kind==='essay')return `Act as a ${L} writing tutor (target level ${w.lvl}). Essay question: ${w.topic||'(free topic)'}.\nHere is my essay (${pcWords(w.text||'')} words):\n\n${(w.text||'').trim()}\n\nGive me: 1) an estimated CEFR level; 2) three points of feedback on structure and argument; 3) every language mistake as "my wording → correction (rule)", up to 12; 4) a corrected version; 5) a grade using this exact scale: ${WRI_SCALE.essay.map(x=>x[0]+' /'+x[1]).join(', ')} (that adds up to 20), then ONE last line in exactly this form: FINAL SCORE: X/20 (the sum of the parts, half points allowed). Be blunt. ${end}`;
- const from=w.kind==='theme'?'French':L,to=w.kind==='theme'?L:'French';
- return `Act as a translation tutor. Here is a ${from} source text and my translation into ${to} (level ${w.lvl}).\n\nSOURCE (${from}):\n${(w.src||'').trim()}\n\nMY TRANSLATION (${to}):\n${(w.text||'').trim()}\n\nGive me: 1) every mistake as "my wording → correction (rule)", including mistranslations, false friends, grammar and register; 2) a model translation; 3) a grade using this exact scale: ${WRI_SCALE.tr.map(x=>x[0]+' /'+x[1]).join(', ')} (that adds up to 20), then ONE last line in exactly this form: FINAL SCORE: X/20 (the sum of the parts, half points allowed). Be blunt. ${end}`;
+ const from=wFR(w.kind)?'French':L,to=wFR(w.kind)?L:'French',dl=w.kind==='dialogue'?' It is an everyday spoken dialogue: judge naturalness and register too, and in the model translation use what a native speaker would really say, not a literal rendering.':'';
+ return `Act as a translation tutor. Here is a ${from} source text and my translation into ${to} (level ${w.lvl}).${dl}\n\nSOURCE (${from}):\n${(w.src||'').trim()}\n\nMY TRANSLATION (${to}):\n${(w.text||'').trim()}\n\nGive me: 1) every mistake as "my wording → correction (rule)", including mistranslations, false friends, grammar and register; 2) a model translation; 3) a grade using this exact scale: ${WRI_SCALE.tr.map(x=>x[0]+' /'+x[1]).join(', ')} (that adds up to 20), then ONE last line in exactly this form: FINAL SCORE: X/20 (the sum of the parts, half points allowed). Be blunt. ${end}`;
 }
 function wriParseVocab(txt,lang){
  txt=String(txt||'');const lines=txt.split('\n');
@@ -155,15 +171,15 @@ function vWri(){
  let body='';
  if(tab==='write'){
   const on=(w.text||'').trim()||(w.src||'').trim(),kd=WRI_KINDS.find(k=>k[0]===w.kind)||WRI_KINDS[0];
-  const TY=[['theme','Thème','French → '+wLangName(w.lang),'redo','var(--orange)'],['version','Version',wLangName(w.lang)+' → French','doc','var(--green)'],['essay','Essay','Argued answer in '+wLangName(w.lang),'pen','var(--accent)']];
+  const TY=[['theme','Thème','French → '+wLangName(w.lang),'redo','var(--orange)'],['version','Version',wLangName(w.lang)+' → French','doc','var(--green)'],['dialogue','Dialogue','Everyday French → '+wLangName(w.lang),'people','var(--purple,#af52de)'],['essay','Essay','Argued answer in '+wLangName(w.lang),'pen','var(--accent)']];
   body=(on?`<div class="card" style="margin-bottom:14px"><div class="card-h"><h3>Exercise in progress</h3></div><p class="mute small" style="margin:0 0 10px">${esc(kd[1])} · ${wLangName(w.lang)} ${w.lvl} · ${pcWords(w.text||'')} words written</p><div style="display:flex;gap:10px"><button class="btn" data-act="wresume">Resume</button><button class="btn gray" data-act="wdiscard">Discard</button></div></div>`:'')+
   `<div class="eyebrow" style="margin:4px 0 8px">Choose an exercise</div>
   <div class="wtypes">${TY.map(([k,n,s,ico,c])=>`<button class="wtype ${w.kind===k?'on':''}" data-act="wrikind" data-k="${k}" style="--c:${c}"><span class="sq" style="--c:${c}">${ic(ico)}</span><b>${n}</b><span>${esc(s)}</span></button>`).join('')}</div>
   <div class="stack" style="margin-top:14px">${seg([['en','English'],['it','Italian'],['es','Spanish']],w.lang,'wrilang')}${seg([['B1','B1'],['B2','B2'],['C1','C1']],w.lvl,'wrilvl')}</div>
   <div class="eyebrow" style="margin:16px 0 6px">Timer</div><div class="segc">${[[0,'Off'],[20,'20 min'],[30,'30 min'],[45,'45 min']].map(([m,l])=>`<button class="${PCMIN.wri===m?'on':''}" data-act="wtimer" data-m="${m}">${l}</button>`).join('')}</div>
-  ${w.kind==='essay'?`<div class="eyebrow" style="margin:16px 0 6px">Questions</div><div class="chips">${WRICATS.map(([k,l])=>`<button class="chip ${WRIMODE===k?'on':''}" style="--c:var(--accent)" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>`:`<div class="eyebrow" style="margin:16px 0 6px">Theme of the text</div><div class="chips">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}${WRICATS.filter(x=>x[0]!=='mix'&&x[0]!=='news').map(([k,l])=>`<button class="chip ${w.course==='cat:'+k?'on':''}" style="--c:var(--accent)" data-act="wricourse" data-id="cat:${k}">${l}</button>`).join('')}</div>`}
+  ${w.kind==='essay'?`<div class="eyebrow" style="margin:16px 0 6px">Questions</div><div class="chips">${WRICATS.map(([k,l])=>`<button class="chip ${WRIMODE===k?'on':''}" style="--c:var(--accent)" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>`:w.kind==='dialogue'?`<div class="eyebrow" style="margin:16px 0 6px">Situation</div><div class="chips" style="flex-wrap:wrap;overflow:visible"><button class="chip ${!String(w.scn||'').startsWith('scn:')?'on':''}" style="--c:var(--accent)" data-act="wricourse" data-id="scn">Mix</button>${WDK().map(k=>`<button class="chip ${w.scn==='scn:'+k?'on':''}" style="--c:var(--accent)" data-act="wricourse" data-id="scn:${k}">${k}</button>`).join('')}</div>`:`<div class="eyebrow" style="margin:16px 0 6px">Theme of the text</div><div class="chips" style="flex-wrap:wrap;overflow:visible">${COURSES.map(c=>`<button class="chip ${w.course===c.id?'on':''}" style="--c:${c.color}" data-act="wricourse" data-id="${c.id}"><i></i>${c.short}</button>`).join('')}${WRICATS.filter(x=>x[0]!=='mix'&&x[0]!=='news').map(([k,l])=>`<button class="chip ${w.course==='cat:'+k?'on':''}" style="--c:var(--accent)" data-act="wricourse" data-id="cat:${k}">${l}</button>`).join('')}</div>`}
   <div style="margin-top:18px"><button class="btn" data-act="wstart">${ic('play')} Start ${esc(kd[1].split(' ')[0])}</button></div>
-  <div class="sf">${w.kind==='essay'?'You get a question on the next page.':'On the next page, Daily gives you a prompt that makes Claude write the source text. Paste it on the left, translate on the right.'} Press Finish when you are done, then paste Claude's correction to get your /20 and your vocabulary.</div>`;
+  <div class="sf">${w.kind==='essay'?'You get a question on the next page.':(w.kind==='dialogue'?'On the next page, Daily gives you a situation and a prompt that makes Claude write an everyday French dialogue. Paste it on the left, translate it into natural '+wLangName(w.lang)+' on the right.':'On the next page, Daily gives you a prompt that makes Claude write the source text. Paste it on the left, translate on the right.')} Press Finish when you are done, then paste Claude's correction to get your /20 and your vocabulary.</div>`;
  }else if(tab==='vocab'){
   const q=vocQueue(),n=q.due.length+q.fresh.length,V=T.vocab;
   body=`<div class="stats" style="margin-bottom:14px"><div class="stat"><b>${q.due.length}</b><span>due</span></div><div class="stat"><b>${q.fresh.length}</b><span>new</span></div><div class="stat"><b>${V.length}</b><span>words saved</span></div></div>`+
@@ -199,9 +215,9 @@ Object.assign(A,{
  wrikind(el){wSet('kind',el.dataset.k);render()},
  wrilang(el){wSet('lang',el.dataset.k);render()},
  wrilvl(el){wSet('lvl',el.dataset.k);render()},
- wricourse(el){wSet('course',el.dataset.id);render()},
+ wricourse(el){wSet(String(el.dataset.id).startsWith('scn')?'scn':'course',el.dataset.id);render()},
  writopic(){const w=wDraft();if(w.kind==='essay'){const t=wriPickTopic(WRIMODE,w.topic);const d=wDraft();d.topic=t.q;d.cat=t.c;d.ctx=t.ctx||'';pcLS('lu-wri-draft',d);render();return}
-  const t=wriTopic(w.course);if(!t)return;wSet('topic',t);render()},
+  const t=wriTopic(w.kind==='dialogue'?(w.scn||'scn'):w.course);if(!t)return;wSet('topic',t);render()},
  wrimode(el){WRIMODE=el.dataset.k;try{localStorage.setItem('lu-wri-mode',WRIMODE)}catch(e){}render()},
  wricopy0(el){pcCopy(wriPassagePrompt(wDraft()),el)},
  wricopy1(el){const w=wDraft();if(!(w.text||'').trim()){alert('Write something first.');return}pcCopy(wriFeedbackPrompt(w),el)},
@@ -209,7 +225,7 @@ Object.assign(A,{
  wtimer(el){PCMIN.wri=+el.dataset.m;render()},
  wstart(){const w=wDraft();if((w.text||'').trim()&&!confirm('Replace the exercise in progress?'))return;
   const d=Object.assign({},w,{text:'',src:'',fb:'',score:'',eff:0,t0:Date.now()});
-  if(d.kind==='essay'){const q=wriPickTopic(WRIMODE,'');d.topic=q.q;d.cat=q.c;d.ctx=q.ctx||''}else{d.topic='';d.cat='';d.ctx='';const th=wriTopic(d.course);if(th)d.topic=th}
+  if(d.kind==='essay'){const q=wriPickTopic(WRIMODE,'');d.topic=q.q;d.cat=q.c;d.ctx=q.ctx||''}else{d.topic='';d.cat='';d.ctx='';const th=wriTopic(w.kind==='dialogue'?(w.scn||'scn'):d.course);if(th)d.topic=th}
   pcLS('lu-wri-draft',d);pcLS('lu-pc-timer',PCMIN.wri>0?{k:'wri',end:Date.now()+PCMIN.wri*60000}:null);effLast=0;
   hist.push([view,param]);view='wex';param=null;render();window.scrollTo(0,0)},
  wresume(){hist.push([view,param]);view='wex';param=null;render();window.scrollTo(0,0)},
@@ -240,12 +256,12 @@ Object.assign(A,{
   wriT().vocab.push({id:pcId(),lang:wDraft().lang,term:p[0],tr:p[1],note:p[2]||'',box:0,due:today(),ts:Date.now()});save();render()}
 });
 function vWex(){
- const w=wDraft(),isT=w.kind!=='essay',from=w.kind==='theme'?'French':wLangName(w.lang),to=w.kind==='theme'?wLangName(w.lang):'French';
- const toL=w.kind==='essay'?wLangName(w.lang):(w.kind==='theme'?wLangName(w.lang):'French'),kd=(WRI_KINDS.find(k=>k[0]===w.kind)||WRI_KINDS[0])[1].split(' ')[0];
+ const w=wDraft(),isT=w.kind!=='essay',from=wFR(w.kind)?'French':wLangName(w.lang),to=wFR(w.kind)?wLangName(w.lang):'French';
+ const toL=w.kind==='essay'?wLangName(w.lang):(wFR(w.kind)?wLangName(w.lang):'French'),kd=(WRI_KINDS.find(k=>k[0]===w.kind)||WRI_KINDS[0])[1].split(' ')[0];
  const tm=pcLS('lu-pc-timer'),cd=tm&&tm.k==='wri',chip=cd?`<span class="wchip" id="pctimer">${tm.end>Date.now()?fmtMS((tm.end-Date.now())/1000):"Time's up"}</span>`:`<span class="wchip" id="wexel">${fmtMS((Date.now()-(w.t0||Date.now()))/1000)}</span>`;
- const left=isT?`<div class="wpane"><div class="wph"><b>Source · ${from}</b><button class="btn tint sm" data-act="wricopy0">Copy prompt for a text</button></div>
-   <div class="wth"><input type="text" data-wf="topic" value="${esc(w.topic||'')}" placeholder="Theme (optional)"><button class="btn gray sm" data-act="writopic">New theme</button></div>
-   <textarea class="wta" data-wf="src" placeholder="Paste the ${from} text Claude gave you here">${esc(w.src||'')}</textarea></div>`
+ const left=isT?`<div class="wpane"><div class="wph"><b>Source · ${from}${w.kind==='dialogue'?' dialogue':''}</b><button class="btn tint sm" data-act="wricopy0">Copy prompt for ${w.kind==='dialogue'?'a dialogue':'a text'}</button></div>
+   <div class="wth"><input type="text" data-wf="topic" value="${esc(w.topic||'')}" placeholder="${w.kind==='dialogue'?'Situation (optional)':'Theme (optional)'}"><button class="btn gray sm" data-act="writopic">${w.kind==='dialogue'?'New situation':'New theme'}</button></div>
+   <textarea class="wta" data-wf="src" placeholder="Paste the ${from} ${w.kind==='dialogue'?'dialogue':'text'} Claude gave you here">${esc(w.src||'')}</textarea></div>`
   :`<div class="wpane"><div class="wph"><b>Question</b><button class="btn tint sm" data-act="writopic">New question</button></div>
    <textarea class="wta wq" data-wf="topic" rows="5" placeholder="Essay question">${esc(w.topic||'')}</textarea>
    <div class="chips" style="margin-top:8px">${WRICATS.map(([k,l])=>`<button class="chip ${WRIMODE===k?'on':''}" style="--c:var(--accent)" data-act="wrimode" data-k="${k}">${l}</button>`).join('')}</div>${w.cat?`<p class="mute small" style="margin:8px 2px 0">${esc(w.cat)}${w.ctx?' · '+esc(w.ctx):''}</p>`:''}</div>`;
@@ -258,7 +274,7 @@ function vWex(){
 function vWfb(){
  const x=wriT().list.find(y=>y.id===param);
  if(!x)return `<div class="view">${navbar('Writing')}<div class="empty"><b>Exercise not found</b></div></div>`;
- const kd={essay:'Essay',theme:'Thème',version:'Version'}[x.kind]||'Exercise',sc=wScore(x);
+ const kd={essay:'Essay',theme:'Thème',version:'Version',dialogue:'Dialogue'}[x.kind]||'Exercise',sc=wScore(x);
  const head=`<div class="done-card" style="padding:22px 16px"><div class="tick">${ic('check')}</div><h1 class="lt" style="margin:0;font-size:26px">${x.fb?'Exercise corrected':'Exercise saved'}</h1><p class="mute" style="margin:6px 0 0">${kd} · ${wLangName(x.lang)} ${x.lvl} · ${x.words} words${x.eff?' · '+fmt(x.eff/60)+' worked':''}</p></div>`;
  let body;
  if(x.fb){

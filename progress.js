@@ -21,7 +21,7 @@ function pgLine(pts,o){
 }
 const pgBar=(p,c)=>`<div class="tmb"><i style="width:${Math.round(Math.max(0,Math.min(1,p||0))*100)}%;background:${c}"></i></div>`;
 const wScore=x=>{const v=parseFloat(String(x.score==null?'':x.score).replace(',','.'));return isNaN(v)?null:v};
-const WKC={essay:'#0a84ff',theme:'#b45309',version:'#16a34a'},WKN={essay:'Essay',theme:'Thème',version:'Version'};
+const WKC={essay:'#0a84ff',theme:'#b45309',version:'#16a34a',dialogue:'#af52de'},WKN={essay:'Essay',theme:'Thème',version:'Version',dialogue:'Dialogue'};
 
 function wriProg(){
  const T=wriT(),L=T.list.slice().sort((a,b)=>a.ts-b.ts),G=L.filter(x=>wScore(x)!=null);
