@@ -210,3 +210,17 @@ const bmvEnd=()=>{if(!bmv)return;const m=bmv;bmv=null;m.sib.forEach(s=>{s.style.
  else{const ti=m.ti;ord.forEach((o,k)=>['a','s','m'].forEach(f=>{const ok=`${ti}.${o}.${f}`,nk=`${ti}.${k}.${f}`;if(old[ok]!=null)st.v[nk]=old[ok];else delete st.v[nk]}))}
  xrefresh(m.q)};
 document.addEventListener('pointerup',bmvEnd);document.addEventListener('pointercancel',bmvEnd);
+
+/* ----- thousands separators while typing: 12345678 → 12 345 678 (all numeric answer boxes) ----- */
+document.addEventListener('input',e=>{
+ const el=e.target;if(!el||!el.classList||!el.classList.contains('tin')||el.tagName!=='INPUT'||el.getAttribute('inputmode')!=='decimal')return;
+ const raw=el.value;if(/[a-z]/i.test(raw.replace(/[$€£]/g,'')))return;
+ const m=/^(\s*[-−–(]?\s*[$€£]?\s*)([\d\s,]*)(\.\d*)?(\s*[)%]?\s*)$/.exec(raw);if(!m)return;
+ const pos=el.selectionStart==null?raw.length:el.selectionStart,digitsBefore=raw.slice(0,pos).replace(/[^\d]/g,'').length;
+ const int=m[2].replace(/[\s,]/g,''),g=int.replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+ const out=m[1].replace(/\s+/g,'')+g+(m[3]||'')+m[4].replace(/\s+/g,'');
+ if(out===raw)return;
+ el.value=out;
+ let n=0,p=0;if(digitsBefore>0){for(p=0;p<out.length&&n<digitsBefore;p++)if(/\d/.test(out[p]))n++}else p=Math.min(pos,m[1].replace(/\s+/g,'').length);
+ try{el.setSelectionRange(p,p)}catch(_){}
+},true);
