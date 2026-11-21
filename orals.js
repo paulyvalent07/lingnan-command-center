@@ -3,10 +3,10 @@
    Slide screenshots go in the orals/ folder (png). A section without a text is shown as "missing" until the text is added.
    Add or edit entries in ORALS. Progress (learned sections, reading mode) is stored on this device only. */
 const ORALS=[
- {id:'bus2205',course:'BUS2205',title:'Pop Bakery Paris launch plan',kind:'Group oral',when:'2026-11-17T09:00',tentative:true,
+ {id:'bus2205',course:'BUS2205',title:'Pop Bakery Paris launch plan',kind:'Group oral',when:'2026-11-24T09:00',
   deposit:'PPT deposit: Sun 15 Nov, 23:59',
   part:'Slides 7 to 9',mine:'Person 3 of 7 · slides 7 to 9 (printed numbers 07 to 09 on the Canva deck: differentiation table, competitive landscape, SWOT) · about 3 minutes',
-  note:'Figures come from the live Canva deck (Nov 2026): Hermé Chou Mogador 10 euros, Grolet Fleur Vanille 18 euros, Kitsuné cappuccino 6.50 euros (Uber Eats), Pop Bakery proposed 8 to 12 euros. In the deck the Different table (printed 07) comes before the Competitive Landscape slide (08): ask your group if that order is final. Oral date tentative (17 or 24 Nov).',
+  note:'Figures come from the live Canva deck (Nov 2026): Hermé Chou Mogador 10 euros, Grolet Fleur Vanille 18 euros, Kitsuné cappuccino 6.50 euros (Uber Eats), Pop Bakery proposed 8 to 12 euros. In the deck the Different table (printed 07) comes before the Competitive Landscape slide (08): ask your group if that order is final. Oral date: 24 Nov.',
   sections:[
    {id:"s7",label:"Slide 7",head:"What Makes Pop Bakery Different?",img:"orals/bus2205-s7.png",
     text:"Now we compare Pop Bakery with three Paris brands. The table shows one selected item per brand. Hermé is at 10 euros, in a boutique, and its appeal is craft. Grolet is at 18 euros, with showpieces, and his appeal is the chef. Kitsuné is at 6 euros 50, a café, and its appeal is lifestyle. Pop Bakery is proposed at 8 to 12 euros, as a themed café, and our appeal is the characters. So we are not the cheapest and not the most expensive. We are the only one built around characters. Be careful: these are selected items, Kitsuné is a delivery price, and our price is a proposal."},
