@@ -763,3 +763,198 @@
    TX('(b)','All 150,000 tons are sold: recognize the cost of goods sold.',[D('Cost of goods sold',900000),Cr('Inventory',900000)],'The expense is recognized only when the ore is sold, as for any inventory (Chapter 7).')])
  ];
 }
+
+/* ================= BUS1103 · Chapters 9, 10, 11: current liabilities, bonds, stockholders' equity ================= */
+{
+ const C=(id,title,stem,cols,items,min)=>({id,t:'cls',min:min||3,sec:'Active drills',title,stem:[stem],cols:cols.map(([h,opts])=>({h,opts})),items:items.map(([t,a,why])=>({t,a:Array.isArray(a)?a:[a],why}))});
+ const K=(id,title,stem,parts,expl,min)=>({id,t:'calc',min:min||parts.length,sec:'Active drills',title,stem:Array.isArray(stem)?stem:[stem],parts,expl});
+ const E=(id,title,stem,cols,eo,txs,min)=>({id,t:'eff',min:min||3,sec:'Active drills',title,stem:[stem],cols,eo,txs:txs.map(([text,e,note],i)=>({k:'('+'abcdefghij'[i]+')',text,e,note}))});
+ const G=(id,title,stem,cols,rows,tol,expl,min)=>({id,t:'grid',min:min||3,sec:'Active drills',title,stem:Array.isArray(stem)?stem:[stem],cols,rows,tol,expl});
+ const Cr=(a,n)=>({a,n,s:'C'});
+ const JE=(id,title,stem,txs,min)=>({id,t:'je',min:min||txs.length*2,sec:'Active drills',title,stem:Array.isArray(stem)?stem:[stem],txs});
+ const addA=(name,names)=>{const g=COA.find(x=>x[0]===name);if(g)names.forEach(n=>{if(!g[1].includes(n))g[1].push(n)})};
+ addA('Liabilities',['Notes payable','Bonds payable']);
+ addA('Stockholders’ equity',['Treasury stock','Additional paid-in capital, treasury stock','Common stock dividend distributable','Preferred stock']);
+ const EF=[['+','Increases'],['-','Decreases'],['0','No effect']];
+
+ BUILD['BUS1103:9']=[
+  C('b9-a','Current or long-term liability?','Current liabilities are due within one year (and paid with current assets); long-term liabilities are due in more than one year. Classify each item at December 31.',
+   [['Classification',['Current liability','Long-term liability']]],[
+   ['Accounts payable for coffee beans bought on credit','Current liability'],
+   ['Accrued wages owed to employees','Current liability'],
+   ['Deferred revenue: customers’ stored-value cards (Starbucks)','Current liability','Cash is collected but the product or service is still owed.'],
+   ['Interest payable on a note','Current liability'],
+   ['Dividends payable, declared by the board but not yet paid','Current liability'],
+   ['A $5 million note: the half due next January','Current liability','This is the “current portion of long-term debt”.'],
+   ['A $5 million note: the half due the January after next','Long-term liability'],
+   ['Bonds payable maturing in 10 years','Long-term liability']],6),
+  K('b9-b','Notes payable · Interest accrual (official illustration)','On November 1 a company (December 31 year-end) borrows $100,000 for one year at 12% annual interest. Interest is paid each April 30 and October 31; principal is due at maturity.',[
+   {l:'Interest accrued at December 31 (2 months) ($)',n:2000,pre:'$',x:'$100,000 × 12% × 2/12.'},
+   {l:'Additional interest expense, January to April ($)',n:4000,pre:'$',x:'$100,000 × 12% × 4/12.'},
+   {l:'Cash interest paid on April 30 (6 months) ($)',n:6000,pre:'$',x:'$100,000 × 12% × 6/12 = $2,000 already accrued + $4,000.'},
+   {l:'Interest payable on the December 31 balance sheet ($)',n:2000,pre:'$',x:'Expensed in the year it is incurred, even though not yet paid.'}],'',4),
+  JE('b9-c','Notes payable · Journal entries (official illustration)','Record the three events for the $100,000, 12% one-year note borrowed on November 1.',[
+   TX('(a)','November 1: borrows $100,000 cash on the note.',[D('Cash',100000),Cr('Notes payable',100000)]),
+   TX('(b)','December 31: accrue interest for 2 months.',[D('Interest expense',2000),Cr('Interest payable',2000)],'$100,000 × 12% × 2/12.'),
+   TX('(c)','April 30: pay 6 months of interest in cash ($6,000), of which $2,000 was accrued last year.',[D('Interest payable',2000),D('Interest expense',4000),Cr('Cash',6000)],'January to April is 4 months: $100,000 × 12% × 4/12 = $4,000 of new expense.')]),
+  K('b9-d','C9.1 · A note across two fiscal years','On August 1, Year 1, a company borrows $60,000 on a 9-month, 10% note: principal and interest are due at maturity (May 1, Year 2). Year-end is December 31.',[
+   {l:'Interest accrued at December 31, Year 1 ($)',n:2500,pre:'$',x:'$60,000 × 10% × 5/12 (Aug.–Dec.).'},
+   {l:'Interest expense for Year 2 ($)',n:2000,pre:'$',x:'$60,000 × 10% × 4/12 (Jan.–Apr.).'},
+   {l:'Total interest on the note ($)',n:4500,pre:'$',x:'$60,000 × 10% × 9/12.'},
+   {l:'Total cash paid at maturity ($)',n:64500,pre:'$',x:'$60,000 + $4,500.'}],'',4),
+  JE('b9-e','C9.1 · Journal entries','Record the note issued on August 1, Year 1.',[
+   TX('(a)','August 1, Year 1: borrows $60,000 cash on a 9-month, 10% note.',[D('Cash',60000),Cr('Notes payable',60000)]),
+   TX('(b)','December 31, Year 1: accrue interest.',[D('Interest expense',2500),Cr('Interest payable',2500)]),
+   TX('(c)','May 1, Year 2: pay the note and all the interest in cash.',[D('Notes payable',60000),D('Interest payable',2500),D('Interest expense',2000),Cr('Cash',64500)],'Total interest of $4,500 = $2,500 (Year 1) + $2,000 (Year 2).')]),
+  E('b9-f','Effect of current liability transactions','Show the effect of each event on the accounting equation.',
+   ['Assets','Liabilities','Stockholders’ equity'],EF,[
+   ['Borrows $60,000 cash by signing a note payable.',['+','+','0']],
+   ['Accrues interest at year-end (not yet paid).',['0','+','-'],'Interest expense reduces equity; interest payable is a new liability.'],
+   ['Pays the note and all the interest at maturity (interest was accrued last year).',['-','-','-'],'Total cash out: liabilities fall by the note and accrued interest; the Year 2 interest reduces equity.'],
+   ['A customer pays cash in advance for a service to be performed next month.',['+','+','0'],'Deferred (unearned) revenue is a liability.'],
+   ['Reclassifies the part of a long-term note due next year as a current liability.',['0','0','0'],'Total liabilities do not change; only the classification does.']],5),
+  C('b9-g','Contingent liabilities · Record, disclose or ignore?','A contingent liability depends on a future event. If the loss is probable AND can be reasonably estimated it is recorded; if probable but not estimable, or reasonably possible, it is disclosed in the notes; if remote, nothing is required.',
+   [['Treatment',['Record a liability and a loss','Disclose in the notes','No disclosure']]],[
+   ['Lawyers believe a loss is probable and estimate it at $200,000 (C9.2)','Record a liability and a loss','Both conditions are met, so it must be accrued, not just disclosed.'],
+   ['A lawsuit that is probable, but the amount cannot be reasonably estimated','Disclose in the notes'],
+   ['A lawsuit whose loss is reasonably possible, with an estimate of $80,000','Disclose in the notes'],
+   ['A lawsuit whose loss is reasonably possible, with no way of estimating it','Disclose in the notes'],
+   ['A claim with only a slight chance of success against the company (remote)','No disclosure']],5),
+  C('b9-h','US GAAP vs IFRS · The meaning of “probable”','US GAAP treats “probable” as roughly more than 70% likely. IFRS treats it as “more likely than not” (more than 50%). Both apply when the amount can be reasonably estimated.',
+   [['US GAAP',['Record a liability','Disclose in the notes','No disclosure']],['IFRS',['Record a liability','Disclose in the notes','No disclosure']]],[
+   ['A 60% chance of losing, amount estimable',['Disclose in the notes','Record a liability'],'This is exactly the difference: IFRS records it, US GAAP only discloses it.'],
+   ['An 85% chance of losing, amount estimable',['Record a liability','Record a liability']],
+   ['A 55% chance of losing, amount estimable',['Disclose in the notes','Record a liability']],
+   ['A 3% chance of losing (remote)',['No disclosure','No disclosure']]],4),
+  K('b9-i','C9.3 · Current portion of long-term debt','At December 31 a company has a $12 million long-term note. $3 million of principal is due within the next 12 months; the rest matures later. Amounts in dollars.',[
+   {l:'Reported as a current liability ($)',n:3000000,pre:'$',x:'The principal due in the next 12 months.'},
+   {l:'Reported as a long-term liability ($)',n:9000000,pre:'$',x:'$12,000,000 − $3,000,000.'},
+   {l:'Why is the note split?',opts:['To show how much cash is needed within the coming year','To reduce the total amount owed','To avoid paying interest'],key:'To show how much cash is needed within the coming year',x:'Total liabilities are unchanged: the split only improves the classification.'}],'',3)
+ ];
+
+ BUILD['BUS1103:10']=[
+  C('b10-a','Secured or unsecured debt?','Secured debt is backed by specific assets pledged as collateral; unsecured debt relies on the borrower’s integrity and general earning power.',
+   [['Type',['Secured','Unsecured']]],[
+   ['Debt backed by a pledge of the company’s factory building (C10.2)','Secured'],
+   ['Debt issued on the strength of the company’s general earning power only','Unsecured'],
+   ['A loan where the bank can seize the delivery trucks if the company defaults','Secured'],
+   ['Bonds with no collateral, issued to the public by a well-known company','Unsecured']],4),
+  C('b10-b','Bonds: advantage or disadvantage?','Compare issuing bonds with issuing more stock or borrowing from a single bank.',
+   [['Effect',['Advantage','Disadvantage']]],[
+   ['Bondholders do not vote, so the current stockholders keep control','Advantage'],
+   ['Part of the interest expense is tax-deductible','Advantage'],
+   ['Money borrowed at a low rate and invested at a higher rate raises returns for shareholders','Advantage'],
+   ['Interest must be paid every period, even if the company has a loss (bankruptcy risk)','Disadvantage'],
+   ['The principal must be repaid (or refinanced) on a set date, hurting future cash flows','Disadvantage'],
+   ['Bonds can be traded on exchanges, so investors accept a lower interest rate (liquidity)','Advantage','Investors value the ability to sell before maturity, which lowers the company’s borrowing cost.']],6),
+  K('b10-c','Bonds issued at par · Cash flows (official illustration)','On January 1, 2025 a company issues $100,000 of 10% bonds, interest paid each June 30 and December 31, maturing on December 31, 2026. The market rate is also 10%.',[
+   {l:'Semiannual cash interest ($)',n:5000,pre:'$',x:'$100,000 × 10% × ½.'},
+   {l:'Number of interest payments over the life',n:4,x:'2 years × 2.'},
+   {l:'Market rate per half-year (%)',n:5,u:'%',x:'10% ÷ 2.'},
+   {l:'Issue price: present value of the cash flows ($)',n:100000,pre:'$',x:'When the market rate equals the coupon rate, PV = face value.'},
+   {l:'Total interest paid over the life ($)',n:20000,pre:'$',x:'4 × $5,000.'}],'',5),
+  JE('b10-d','Bonds issued at par · Journal entries (official illustration)','Record the bond issuance and the first two interest payments.',[
+   TX('(a)','January 1, 2025: issues the $100,000 bonds at par for cash.',[D('Cash',100000),Cr('Bonds payable',100000)]),
+   TX('(b)','June 30, 2025: pays the semiannual interest.',[D('Interest expense',5000),Cr('Cash',5000)],'$100,000 × 10% × ½.'),
+   TX('(c)','December 31, 2025: pays the semiannual interest.',[D('Interest expense',5000),Cr('Cash',5000)])]),
+  G('b10-e','Bonds at par · Interest schedule','The same $100,000, 10% bonds issued at par (semiannual interest). Complete the schedule. The principal is repaid at maturity, after the last interest payment.',
+   [{h:'Date',g:true},{h:'Cash interest paid ($)'},{h:'Interest expense ($)'},{h:'Bonds payable, book value ($)'}],
+   [['June 30, 2025',5000,5000,100000],['December 31, 2025',5000,5000,100000],['June 30, 2026',5000,5000,100000],['December 31, 2026',5000,5000,100000]],0.01,
+   'Issued at par, the bonds are recorded at face value and there is no premium or discount to amortize: interest expense equals the cash interest and the book value never moves from $100,000.',8),
+  K('b10-f','C10.1 · $200,000 bonds issued at par','A company issues $200,000 of 8% bonds at par on January 1: interest on June 30 and December 31, 5-year term.',[
+   {l:'Semiannual interest ($)',n:8000,pre:'$',x:'$200,000 × 8% × ½.'},
+   {l:'Interest expense for the first year ($)',n:16000,pre:'$',x:'2 × $8,000.'},
+   {l:'Book value of the bonds at the end of the first year ($)',n:200000,pre:'$',x:'Issued at par: the book value stays at $200,000.'},
+   {l:'Total interest over the 5 years ($)',n:80000,pre:'$',x:'10 payments × $8,000.'}],'',4),
+  JE('b10-g','C10.1 · Journal entries','Record the issuance and the first year’s interest.',[
+   TX('(a)','January 1: issues $200,000 of 8% bonds at par.',[D('Cash',200000),Cr('Bonds payable',200000)]),
+   TX('(b)','June 30: pays semiannual interest.',[D('Interest expense',8000),Cr('Cash',8000)]),
+   TX('(c)','December 31: pays semiannual interest.',[D('Interest expense',8000),Cr('Cash',8000)],'Recorded identically on each interest date.')]),
+  K('b10-h','P10-2 style · Issue price and interest (original numbers)','Original exercise in the style of P10-2 (the Moodle worksheet has no figures): a company issues $500,000 of 6% bonds with a 3-year term, interest paid semiannually. The market rate is 6%.',[
+   {l:'Semiannual cash interest ($)',n:15000,pre:'$',x:'$500,000 × 6% × ½.'},
+   {l:'Number of interest periods',n:6,x:'3 years × 2.'},
+   {l:'Market rate per period (%)',n:3,u:'%',x:'6% ÷ 2.'},
+   {l:'Issue price ($)',n:500000,pre:'$',x:'Market rate = coupon rate, so the bonds sell at par.'},
+   {l:'Interest expense each period ($)',n:15000,pre:'$',x:'Equal to the cash interest when issued at par.'},
+   {l:'Total cash paid to investors over the life, interest plus principal ($)',n:590000,pre:'$',x:'6 × $15,000 + $500,000.'}],'',6),
+  C('b10-i','Where does it go on the income statement?','Interest on bonds relates to financing, not to day-to-day operations, so it is reported separately, just below income from operations.',
+   [['Section',['Operating expenses','Below income from operations (financing)']]],[
+   ['Salaries expense','Operating expenses'],
+   ['Rent expense','Operating expenses'],
+   ['Depreciation expense','Operating expenses'],
+   ['Interest expense on bonds payable','Below income from operations (financing)','It is a cost of financing, not of operating the business.'],
+   ['Interest expense on a long-term note','Below income from operations (financing)']],5)
+ ];
+
+ BUILD['BUS1103:11']=[
+  K('b11-a','Authorized, issued, outstanding and treasury shares','A company’s charter authorizes 150,000 shares of $25 par common stock. It has sold 60,000 shares to the public and later buys back 8,000 of them.',[
+   {l:'Authorized shares',n:150000,x:'The maximum the charter allows.'},
+   {l:'Issued shares',n:60000,x:'Shares sold to the public (buy-backs stay “issued”).'},
+   {l:'Treasury shares',n:8000,x:'Issued shares reacquired by the company.'},
+   {l:'Outstanding shares',n:52000,x:'60,000 − 8,000.'},
+   {l:'Unissued shares',n:90000,x:'150,000 − 60,000.'}],'',5),
+  C('b11-b','Rights attached to each type of share','Common stockholders vote and receive dividends. Treasury shares have no stockholder rights while held. Preferred stock has dividend priority but usually no vote.',
+   [['Votes?',['Yes','No']],['Receives dividends?',['Yes','No']]],[
+   ['A common share held by an outside investor (outstanding)',['Yes','Yes']],
+   ['A treasury share held by the company',['No','No'],'Treasury stock carries no voting, dividend or other rights.'],
+   ['A preferred share (typical terms)',['No','Yes'],'Dividend priority, but typically no vote.'],
+   ['An authorized share that has never been sold (unissued)',['No','No']]],4),
+  JE('b11-c','Issuing common stock','Record each sale of $1 par value common stock for cash.',[
+   TX('(a)','Initial public offering: the company sells 10,000 shares of $1 par common stock for $12 per share.',[D('Cash',120000),Cr('Common stock',10000),Cr('Additional paid-in capital',110000)],'Par value ($1 × 10,000) goes to Common stock; the rest of the cash received goes to Additional paid-in capital.'),
+   TX('(b)','Seasoned offering: sells 5,000 more shares at $15 per share.',[D('Cash',75000),Cr('Common stock',5000),Cr('Additional paid-in capital',70000)])]),
+  JE('b11-d','Treasury stock (official illustration)','A company repurchases 100,000 of its own shares at $140 each. Later, in separate scenarios, it reissues 10,000 of these shares. In scenarios (c) and (d), Additional paid-in capital, treasury stock already has a $100,000 credit balance.',[
+   TX('(a)','Repurchase of 100,000 shares at $140.',[D('Treasury stock',14000000),Cr('Cash',14000000)],'Treasury stock is a contra-equity account, not an asset.'),
+   TX('(b)','Scenario 1: reissues 10,000 shares at $150 (above cost).',[D('Cash',1500000),Cr('Treasury stock',1400000),Cr('Additional paid-in capital, treasury stock',100000)],'The $10 per share above cost is credited to APIC, treasury stock: no gain is ever reported.'),
+   TX('(c)','Scenario 2: reissues 10,000 shares at $130 (below cost).',[D('Cash',1300000),D('Additional paid-in capital, treasury stock',100000),Cr('Treasury stock',1400000)],'The $100,000 shortfall is absorbed by the existing APIC, treasury stock.'),
+   TX('(d)','Scenario 3: reissues 10,000 shares at $120 (a $200,000 shortfall).',[D('Cash',1200000),D('Additional paid-in capital, treasury stock',100000),D('Retained earnings',100000),Cr('Treasury stock',1400000)],'Once APIC, treasury stock is used up, the rest of the shortfall is charged to Retained earnings.')],8),
+  JE('b11-e','C11.1 · Treasury stock repurchase and reissuance','A company repurchases 5,000 shares at $50 and later reissues 2,000 of them at $55.',[
+   TX('(a)','Repurchase of 5,000 shares at $50.',[D('Treasury stock',250000),Cr('Cash',250000)]),
+   TX('(b)','Reissues 2,000 shares at $55.',[D('Cash',110000),Cr('Treasury stock',100000),Cr('Additional paid-in capital, treasury stock',10000)],'2,000 × $50 = $100,000 at cost; the $5 per share excess is $10,000.')]),
+  JE('b11-f','Cash dividend: the three key dates','On September 20 the board declares a $200,000 cash dividend to stockholders of record on October 5, payable December 8.',[
+   TX('(a)','September 20: declaration date.',[D('Retained earnings',200000),Cr('Dividends payable',200000)],'The dividend becomes a liability as soon as it is declared.'),
+   TX('(b)','October 5: date of record.',[],'No entry on the date of record: it only fixes who will be paid.'),
+   TX('(c)','December 8: payment date.',[D('Dividends payable',200000),Cr('Cash',200000)])],5),
+  K('b11-g','Small stock dividend (official additional question)','Common stock: $25 par, 60,000 shares issued and outstanding ($1,500,000); paid-in capital in excess of par $525,000; retained earnings $675,000. On February 5 the directors declare a 20% stock dividend, distributable February 28. The market price is $40 on February 5 and $34 on February 28.',[
+   {l:'New shares to be distributed',n:12000,x:'60,000 × 20%.'},
+   {l:'Value of the dividend at market price ($)',n:480000,pre:'$',x:'12,000 × $40, the price on the DECLARATION date.'},
+   {l:'Par value portion ($)',n:300000,pre:'$',x:'12,000 × $25.'},
+   {l:'Credited to paid-in capital in excess of par ($)',n:180000,pre:'$',x:'$480,000 − $300,000.'},
+   {l:'Price used to value the dividend',opts:['$40 (declaration date)','$34 (distribution date)'],key:'$40 (declaration date)',x:'The $34 price on February 28 does not affect either entry.'}],'',5),
+  JE('b11-h','Small stock dividend · Journal entries','Record the declaration and the distribution of the 20% stock dividend of the previous exercise.',[
+   TX('(a)','February 5: declaration.',[D('Retained earnings',480000),Cr('Common stock dividend distributable',300000),Cr('Additional paid-in capital',180000)],'The official solution credits “paid-in capital in excess of par”: the same equity account as APIC here.'),
+   TX('(b)','February 28: distribution of the shares.',[D('Common stock dividend distributable',300000),Cr('Common stock',300000)])]),
+  G('b11-i','Stockholders’ equity before and after the stock dividend','Complete the equity section after the 20% stock dividend (declaration and distribution both recorded).',
+   [{h:'Item',g:true},{h:'Before ($)',g:true},{h:'After ($)'}],
+   [['Common stock, $25 par',1500000,1800000],['Paid-in capital in excess of par',525000,705000],['Retained earnings',675000,195000],['Total stockholders’ equity',2700000,2700000]],0.01,
+   'Common stock +$300,000; paid-in capital +$180,000; retained earnings −$480,000. The total is unchanged at $2,700,000: a stock dividend only moves amounts between equity accounts.',4),
+  JE('b11-j','Large stock dividend at par','A company has 100,000 shares of $2 par common stock outstanding, trading at $30. It declares and distributes a 50% stock dividend (a large dividend, recorded at par).',[
+   TX('(a)','Records the 50% stock dividend: 50,000 new shares.',[D('Retained earnings',100000),Cr('Common stock',100000)],'50,000 × $2 par. Large stock dividends are valued at par, small ones at market price.')],2),
+  C('b11-k','Small, large or split?','A stock dividend below roughly 20–25% is “small” (recorded at market value); a larger one is recorded at par; a stock split requires no journal entry.',
+   [['Recorded…',['At market value','At par value','No journal entry']]],[
+   ['A 20% stock dividend (official additional question)','At market value'],
+   ['A 10% stock dividend','At market value'],
+   ['A 50% stock dividend','At par value'],
+   ['A 100% stock dividend','At par value'],
+   ['A 2-for-1 stock split','No journal entry','Shares double and par value per share halves; total par value is unchanged.']],5),
+  G('b11-l','Stock split · 2-for-1','A company has 3,000 shares of $0.02 par value stock and performs a two-for-one stock split. Complete the table.',
+   [{h:'Item',g:true},{h:'Before the split',g:true},{h:'After the split'}],
+   [['Shares outstanding',3000,6000],['Par value per share ($)',0.02,0.01],['Total par value ($)',60,60]],0.001,
+   'Shares double, par value per share halves, total par value stays at $60. No journal entry is made.',3),
+  E('b11-m','Effect on stockholders’ equity','Show the effect of each transaction.',
+   ['Total stockholders’ equity','Total par value of common stock','Retained earnings'],EF,[
+   ['Declares a cash dividend.',['-','0','-'],'Retained earnings falls and a liability is created.'],
+   ['Distributes a small stock dividend.',['0','+','-'],'A transfer inside equity: the total is unchanged.'],
+   ['Performs a 2-for-1 stock split.',['0','0','0']],
+   ['Repurchases treasury stock for cash.',['-','0','0'],'Treasury stock is a contra-equity account, so total equity falls.']],4),
+  K('b11-n','Preferred dividends (official illustration)','6%, $20 par preferred stock (2,000 shares outstanding) and $10 par common stock (5,000 shares outstanding). The preferred stock is cumulative.',[
+   {l:'Annual preferred dividend entitlement ($)',n:2400,pre:'$',x:'$20 × 6% × 2,000 shares.'},
+   {l:'(a) $3,000 declared: paid to preferred ($)',n:2400,pre:'$',x:'The preferred is served first.'},
+   {l:'(a) $3,000 declared: paid to common ($)',n:600,pre:'$',x:'$3,000 − $2,400.'},
+   {l:'(b) $30,000 declared, 2 years in arrears: paid to preferred ($)',n:7200,pre:'$',x:'$2,400 current + 2 × $2,400 arrears.'},
+   {l:'(b) $30,000 declared, 2 years in arrears: paid to common ($)',n:22800,pre:'$',x:'$30,000 − $7,200.'}],'',5),
+  G('b11-o','C11.3 · Cumulative or noncumulative?','5%, $100 par preferred stock, 1,000 shares outstanding. No dividend was paid last year. This year the company declares $20,000 in total. Allocate it in each case.',
+   [{h:'Preferred stock is…',g:true},{h:'To preferred ($)'},{h:'To common ($)'}],
+   [['Cumulative (last year’s dividend in arrears)',10000,10000],['Noncumulative (last year’s dividend lost)',5000,15000]],0.01,
+   'Annual entitlement = $100 × 5% × 1,000 = $5,000. Cumulative: $5,000 arrears + $5,000 current = $10,000 to preferred, $10,000 to common. Noncumulative: the missed year is lost, so preferred gets only $5,000 and common $15,000.',4)
+ ];
+}
