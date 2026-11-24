@@ -596,7 +596,7 @@ function addLesson(course,ttl,n,withEx,lidOverride,opt){
 /* ---------- automatic planning (new lessons from the Word files, new dates) ---------- */
 const dayAdd=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const d0=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
-function finalsStart(){const f=S.deadlines.find(x=>/final exam/i.test(x.title));return f?d0(f.when):dayAdd(d0(Date.now()),60)}
+function finalsStart(){const f=S.deadlines.filter(x=>/final exam/i.test(x.title)).map(x=>+d0(x.when));return f.length?new Date(Math.min(...f)):dayAdd(d0(Date.now()),60)}
 function autoPlan(){
  S.auto=S.auto||{};let ch=false;const now=d0(Date.now()),horizon=dayAdd(finalsStart(),-1);
  // 1) lessons that exist in the Word files but not in the plan
