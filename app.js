@@ -175,7 +175,11 @@ function pickItems(cid){
 }
 
 /* ---------- content from the Word files ---------- */
-function courseDoc(cid){return (typeof CONTENT!=='undefined'&&CONTENT.courses&&CONTENT.courses[cid])||null}
+const MOCKD={};
+function courseDoc(cid){const d=(typeof CONTENT!=='undefined'&&CONTENT.courses&&CONTENT.courses[cid])||null;
+ if(typeof MOCKS==='undefined'||!MOCKS[cid])return d;
+ if(!MOCKD[cid]||MOCKD[cid].base!==d)MOCKD[cid]={base:d,doc:Object.assign({},d||{},{lessons:Object.assign({},(d&&d.lessons)||{},{xmock:MOCKS[cid]})})};
+ return MOCKD[cid].doc}
 function blocksHtml(arr,ctx){
  let out='',ul=false,ti=0,pend='';
  for(const b of arr){
@@ -215,7 +219,7 @@ function exBody(l){
   out+=`<div class="sh">${esc(s.title)}</div>${s.items.map((it,i)=>{const q={n:String(i+1),t:[{t:'p',x:it.q}],ans:[{t:'a',x:it.a}]};CD.classify(q);return qCard(q,{course:k.split(':')[0],num:'s'+CD.hash(k),lt:s.title,sec:''})}).join('')}${s.note?`<div class="sf">${esc(s.note)}</div>`:''}`});
  const hasB=typeof BUILD!=='undefined'&&!!BUILD[l.id];
  if(hasB&&!BREPLACE(l))out+=`<div class="sh">Active drills · you build the answer</div><div class="doc">${builderHtml(l)}</div>`;
- if(doc&&doc.ex&&doc.ex.length||BREPLACE(l))out+=`<div class="sh">${BREPLACE(l)?'Exercises · you build every answer':'From your Word file'}</div><div class="doc">${exHtml(l,exFix(l,(doc&&doc.ex)||[]))}</div>`;
+ if(doc&&doc.ex&&doc.ex.length||BREPLACE(l))out+=`<div class="sh">${BREPLACE(l)?'Exercises · you build every answer':l.num==='xmock'?'Mock final exam':'From your Word file'}</div><div class="doc">${exHtml(l,exFix(l,(doc&&doc.ex)||[]))}</div>`;
  const has=keys.some(k=>exSet(k))||(doc&&doc.ex&&doc.ex.length)||hasB;
  if(!has)out+=`<div class="empty" style="margin-top:12px">${ic('clip')}<b>No practice set written yet</b>Do the official exercises above. Original practice questions are added by the weekly update.</div>`;
  return out+`<div class="finrow"><button class="btn" data-act="exfin">${ic('check')} Finish exercises</button></div>`;
@@ -1145,7 +1149,7 @@ function qCard(q,ctx){
   else res=`<div class="xr ${st.ok?'ok':'bad'}"><b>${st.score}/${q.parts.length} correct</b>${st.ok?'':'<p class="xnote">Added to your flashcards.</p>'}</div>`;
  }else{
   if(tabs.length&&!st.show)body+=tabs.map(t=>`<div class="xbar"><button class="btn tint sm tprac" data-act="xtable" data-q="${id}" data-j="${q.ans.filter(b=>b.t==='table').indexOf(t)}">${ic('clip')} Fill in the table · ~${tMins(t.rows)} min</button></div>`).join('');
-  const sj=(q.stem||[]).join(' '),numq=!tabs.length&&/\d/.test(CD.ansText(q))&&/\d/.test(sj)&&/(calculat|comput|find|determin|how much|how many|what is|what are|what would|\bPED\b|elasticit|revenue|equilibri|\bcost|price|profit|income|quantity|%)/i.test(sj);
+  const sj=(q.stem||[]).join(' '),numq=!tabs.length&&!/^Essay\b/i.test((q.stem||[''])[0])&&/\d/.test(CD.ansText(q))&&/\d/.test(sj)&&/(calculat|comput|find|determin|how much|how many|what is|what are|what would|\bPED\b|elasticit|revenue|equilibri|\bcost|price|profit|income|quantity|%)/i.test(sj);
   if(numq)body+=`<div class="xpr"><span class="pl">Result</span><input class="tin xin" data-xq="${id}" data-k="num" inputmode="decimal" autocomplete="off" value="${esc(st.num||'')}" placeholder="your number" ${st.show?'disabled':''}></div>`;
   if(!tabs.length||st.show||st.txt)body+=`<textarea class="edta xta" rows="${numq?2:3}" data-xq="${id}" data-k="txt" placeholder="${numq?'Working or explanation (optional)':'Your answer…'}" ${st.show?'disabled':''}>${esc(st.txt||'')}</textarea>`;
   if(!st.show)body+=`<div class="xbar"><button class="btn tint sm" data-act="xshow" data-q="${id}">Show answer</button></div>`;
