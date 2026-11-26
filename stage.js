@@ -1,9 +1,9 @@
 /* ---------- Stage: internship interview preparation (Hub). Content lives in stagedata*.js ---------- */
-const STAGE={cats:[{id:'fin',title:'Finance and financing',sub:'Venture capital, private equity and LBO, audit, valuation',color:'#0e7490'}],units:[]};
-const ST_PLANNED=[['Strategy and marketing','Frameworks, case questions'],['Hospitality and real estate','Hotels, asset management'],['Sport, travel and experience business','Your long-term concept'],['Behavioural and motivation','Stories, strengths, fit']];
-const stT=()=>{if(!S.stage)S.stage={};['t','q','z'].forEach(k=>{S.stage[k]=S.stage[k]||{}});S.stage.log=S.stage.log||[];return S.stage};
-const stMerge=(a,b)=>{const o={};['t','q','z'].forEach(k=>{o[k]=Object.assign({},a&&a[k]);Object.entries((b&&b[k])||{}).forEach(([id,v])=>{const y=o[k][id];if(!y||(v.ts||0)>=(y.ts||0))o[k][id]=v})});o.log=pcMergeList(a&&a.log,b&&b.log);return o};
-let ST={cat:null,unit:null,tab:'terms',open:null,run:null,fc:null,mock:null,pend:null};
+const STAGE={cats:[{id:'fin',title:'Finance and financing',sub:'Venture capital, private equity and LBO, audit, valuation',color:'#0e7490'},{id:'cons',title:'Strategy and consulting',sub:'Frameworks, case interviews, market sizing, fit questions',color:'#7c3aed'}],units:[]};
+const ST_PLANNED=[['Marketing and brand','Positioning, launch plans'],['Hospitality and real estate','Hotels, asset management'],['Sport, travel and experience business','Your long-term concept'],['Behavioural and motivation','Stories, strengths, fit']];
+const stT=()=>{if(!S.stage)S.stage={};['t','q','z'].forEach(k=>{S.stage[k]=S.stage[k]||{}});S.stage.log=S.stage.log||[];S.stage.co=S.stage.co||[];return S.stage};
+const stMerge=(a,b)=>{const o={};['t','q','z'].forEach(k=>{o[k]=Object.assign({},a&&a[k]);Object.entries((b&&b[k])||{}).forEach(([id,v])=>{const y=o[k][id];if(!y||(v.ts||0)>=(y.ts||0))o[k][id]=v})});o.log=pcMergeList(a&&a.log,b&&b.log);o.co=pcMergeList(a&&a.co,b&&b.co);return o};
+let ST={page:null,coTrack:'VC and start-up',coOpen:null,cat:null,unit:null,tab:'terms',open:null,run:null,fc:null,mock:null,pend:null};
 const stDraft=()=>pcLS('lu-st-draft')||{};
 document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.stf){const d=stDraft();d[el.dataset.stf]=el.value;pcLS('lu-st-draft',d)}});
 const stShuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -12,8 +12,8 @@ const stBar=(p,c)=>`<div style="height:6px;border-radius:3px;background:var(--fi
 const stUnit=id=>STAGE.units.find(u=>u.id===id);
 const stUnits=cat=>STAGE.units.filter(u=>u.cat===cat);
 const stTid=(u,i)=>u.id+'t'+i, stQid=(u,i)=>u.id+'q'+i, stZid=(u,i)=>u.id+'z'+i;
-const stQItem=id=>{const m=id.match(/^(f\d+)z(\d+)$/);if(!m)return null;const u=stUnit(m[1]);return u&&u.quiz[+m[2]]?{u,z:u.quiz[+m[2]]}:null};
-const stQQ=id=>{const m=id.match(/^(f\d+)q(\d+)$/);if(!m)return null;const u=stUnit(m[1]);return u&&u.qs[+m[2]]?{u,q:u.qs[+m[2]]}:null};
+const stQItem=id=>{const m=id.match(/^([a-z]\d+)z(\d+)$/);if(!m)return null;const u=stUnit(m[1]);return u&&u.quiz[+m[2]]?{u,z:u.quiz[+m[2]]}:null};
+const stQQ=id=>{const m=id.match(/^([a-z]\d+)q(\d+)$/);if(!m)return null;const u=stUnit(m[1]);return u&&u.qs[+m[2]]?{u,q:u.qs[+m[2]]}:null};
 function stProg(u){
  const T=stT(),nt=u.terms.length,nq=u.qs.length,nz=u.quiz.length;
  const kt=u.terms.filter((_,i)=>(T.t[stTid(u,i)]||{}).b>=2).length;
@@ -22,7 +22,7 @@ function stProg(u){
  return {kt,nt,kq,nq,kz,nz,pct:(kt/nt+kq/nq+kz/nz)/3};
 }
 function stDue(){const T=stT(),t=today();let n=0;STAGE.units.forEach(u=>u.terms.forEach((_,i)=>{const x=T.t[stTid(u,i)];if(x&&x.due<=t)n++}));return n}
-function stTileSub(){const d=stDue();if(d)return d+' terms to review';const all=STAGE.units.map(stProg),done=all.filter(p=>p.pct>=.95).length;return done?done+' of '+all.length+' units done':'Interview prep'}
+function stTileSub(){const d=stDue(),f=typeof stFu==='function'?stFu():0;if(f&&!d)return f+' to follow up';if(d)return d+' terms to review';const all=STAGE.units.map(stProg),done=all.filter(p=>p.pct>=.95).length;return done?done+' of '+all.length+' units done':'Interview prep'}
 function stQueue(u){const T=stT(),t=today();const due=[],fresh=[];u.terms.forEach((x,i)=>{const s=T.t[stTid(u,i)];if(!s)fresh.push(i);else if(s.due<=t)due.push(i)});return due.concat(fresh)}
 function stRate(id,r){const T=stT();T.q[id]={r,ts:Date.now()};save()}
 function stGrade(id,ok){const T=stT(),s=T.t[id],steps=[0,0,3,7,14,30];const b=!ok?1:(s&&s.b>=2?Math.min(5,s.b+1):2);T.t[id]={b,due:stDay(steps[b]),ts:Date.now()};save()}
@@ -33,8 +33,9 @@ function stMistakes(us){const T=stT();return stZIds(us).filter(id=>T.z[id]&&!T.z
 function stStats(){const T=stT(),all=STAGE.units.map(stProg);const z=Object.values(T.z),ok=z.filter(x=>x.ok).length;
  return {terms:all.reduce((a,p)=>a+p.kt,0),nt:all.reduce((a,p)=>a+p.nt,0),qs:all.reduce((a,p)=>a+p.kq,0),nq:all.reduce((a,p)=>a+p.nq,0),acc:z.length?Math.round(ok/z.length*100):null}}
 /* ---- views ---- */
-function stBack(){return ST.cat?(ST.unit?'Path':'Stage'):'Hub'}
+function stBack(){if(ST.page==='targets')return 'Stage';return ST.cat?(ST.unit?'Path':'Stage'):'Hub'}
 function vStage(){
+ if(ST.page==='targets')return `<div class="view"><div class="navbar"><button class="back" data-act="stup">${ic('chevl')}Stage</button></div>${stTargets()}</div>`;
  const nav=ST.cat?`<div class="navbar"><button class="back" data-act="stup">${ic('chevl')}${esc(stBack())}</button></div>`:navbar('Hub');
  if(ST.mock)return `<div class="view">${nav}${stMockView()}</div>`;
  if(ST.run)return `<div class="view">${nav}${stRunView()}</div>`;
@@ -51,6 +52,7 @@ function stHome(){
  return `<p class="mute" style="margin:0 0 12px">A path of terms, theories and interview answers to master before you apply. Terms carry the French name, because the interviews will be in French.</p>
  <div class="stats" style="margin-bottom:14px"><div class="stat"><b>${s.terms}/${s.nt}</b><span>terms known</span></div><div class="stat"><b>${s.qs}/${s.nq}</b><span>answers solid</span></div><div class="stat"><b>${s.acc==null?'—':s.acc+' %'}</b><span>quiz right</span></div></div>
  <div class="eyebrow" style="margin:6px 0">Categories</div><div class="grp">${cats}</div>
+ <div class="eyebrow" style="margin:16px 0 6px">Your search</div><div class="grp"><button class="cell" data-act="stpage" data-k="targets"><span class="t"><b>Companies to contact</b><span>${stCoSub()}</span></span>${ic('chev','chev')}</button></div>
  <div style="margin-top:14px"><button class="btn" data-act="stmock">Mock interview · 5 questions</button></div>
  ${d?`<div style="margin-top:10px"><button class="btn tint" data-act="stdue">Review ${d} terms due</button></div>`:''}
  <div class="eyebrow" style="margin:18px 0 6px">Coming next</div><div class="grp">${plan}</div>`;
@@ -123,7 +125,7 @@ function stMockView(){
 /* ---- actions ---- */
 function stSecs(t0,n,per){return Math.min((Date.now()-(t0||Date.now()))/1000,n*per)}
 Object.assign(A,{
- stup(){if(ST.mock||ST.run||ST.fc){ST.mock=null;ST.run=null;ST.fc=null}else if(ST.unit){ST.unit=null;ST.open=null;ST.pend=null}else ST.cat=null;render();window.scrollTo(0,0)},
+ stup(){if(ST.page){ST.page=null;ST.coOpen=null}else if(ST.mock||ST.run||ST.fc){ST.mock=null;ST.run=null;ST.fc=null}else if(ST.unit){ST.unit=null;ST.open=null;ST.pend=null}else ST.cat=null;render();window.scrollTo(0,0)},
  stcat(el){ST.cat=el.dataset.id;render();window.scrollTo(0,0)},
  stunit(el){ST.unit=el.dataset.id;ST.tab='terms';ST.open=null;ST.pend=null;render();window.scrollTo(0,0)},
  sttab(el){ST.tab=el.dataset.k;ST.open=null;ST.pend=null;render()},
@@ -149,5 +151,46 @@ Object.assign(A,{
  stmshow(){ST.mock.show=true;render()},
  stmrate(el){const M=ST.mock;stRate(M.items[M.i],+el.dataset.r);M.i++;M.show=false;if(M.i>=M.items.length)effAdd('stage',stSecs(M.t0,M.items.length,150));render();window.scrollTo(0,0)},
  stmockend(){const M=ST.mock;if(M&&M.i>0&&M.i<M.items.length)effAdd('stage',stSecs(M.t0,M.i,150));ST.mock=null;render();window.scrollTo(0,0)}
+});
+
+/* ---- companies to contact (internship search tracker) ---- */
+const ST_TRACKS=['VC and start-up','Consulting','Private equity','Hotels and real estate','Other'];
+const ST_STAT=['To contact','Contacted','Replied','Interview','Offer','Declined'];
+const ST_SUGG={'VC and start-up':['Partech','Alven','Isai','Serena','Breega','Elaia','Daphni','Kima Ventures','Newfund','Bpifrance','Station F'],'Consulting':['Roland Berger','Oliver Wyman','Kearney','L.E.K. Consulting','Strategy&','Capgemini Invent','Eurogroup Consulting','Wavestone','Sia Partners','Advancy','Archery Strategy Consulting','EY-Parthenon','Deloitte','PwC','KPMG']};
+const stCo=()=>stT().co.filter(x=>!x.del);
+const stFuDue=x=>x.fu&&x.fu<=today()&&x.status!=='Offer'&&x.status!=='Declined';
+function stFu(){return stCo().filter(stFuDue).length}
+function stSentWeek(){const lim=Date.now()-7*864e5;return stCo().filter(x=>x.sent&&x.sent>=lim).length}
+function stCoSub(){const l=stCo();if(!l.length)return 'Note the firms to approach, with status and follow-up';const f=stFu();return l.length+' companies · '+stSentWeek()+' contacted this week'+(f?' · '+f+' to follow up':'')}
+let stCoTmr=null;
+function stCoSave(){clearTimeout(stCoTmr);stCoTmr=setTimeout(save,500)}
+document.addEventListener('input',e=>{const el=e.target;if(!el||!el.dataset||!el.dataset.stco)return;const x=stT().co.find(y=>y.id===el.dataset.id);if(!x)return;x[el.dataset.stco]=el.value;x.mod=Date.now();stCoSave();if(el.dataset.stco==='fu')render()});
+function stTargets(){
+ const T=stT(),d=stDraft(),L=stCo().slice().reverse(),tr=ST.coTrack,sug=(ST_SUGG[tr]||[]).filter(n=>!L.some(x=>x.name.toLowerCase()===n.toLowerCase()));
+ const week=stSentWeek(),goal=5;
+ const row=x=>{const o=ST.coOpen===x.id,fu=stFuDue(x);return `<div class="tmm"><button class="cell" data-act="stcoopen" data-id="${x.id}"><span class="t"><b style="font-size:15px;white-space:normal">${esc(x.name)}</b><span style="white-space:normal">${esc(x.track)}${x.contact?' · '+esc(x.contact):''}${x.fu?' · follow up '+esc(x.fu):''}</span></span><span class="badge ${fu||x.status==='To contact'?'red':''}" style="${fu||x.status==='To contact'?'':'background:var(--fill);color:var(--label)'}">${fu?'Follow up':esc(x.status)}</span>${ic(o?'chevd':'chev','chev')}</button>${o?`<div class="tmx"><div class="chips" style="flex-wrap:wrap">${ST_STAT.map(s=>`<button class="btn sm ${x.status===s?'':'gray'}" data-act="stcostat" data-id="${x.id}" data-v="${s}">${s}</button>`).join('')}</div>
+  <input class="pcta" style="padding:9px 12px;margin-top:8px" data-stco="contact" data-id="${x.id}" placeholder="Who to contact, role, how (LinkedIn, email)" value="${esc(x.contact||'')}">
+  <label class="mute small" style="display:block;margin:8px 2px 2px">Follow up on</label><input type="date" class="pcta" style="padding:8px 12px" data-stco="fu" data-id="${x.id}" value="${esc(x.fu||'')}">
+  <textarea class="pcta" style="margin-top:8px" rows="3" data-stco="note" data-id="${x.id}" placeholder="Notes: what you sent, what they said, next step">${esc(x.note||'')}</textarea>
+  <div style="margin-top:8px"><button class="btn sm gray" data-act="stcodel" data-id="${x.id}">Remove from the list</button></div></div>`:''}</div>`};
+ const grp=ST_STAT.map(s=>({s,l:L.filter(x=>x.status===s)})).filter(g=>g.l.length);
+ return `${title('Companies to contact','Stage')}<p class="mute" style="margin:0 0 10px">Your list for the June and July 2027 internship. Add a firm, note who to contact, and set a follow-up date. Aim for about ${goal} new contacts a week; "Contacted" counts when you change the status.</p>
+ <div class="stats" style="margin-bottom:14px"><div class="stat"><b>${L.length}</b><span>companies</span></div><div class="stat"><b>${week}/${goal}</b><span>contacted this week</span></div><div class="stat"><b>${stFu()}</b><span>to follow up</span></div></div>
+ <div class="card" style="margin-bottom:12px"><div class="chips" style="margin-bottom:8px;flex-wrap:wrap">${ST_TRACKS.map(t=>`<button class="btn sm ${tr===t?'':'gray'}" data-act="stcotrack" data-v="${t}">${t}</button>`).join('')}</div>
+ <input class="pcta" style="padding:10px 12px;margin-bottom:8px" data-stf="con" placeholder="Company name" value="${esc(d.con||'')}">
+ <input class="pcta" style="padding:10px 12px;margin-bottom:8px" data-stf="coc" placeholder="Who to contact (optional)" value="${esc(d.coc||'')}">
+ <button class="btn" data-act="stcoadd">Add to my list</button></div>
+ ${sug.length?`<details style="margin-bottom:12px"><summary class="mute">Ideas for ${esc(tr)} (tap to add)</summary><div class="chips" style="margin-top:8px">${sug.map(n=>`<button class="btn sm gray" data-act="stcosug" data-v="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div><p class="mute small" style="margin:8px 0 0">Examples only: check on each careers page or LinkedIn that they take interns, and find the right person (Hunter.io for the email, LinkedIn for the name).</p></details>`:''}
+ ${grp.length?grp.map(g=>`<div class="eyebrow" style="margin:14px 0 6px">${g.s} · ${g.l.length}</div><div class="grp">${g.l.map(row).join('')}</div>`).join(''):`<p class="mute">Nothing yet. Start with five firms you would really like to work for.</p>`}`;
+}
+function stCoAdd(name,contact){const n=(name||'').trim();if(n.length<2)return false;const T=stT();if(T.co.some(x=>!x.del&&x.name.toLowerCase()===n.toLowerCase()))return false;T.co.push({id:pcId(),ts:Date.now(),mod:Date.now(),name:n,track:ST.coTrack,contact:(contact||'').trim(),status:'To contact',fu:'',note:''});save();return true}
+Object.assign(A,{
+ stpage(el){ST.page=el.dataset.k;render();window.scrollTo(0,0)},
+ stcotrack(el){ST.coTrack=el.dataset.v;render()},
+ stcoadd(){const d=stDraft();if(stCoAdd(d.con,d.coc)){d.con='';d.coc='';pcLS('lu-st-draft',d)}render()},
+ stcosug(el){stCoAdd(el.dataset.v,'');render()},
+ stcoopen(el){ST.coOpen=ST.coOpen===el.dataset.id?null:el.dataset.id;render()},
+ stcostat(el){const x=stT().co.find(y=>y.id===el.dataset.id);if(!x)return;const v=el.dataset.v;if(v==='Contacted'&&x.status!=='Contacted'){x.sent=Date.now();if(!x.fu){const d=new Date();d.setDate(d.getDate()+7);x.fu=dkey(d)}}x.status=v;x.mod=Date.now();save();render()},
+ stcodel(el){const x=stT().co.find(y=>y.id===el.dataset.id);if(x){x.del=1;x.mod=Date.now();ST.coOpen=null;save();render()}}
 });
 VMAP.stage=vStage;

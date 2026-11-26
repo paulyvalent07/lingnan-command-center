@@ -468,7 +468,7 @@ function vHub(){
  ${tile('button','data-act="open" data-v="tage"','#e11d48','target','Tage Mage',typeof tmNextSub==='function'?tmNextSub():'Test prep')}
  ${tile('button','data-act="open" data-v="news"','#0f766e','globe','News',typeof nwTile==='function'?nwTile():'Newsletter',typeof nwUnread==='function'?nwUnread()||'':'')}
 
- ${tile('button','data-act="open" data-v="stage"','#0e7490','cap','Stage',typeof stTileSub==='function'?stTileSub():'Interview prep',typeof stDue==='function'?stDue()||'':'')}
+ ${tile('button','data-act="open" data-v="stage"','#0e7490','cap','Stage',typeof stTileSub==='function'?stTileSub():'Interview prep',typeof stDue==='function'?(stDue()+(typeof stFu==='function'?stFu():0))||'':'')}
  ${tile('button','data-act="open" data-v="ielts"','#e11d48','globe','IELTS',typeof ieTileSub==='function'?ieTileSub():'Target band 8',typeof ieDue==='function'?ieDue()||'':'')}
  ${tile('button','data-act="open" data-v="hk"','#2563eb','flag','Hong Kong',typeof hkTileSub==='function'?hkTileSub():'Fiches and jury questions','')}
  ${tile('button','data-act="open" data-v="orals"','#c2410c','flag','Orals',typeof orTileSub==='function'?orTileSub():'Texts to learn')}
