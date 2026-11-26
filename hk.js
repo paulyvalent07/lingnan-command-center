@@ -1,18 +1,16 @@
-/* ---------- Hong Kong (Hub): fiches for jury questions, journal of impressions, people met. Content in hkdata*.js ---------- */
+/* ---------- Hong Kong (Hub): fiches for jury questions, journal of impressions. Content in hkdata*.js ---------- */
 const hkT=()=>{if(!S.hk)S.hk={};const T=S.hk;['t','q','z','n'].forEach(k=>{T[k]=T[k]||{}});T.j=T.j||[];T.p=T.p||[];T.log=T.log||[];return T};
 const hkMerge=(a,b)=>{const o={};['q','z','n'].forEach(k=>{o[k]=Object.assign({},a&&a[k]);Object.entries((b&&b[k])||{}).forEach(([id,v])=>{const y=o[k][id];if(!y||(v.ts||0)>=(y.ts||0))o[k][id]=v})});o.t={};['j','p','log'].forEach(k=>{o[k]=pcMergeList(a&&a[k],b&&b[k])});return o};
 let HKV={page:null,unit:null,tab:'notes',open:null,run:null,mock:null,pend:null,msg:''};
 const HK_TAGS=['Society','Food','Study','Work','Politics','Language','Other'];
-const HK_GOAL=10;
 const hkUnit=id=>HK.units.find(u=>u.id===id);
 const hkQid=(u,i)=>u.id+'q'+i,hkZid=(u,i)=>u.id+'z'+i;
 const hkQItem=id=>{const m=id.match(/^(h\d+)z(\d+)$/);if(!m)return null;const u=hkUnit(m[1]);return u&&u.quiz[+m[2]]?{u,z:u.quiz[+m[2]]}:null};
 const hkQQ=id=>{const m=id.match(/^(h\d+)q(\d+)$/);if(!m)return null;const u=hkUnit(m[1]);return u&&u.qs[+m[2]]?{u,q:u.qs[+m[2]]}:null};
 const hkDraft=()=>pcLS('lu-hk-draft')||{};
-document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.hkf){const d=hkDraft();d[el.dataset.hkf]=el.value;pcLS('lu-hk-draft',d);if(el.dataset.hkf==='jt'){const b=document.querySelector('[data-act=hkjsave]');if(b)b.disabled=el.value.trim().length<5}if(el.dataset.hkf==='pn'){const b=document.querySelector('[data-act=hkpsave]');if(b)b.disabled=el.value.trim().length<2}}});
+document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.hkf){const d=hkDraft();d[el.dataset.hkf]=el.value;pcLS('lu-hk-draft',d);if(el.dataset.hkf==='jt'){const b=document.querySelector('[data-act=hkjsave]');if(b)b.disabled=el.value.trim().length<5}}});
 function hkProg(u){const T=hkT(),nq=u.qs.length,nz=u.quiz.length;const rd=T.n[u.id]?1:0,kq=u.qs.filter((_,i)=>(T.q[hkQid(u,i)]||{}).r===3).length,kz=u.quiz.filter((_,i)=>(T.z[hkZid(u,i)]||{}).ok).length;return {rd,kq,nq,kz,nz,pct:(rd+kq/nq+kz/nz)/3}}
-const hkLocal=()=>hkT().p.filter(x=>!x.del&&x.local).length;
-function hkTileSub(){const l=hkLocal(),all=HK.units.map(hkProg),done=all.filter(p=>p.pct>=.95).length;return done?done+' of '+all.length+' fiches done':(l?l+'/'+HK_GOAL+' locals met':'Fiches and jury questions')}
+function hkTileSub(){const all=HK.units.map(hkProg),done=all.filter(p=>p.pct>=.95).length;return done?done+' of '+all.length+' fiches done':'Fiches and jury questions'}
 function hkStats(){const T=hkT(),all=HK.units.map(hkProg),z=Object.values(T.z),ok=z.filter(x=>x.ok).length;return {read:all.reduce((a,p)=>a+p.rd,0),n:all.length,qs:all.reduce((a,p)=>a+p.kq,0),nq:all.reduce((a,p)=>a+p.nq,0),acc:z.length?Math.round(ok/z.length*100):null}}
 function hkPick(pool,n){const T=hkT();const sc=id=>{const a=T.z[id];return !a?0:a.ok?2+(a.ts/1e13):-1+(a.ts/1e13)};return stShuf(pool).sort((x,y)=>sc(x)-sc(y)).slice(0,n).map(id=>({id,idx:stShuf([0,1,2,3]),a:null}))}
 const hkZIds=us=>us.flatMap(u=>u.quiz.map((_,i)=>hkZid(u,i)));
@@ -23,17 +21,17 @@ function vHk(){
  const sub=HKV.run||HKV.mock||HKV.unit||HKV.page;
  const nav=sub?`<div class="navbar"><button class="back" data-act="hkup">${ic('chevl')}${HKV.run||HKV.mock?(HKV.unit?'Fiche':'Hong Kong'):(HKV.unit?'Hong Kong':'Hong Kong')}</button></div>`:navbar('Hub');
  let b;
- if(HKV.mock)b=hkMockView();else if(HKV.run)b=hkRunView();else if(HKV.unit)b=hkUnitView();else if(HKV.page==='journal')b=hkJournal();else if(HKV.page==='people')b=hkPeople();else b=hkHome();
+ if(HKV.mock)b=hkMockView();else if(HKV.run)b=hkRunView();else if(HKV.unit)b=hkUnitView();else if(HKV.page==='journal')b=hkJournal();else b=hkHome();
  return `<div class="view">${nav}${b}</div>`;
 }
 function hkHome(){
- const s=hkStats(),T=hkT(),m=hkMist().length,l=hkLocal(),nj=T.j.filter(x=>!x.del).length;
+ const s=hkStats(),T=hkT(),m=hkMist().length,nj=T.j.filter(x=>!x.del).length;
  const rows=HK.units.map((u,i)=>{const p=hkProg(u);return `<button class="cell has-ico" data-act="hkunit" data-id="${u.id}"><span class="sq" style="--c:#2563eb"><b style="font-size:15px">${i+1}</b></span><span class="t"><b style="white-space:normal">${esc(u.title)}</b><span style="white-space:normal">${esc(u.sub)}</span><span>${p.rd?'Read':'Not read'} · ${p.kq}/${p.nq} answers · ${p.kz}/${p.nz} quiz</span>${stBar(p.pct,'#2563eb')}</span>${ic('chev','chev')}</button>`}).join('');
  return `${title('Hong Kong','Fiches for your jury questions')}
  <p class="mute" style="margin:0 0 12px">What to know, what to say and what to notice. The current-affairs facts are dated: check the news before each interview.</p>
  <div class="stats" style="margin-bottom:14px"><div class="stat"><b>${s.read}/${s.n}</b><span>fiches read</span></div><div class="stat"><b>${s.qs}/${s.nq}</b><span>answers solid</span></div><div class="stat"><b>${s.acc==null?'—':s.acc+' %'}</b><span>quiz right</span></div></div>
  <div class="eyebrow" style="margin:6px 0">My Hong Kong</div>
- <div class="grp"><button class="cell" data-act="hkpage" data-k="journal"><span class="t"><b>What struck me</b><span>${nj?nj+' notes':'Write down what you notice, while it is fresh'}</span></span>${ic('chev','chev')}</button><button class="cell" data-act="hkpage" data-k="people"><span class="t"><b>People I met</b><span>${l} of ${HK_GOAL} conversations with locals${stBar(l/HK_GOAL,'#2563eb')}</span></span>${ic('chev','chev')}</button></div>
+ <div class="grp"><button class="cell" data-act="hkpage" data-k="journal"><span class="t"><b>What struck me</b><span>${nj?nj+' notes':'Write down what you notice, while it is fresh'}</span></span>${ic('chev','chev')}</button></div>
  <div class="eyebrow" style="margin:16px 0 6px">The fiches</div><div class="grp">${rows}</div>
  <div style="margin-top:14px"><button class="btn" data-act="hkmix">Mixed quiz · 10 questions</button></div>
  ${m?`<div style="margin-top:10px"><button class="btn tint" data-act="hkmixm">Redo my quiz mistakes (${m})</button></div>`:''}
@@ -93,18 +91,6 @@ function hkJournal(){
  <div class="eyebrow" style="margin:18px 0 6px">${L.length} note${L.length===1?'':'s'}</div>
  <div class="grp">${L.map(x=>`<div class="cell"><span class="t"><b style="font-size:15px;white-space:normal;font-weight:500">${esc(x.txt)}</b><span>${esc(x.tag)} · ${hkDate(x.ts)}</span></span><button class="btn sm gray" data-act="hkjdel" data-id="${x.id}">Delete</button></div>`).join('')}</div>`;
 }
-function hkPeople(){
- const T=hkT(),d=hkDraft(),loc=!!d.ploc,L=T.p.filter(x=>!x.del).slice().reverse(),l=hkLocal();
- return `${title('People I met','Hong Kong')}<p class="mute" style="margin:0 0 10px">Goal: ${HK_GOAL} real conversations with Hongkongese people, not only exchange students. Write down who, where and the sentence that taught you something. The best jury stories come from here.</p>
- <div class="card" style="margin-bottom:12px"><b>${l} of ${HK_GOAL}</b> local conversations${stBar(Math.min(1,l/HK_GOAL),'#2563eb')}<p class="mute small" style="margin:8px 0 0">Ideas: a classmate in a group project, a stall owner or cha chaan teng regular, a local society or sports club, a language exchange, a neighbour in the dorm, a volunteering day.</p></div>
- <input class="pcta" style="padding:10px 12px;margin-bottom:8px" data-hkf="pn" placeholder="First name or description" value="${esc(d.pn||'')}">
- <input class="pcta" style="padding:10px 12px;margin-bottom:8px" data-hkf="pw" placeholder="Where and how we met" value="${esc(d.pw||'')}">
- <textarea class="pcta" data-hkf="pl" rows="3" placeholder="What I learned or what surprised me">${esc(d.pl||'')}</textarea>
- <div class="chips" style="margin:8px 0"><button class="btn sm ${loc?'':'gray'}" data-act="hkploc">${loc?'✓ ':''}Hongkongese (local)</button></div>
- <button class="btn" data-act="hkpsave" ${(d.pn||'').trim().length<2?'disabled':''}>Save</button>
- <div class="eyebrow" style="margin:18px 0 6px">${L.length} conversation${L.length===1?'':'s'}</div>
- <div class="grp">${L.map(x=>`<div class="cell"><span class="t"><b style="font-size:15px;white-space:normal">${esc(x.name)}${x.local?' · local':''}</b><span style="white-space:normal">${esc([x.where,x.learn].filter(Boolean).join(' — '))}</span><span>${hkDate(x.ts)}</span></span><button class="btn sm gray" data-act="hkpdel" data-id="${x.id}">Delete</button></div>`).join('')}</div>`;
-}
 /* ---- actions ---- */
 function hkSecs(t0,n,per){return Math.min((Date.now()-(t0||Date.now()))/1000,n*per)}
 Object.assign(A,{
@@ -131,9 +117,6 @@ Object.assign(A,{
  hkjtag(el){const d=hkDraft();d.jtag=el.dataset.v;pcLS('lu-hk-draft',d);render()},
  hkjsave(){const d=hkDraft(),t=(d.jt||'').trim();if(t.length<5)return;const T=hkT();T.j.push({id:pcId(),ts:Date.now(),mod:Date.now(),txt:t,tag:d.jtag||'Society'});d.jt='';pcLS('lu-hk-draft',d);effAdd('hk',90);save();render()},
  hkjdel(el){const x=hkT().j.find(y=>y.id===el.dataset.id);if(x){x.del=1;x.mod=Date.now();save();render()}},
- hkjcopy(el){const L=hkT().j.filter(x=>!x.del).slice(-15).map(x=>'- ['+x.tag+'] '+x.txt).join('\n');pcCopy(`I am an exchange student in Hong Kong and I prepare interviews for business schools and internships (in French and English). Here are my raw notes about what struck me:\n\n${L}\n\nTurn them into 3 interview stories. For each: a title, then Situation, what I observed or did, what I learned, and how it connects to a career in finance or venture capital (about 120 words, first person, natural spoken English). Then tell me which notes are too vague and what concrete detail I should add.`,el)},
- hkploc(){const d=hkDraft();d.ploc=!d.ploc;pcLS('lu-hk-draft',d);render()},
- hkpsave(){const d=hkDraft(),n=(d.pn||'').trim();if(n.length<2)return;const T=hkT();T.p.push({id:pcId(),ts:Date.now(),mod:Date.now(),name:n,where:(d.pw||'').trim(),learn:(d.pl||'').trim(),local:!!d.ploc});['pn','pw','pl','ploc'].forEach(k=>delete d[k]);pcLS('lu-hk-draft',d);effAdd('hk',120);save();render()},
- hkpdel(el){const x=hkT().p.find(y=>y.id===el.dataset.id);if(x){x.del=1;x.mod=Date.now();save();render()}}
+ hkjcopy(el){const L=hkT().j.filter(x=>!x.del).slice(-15).map(x=>'- ['+x.tag+'] '+x.txt).join('\n');pcCopy(`I am an exchange student in Hong Kong and I prepare interviews for business schools and internships (in French and English). Here are my raw notes about what struck me:\n\n${L}\n\nTurn them into 3 interview stories. For each: a title, then Situation, what I observed or did, what I learned, and how it connects to a career in finance or venture capital (about 120 words, first person, natural spoken English). Then tell me which notes are too vague and what concrete detail I should add.`,el)}
 });
 VMAP.hk=vHk;
