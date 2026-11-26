@@ -93,7 +93,7 @@ function save(){S.mod=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))
 let view='today',param=null,hist=[],insR='d',insBy='course',lTab='lesson',wakeLock=null,sessOpen=false,P=null,hud=false;
 const TABS=[['today','Today','timer'],['courses','Courses','book'],['insights','Insights','chart'],['hub','Hub','grid'],['more','More','more']];
 const SUB=['redo','plan','sessions','targets','data'];
-function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','wex','wfb','crit','news','nstory','orals','oral','stage','ielts'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
+function tabOn(k){return view===k||(k==='hub'&&['cards','study','timetable','tage','tmrun','deb','wri','wex','wfb','crit','news','nstory','orals','oral','stage','ielts','hk'].includes(view))||(k==='courses'&&(view==='course'||view==='lesson'))||(k==='more'&&SUB.includes(view))}
 function setTheme(t){S.settings.theme=t;document.documentElement.dataset.theme=t;save()}
 function tabbar(){$('tabbar').innerHTML=TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${tabOn(k)?'on':''}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('')}
 
@@ -410,7 +410,7 @@ function weekdayChart(){
  <div class="axis">${names.map(x=>`<span>${x}</span>`).join('')}</div>`);
 }
 /* ----- effective time in the other modules ----- */
-const EFFM=[['tage','Tage Mage','#af52de'],['wri','Writing','#ff9f0a'],['deb','Debate','#30b0c7'],['crit','Critical thinking','#34c759'],['news','News','#0f766e'],['orals','Orals','#c2410c'],['stage','Internship prep','#0e7490'],['ielts','IELTS','#e11d48']];
+const EFFM=[['tage','Tage Mage','#af52de'],['wri','Writing','#ff9f0a'],['deb','Debate','#30b0c7'],['crit','Critical thinking','#34c759'],['news','News','#0f766e'],['orals','Orals','#c2410c'],['stage','Internship prep','#0e7490'],['ielts','IELTS','#e11d48'],['hk','Hong Kong','#2563eb']];
 function effDev(){try{let d=localStorage.getItem('lu-dev');if(!d){d=Math.random().toString(36).slice(2,6);localStorage.setItem('lu-dev',d)}return d}catch(e){return 'x'}}
 function effAdd(m,sec){if(!(sec>0))return;S.eff=S.eff||{};const day=today(),k=m+':'+day+':'+effDev(),e=S.eff[k]||{m,day,sec:0};e.sec=Math.round((e.sec+sec)*10)/10;e.ts=Date.now();S.eff[k]=e}
 const INSMOD=[['tage','Tage Mage','#af52de'],['wri','Writing','#ff9f0a'],['orals','Orals','#c2410c']];
@@ -470,6 +470,7 @@ function vHub(){
 
  ${tile('button','data-act="open" data-v="stage"','#0e7490','cap','Stage',typeof stTileSub==='function'?stTileSub():'Interview prep',typeof stDue==='function'?stDue()||'':'')}
  ${tile('button','data-act="open" data-v="ielts"','#e11d48','globe','IELTS',typeof ieTileSub==='function'?ieTileSub():'Target band 8',typeof ieDue==='function'?ieDue()||'':'')}
+ ${tile('button','data-act="open" data-v="hk"','#2563eb','flag','Hong Kong',typeof hkTileSub==='function'?hkTileSub():'Fiches and jury questions','')}
  ${tile('button','data-act="open" data-v="orals"','#c2410c','flag','Orals',typeof orTileSub==='function'?orTileSub():'Texts to learn')}
  ${tile('button','data-act="open" data-v="wri"','#b45309','pen','Writing',typeof vocDue==='function'?vocDue().length+' words due':'EN · IT · ES')}
  ${tile('button','data-act="open" data-v="timetable"','#0a84ff','cal','Week',dn+' of '+all.length+' blocks done')}
@@ -674,6 +675,7 @@ function mergeState(r){
  if(typeof nwMerge==='function')o.news=nwMerge(older.news,newer.news);
  if(typeof stMerge==='function')o.stage=stMerge(older.stage,newer.stage);
  if(typeof ieMerge==='function')o.ielts=ieMerge(older.ielts,newer.ielts);
+ if(typeof hkMerge==='function')o.hk=hkMerge(older.hk,newer.hk);
  o.settings=newer.settings||older.settings;
  o.active=L.active;o.brk=L.brk;o.mod=Math.max(L.mod||0,r.mod||0);
  o.dedit=Object.assign({},older.dedit);Object.entries(newer.dedit||{}).forEach(([k,v])=>{const y=o.dedit[k];if(!y||(v.ts||0)>=(y.ts||0))o.dedit[k]=v});
