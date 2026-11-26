@@ -59,10 +59,17 @@ function vHub2(){
   const col=x=>HUB_G.find(g=>g.id===x.g).c;
   body=`<div class="card hneed"><div class="eyebrow" style="margin-bottom:6px">Needs you now</div>${need.length?`<div class="grp" style="background:none">${need.map(x=>hubRow(x,col(x))).join('')}</div>`:`<p style="margin:6px 0 2px"><b>All clear.</b> <span class="mute">Nothing is due today. Pick what you feel like below.</span></p>`}</div>`+groups.map(({g,l})=>`${head(g)}<div class="grp">${l.map(x=>hubRow(x,g.c)).join('')}</div>`).join('');
  }
- return `<div class="view">${title('Hub')}${seg}${hubNext()}<div style="height:6px"></div>${body}<div class="sf">On iPhone the app tiles run a Shortcut with the app's name without spaces (Shortcuts > New shortcut > Open App). On a computer they open the website.</div></div>`;
+ return `<div class="view">${title('Hub')}${seg}${hubNext()}<div style="height:6px"></div>${body}<div class="sf">On iPhone the app tiles run a Shortcut with the app's name without spaces (Shortcuts > New shortcut > Open App). On a computer they open the website.</div><div class="sf" id="hubv" style="text-align:center;opacity:.6"></div></div>`;
+}
+function hubVer(){try{caches.keys().then(k=>{const v=k.filter(x=>/^lu-cc-v\d+$/.test(x)).map(x=>+x.slice(7)).sort((a,b)=>b-a)[0],e=document.getElementById('hubv');if(e&&v)e.textContent='Daily v'+v})}catch(e){}}
+/* tell the person when a new version has been installed in the background */
+if('serviceWorker' in navigator){
+ const had=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had||document.getElementById('updbar'))return;const b=document.createElement('div');b.id='updbar';b.style.cssText='position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:60;background:var(--accent);color:#fff;border-radius:14px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.25)';b.innerHTML='<span>A new version of Daily is ready.</span><button style="background:#fff;color:#000;border-radius:10px;padding:6px 12px;font-weight:600" onclick="location.reload()">Reload</button>';document.body.appendChild(b)});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})});
 }
 Object.assign(A,{
  hubmode(el){HUBMODE=el.dataset.k;try{localStorage.setItem('lu-hub-mode',HUBMODE)}catch(e){}render()},
  hubcal(){HUBCAL=!HUBCAL;try{localStorage.setItem('lu-hub-cal',HUBCAL?'1':'0')}catch(e){}render()}
 });
-VMAP.hub=vHub2;
+VMAP.hub=function(){const s=vHub2();setTimeout(hubVer,50);return s};
